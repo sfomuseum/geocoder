@@ -1,0 +1,50 @@
+footer {
+	padding-top: 2rem;
+	padding-bottom: 2rem;
+}
+
+#map {
+	display: none;
+	height: 40vh;
+	width: 100%;
+	margin-bottom: 1rem;
+}
+
+#advanced {
+	margin-bottom: .5rem;
+}
+
+#advanced-details summary {
+	font-weight: 600;
+	margin-bottom: .5rem;
+}
+
+#results {
+	max-height: 40vh;
+	overflow-y: scroll;
+	font-size: small;
+	display: none;
+	border: 1px solid #eee;
+}
+
+#feedback {
+	font-size:small;
+}
+
+#pagination {
+	margin-bottom: 1rem;
+	font-weight: 700;
+}
+
+.id-link {
+	font-weight: 700;
+	text-decoration: underline;
+}
+
+.pagination-link {
+	text-decoration: underline;
+}
+
+.selected {
+	font-weight: 700!important;
+}

@@ -1,0 +1,15 @@
+CREATE TABLE {{ .Name }} (
+       id INTEGER PRIMARY KEY,
+       parent_id INTEGER NOT NULL,
+       name TEXT NOT NULL,
+       placetype TEXT NOT NULL,
+       country TEXT NOT NULL,
+       latitude DOUBLE NOT NULL,       
+       longitude DOUBLE NOT NULL,
+       is_current INTEGER NOT NULL,
+       inception TEXT NOT NULL,
+       cessation TEXT NOT NULL,
+       hierarchies TEXT NOT NULL,
+       population_rank INTEGER NOT NULL,
+       record_hash TEXT NOT NULL
+);

@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS {{ .Name }} (
+       rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+       minx DOUBLE,
+       maxx DOUBLE,
+       miny DOUBLE,
+       maxy DOUBLE,
+       wofid INTEGER
+);
+
+-- CREATE INDEX `bounds_by_wofid` ON {{ .Name }} (`wofid`);

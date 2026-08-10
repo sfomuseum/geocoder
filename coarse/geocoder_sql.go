@@ -1,0 +1,1076 @@
+package coarse
+
+import (
+	"context"
+	db_sql "database/sql"
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"log/slog"
+	"regexp"
+	"slices"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
+
+	_ "modernc.org/sqlite"
+
+	"github.com/aaronland/go-pagination"
+	"github.com/aaronland/go-pagination/countable"
+	"github.com/paulmach/orb"
+	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/go-database/sql"
+	geocoder_sql "github.com/sfomuseum/geocoder/coarse/sql"
+	"github.com/sfomuseum/geocoder/placeholder"
+	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
+)
+
+// To do: Support wildcard machine tags
+var re_machinetag = regexp.MustCompile(`^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+=[^\s]+$`)
+
+type SQLGeocoder struct {
+	Geocoder
+	db               *db_sql.DB
+	mu               *sync.RWMutex
+	min_query_length int
+	records          []*Record
+	batch_size       int
+	bulk_workers     int
+}
+
+func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
+
+	db, err := sql.OpenWithURI(ctx, uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open database connection, %w", err)
+	}
+
+	db.SetMaxOpenConns(1)
+
+	driver := sql.Driver(db)
+
+	switch driver {
+	case sql.SQLITE_DRIVER:
+
+		db_tables, err := geocoder_sql.SQLiteTables(ctx)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to instantiate SQLite tables, %w", err)
+		}
+
+		db_opts := &sql.ConfigureDatabaseOptions{
+			// https://github.com/pelias/placeholder/blob/master/lib/Database.js
+			Pragma: []string{
+				"PRAGMA JOURNAL_MODE=OFF",
+				"PRAGMA SYNCHRONOUS=OFF",
+				"PRAGMA FOREIGN_KEYS=OFF",
+				"PRAGMA PAGE_SIZE=4096",
+				"PRAGMA CACHE_SIZE=-40000",
+				"PRAGMA JOURNAL_MODE=MEMORY",
+				"PRAGMA TEMP_STORE=MEMORY",
+			},
+			CreateTablesIfNecessary: true,
+			Tables:                  db_tables,
+		}
+
+		err = sql.ConfigureDatabase(ctx, db, db_opts)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to configure database, %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("Unsupported SQL driver, %s", driver)
+	}
+
+	err = db.PingContext(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to ping database, %w", err)
+	}
+
+	mu := new(sync.RWMutex)
+
+	g := &SQLGeocoder{
+		db:               db,
+		mu:               mu,
+		min_query_length: 2,
+		records:          make([]*Record, 0),
+		batch_size:       500,
+		bulk_workers:     50,
+	}
+
+	return g, nil
+}
+
+func (g *SQLGeocoder) PreIndex(ctx context.Context) error {
+
+	driver := sql.Driver(g.db)
+
+	switch driver {
+	case sql.SQLITE_DRIVER:
+
+		q, err := fs.ReadFile(geocoder_sql.FS, "pre_index.sqlite.schema")
+
+		if err != nil {
+			return err
+		}
+
+		_, err = g.db.ExecContext(ctx, string(q))
+		return err
+
+	default:
+		return nil
+	}
+}
+
+func (g *SQLGeocoder) PostIndex(ctx context.Context) error {
+
+	driver := sql.Driver(g.db)
+
+	switch driver {
+	case sql.SQLITE_DRIVER:
+
+		err := g.Flush(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		q, err := fs.ReadFile(geocoder_sql.FS, "post_index.sqlite.schema")
+
+		if err != nil {
+			return err
+		}
+
+		_, err = g.db.ExecContext(ctx, string(q))
+		return err
+
+	default:
+		return nil
+	}
+}
+
+func (g *SQLGeocoder) HasRecordHashChanged(ctx context.Context, rec *Record) (bool, bool, error) {
+
+	compare_hash, err := rec.Hash()
+
+	if err != nil {
+		return false, false, err
+	}
+
+	q := fmt.Sprintf("SELECT record_hash FROM %s WHERE id = ?", geocoder_sql.RECORDS_TABLE_NAME)
+	row := g.db.QueryRowContext(ctx, q, rec.Id)
+
+	var record_hash string
+	err = row.Scan(&record_hash)
+
+	switch {
+	case err == db_sql.ErrNoRows:
+		return false, true, nil
+	case err != nil:
+		return false, false, err
+	default:
+		if record_hash == compare_hash {
+			return true, false, nil
+		}
+
+		return true, true, nil
+	}
+}
+
+func (g *SQLGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) {
+
+	q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = ?", geocoder_sql.RECORDS_TABLE_NAME)
+	row := g.db.QueryRowContext(ctx, q, id)
+
+	var stub int
+	err := row.Scan(&stub)
+
+	switch {
+	case err == db_sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, err
+	default:
+		return true, nil
+	}
+}
+
+func (g *SQLGeocoder) AddRecord(ctx context.Context, rec *Record) error {
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	g.records = append(g.records, rec)
+
+	if len(g.records) >= g.batch_size {
+
+		err := g.addRecords(ctx, g.records...)
+
+		if err != nil {
+			return err
+		}
+
+		g.records = make([]*Record, 0)
+	}
+
+	return nil
+}
+
+func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error {
+
+	logger := slog.Default()
+	logger.Debug("Add bulk records", "count", len(records), "workers", g.bulk_workers)
+
+	tx, err := g.db.BeginTx(ctx, &db_sql.TxOptions{
+		Isolation: db_sql.LevelDefault,
+		ReadOnly:  false,
+	})
+
+	if err != nil {
+		return fmt.Errorf("Failed to begin transaction, %w", err)
+	}
+
+	t1 := time.Now()
+
+	defer func() {
+
+		tx.Rollback()
+
+		if err != nil && err != db_sql.ErrTxDone {
+			logger.Error("Failed to rollback transaction", "error", err)
+		}
+
+		logger.Debug("Time to bulk index records", "count", len(records), "time", time.Since(t1))
+	}()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+
+	throttle := make(chan bool, g.bulk_workers)
+
+	for i := 0; i < g.bulk_workers; i++ {
+		throttle <- true
+	}
+
+	for _, rec := range records {
+
+		<-throttle
+
+		select {
+		case <-ctx.Done():
+			break
+		default:
+			// pass
+		}
+
+		go func(rec *Record) {
+
+			logger := slog.Default()
+			logger = logger.With("id", rec.Id)
+
+			defer func() {
+				throttle <- true
+				done_ch <- true
+			}()
+
+			enc_hierarchies, err := json.Marshal(rec.Hierarchies)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to marshal hierarchies, %w", err)
+				return
+			}
+
+			record_hash, err := rec.Hash()
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to hash record, %w", err)
+				return
+			}
+
+			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", geocoder_sql.RECORDS_TABLE_NAME)
+
+			_, err = tx.ExecContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to insert in to records, %w", err)
+				return
+			}
+
+			// Placetypes (alt)
+
+			pt_stq := fmt.Sprintf("INSERT INTO %s (id, placetype) VALUES(?, ?)", geocoder_sql.PLACETYPES_ALT_TABLE_NAME)
+
+			pt_st, err := tx.Prepare(pt_stq)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to prepare placetypes statement, %w", err)
+				return
+			}
+
+			defer pt_st.Close()
+
+			for _, pt := range rec.PlacetypeAlt {
+
+				_, err = pt_st.ExecContext(ctx, rec.Id, pt)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to execute placetype statement, %w", err)
+					return
+				}
+			}
+
+			// Ancestors
+
+			anc_stq := fmt.Sprintf("INSERT INTO %s (id, ancestor_id) VALUES(?, ?)", geocoder_sql.ANCESTORS_TABLE_NAME)
+			anc_st, err := tx.Prepare(anc_stq)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to prepare ancestors statement, %w", err)
+				return
+			}
+
+			defer anc_st.Close()
+
+			ancestors := make([]int64, 0)
+
+			for _, hier := range rec.Hierarchies {
+
+				for _, id := range hier {
+
+					if !slices.Contains(ancestors, id) {
+						ancestors = append(ancestors, id)
+					}
+				}
+			}
+
+			for _, id := range ancestors {
+
+				_, err = anc_st.ExecContext(ctx, rec.Id, id)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to execute ancestors statement, %w", err)
+					return
+				}
+			}
+
+			// Bounds
+
+			bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, wofid) VALUES(?, ?, ?, ?, ?)", geocoder_sql.BOUNDS_TABLE_NAME)
+			bounds_st, err := tx.Prepare(bounds_stq)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to prepare bounds statement, %w", err)
+				return
+			}
+
+			defer bounds_st.Close()
+
+			for _, b := range rec.Bounds {
+
+				_, err = bounds_st.ExecContext(ctx, b.Min.X(), b.Min.Y(), b.Max.X(), b.Max.Y(), rec.Id)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to execute bounds statement, %w", err)
+					return
+				}
+			}
+
+			// Dates
+
+			start_outer, start_inner, end_inner, end_outer := rec.DateRanges()
+
+			date_fields := []string{
+				"id",
+			}
+
+			date_args := []any{
+				rec.Id,
+			}
+
+			if start_outer != nil {
+				date_fields = append(date_fields, "start_outer")
+				date_args = append(date_args, start_outer.Unix())
+			}
+
+			if start_inner != nil {
+				date_fields = append(date_fields, "start_inner")
+				date_args = append(date_args, start_inner.Unix())
+			}
+
+			if end_inner != nil {
+				date_fields = append(date_fields, "end_inner")
+				date_args = append(date_args, end_inner.Unix())
+			}
+
+			if end_outer != nil {
+				date_fields = append(date_fields, "end_outer")
+				date_args = append(date_args, end_outer.Unix())
+			}
+
+			if len(date_fields) > 1 {
+
+				date_placeholders := make([]string, len(date_fields))
+
+				for i, _ := range date_fields {
+					date_placeholders[i] = "?"
+				}
+
+				date_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (%s) VALUES (%s)", geocoder_sql.DATES_TABLE_NAME, strings.Join(date_fields, ","), strings.Join(date_placeholders, ","))
+
+				_, err := tx.ExecContext(ctx, date_q, date_args...)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to insert dates, %v", err)
+					return
+				}
+			}
+
+			// Tokens
+
+			tok_stq := fmt.Sprintf("INSERT INTO %s (id, token, lang, tag) VALUES(?, ?, ?, ?)", geocoder_sql.TOKENS_TABLE_NAME)
+			tok_st, err := tx.Prepare(tok_stq)
+
+			if err != nil {
+				err_ch <- fmt.Errorf("Failed to prepare token statement, %w", err)
+				return
+			}
+
+			defer tok_st.Close()
+
+			for lang, tag_tokens := range rec.Tokens {
+
+				for tag, tokens := range tag_tokens {
+					_, err = tok_st.ExecContext(ctx, rec.Id, strings.Join(tokens, " "), lang, tag)
+
+					if err != nil {
+						err_ch <- fmt.Errorf("Failed to execute token statement, %w", err)
+						return
+					}
+				}
+			}
+
+		}(rec)
+	}
+
+	remaining := len(records)
+
+	for remaining > 0 {
+		select {
+		case <-done_ch:
+			remaining -= 1
+			// logger.Info("Bulk add", "remaining", remaining)
+		case err := <-err_ch:
+			return err
+		}
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return fmt.Errorf("Failed to commit transaction, %w", err)
+	}
+
+	return nil
+}
+
+func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
+
+	logger := slog.Default()
+	logger = logger.With("id", id)
+
+	tx, err := g.db.BeginTx(ctx, &db_sql.TxOptions{
+		Isolation: db_sql.LevelDefault,
+		ReadOnly:  false,
+	})
+
+	if err != nil {
+		return fmt.Errorf("Failed to begin transaction, %w", err)
+	}
+
+	defer func() {
+
+		tx.Rollback()
+
+		if err != nil && err != db_sql.ErrTxDone {
+			logger.Error("Failed to rollback transaction", "error", err)
+		}
+
+	}()
+
+	tables := []string{
+		geocoder_sql.RECORDS_TABLE_NAME,
+		geocoder_sql.PLACETYPES_ALT_TABLE_NAME,
+		geocoder_sql.DATES_TABLE_NAME,
+		geocoder_sql.BOUNDS_TABLE_NAME,
+		geocoder_sql.ANCESTORS_TABLE_NAME,
+		geocoder_sql.TOKENS_TABLE_NAME,
+	}
+
+	for _, t := range tables {
+
+		var q string
+
+		switch t {
+		case geocoder_sql.BOUNDS_TABLE_NAME:
+			q = fmt.Sprintf("DELETE FROM %s WHERE wofid = ?", t)
+		default:
+			q = fmt.Sprintf("DELETE FROM %s WHERE id = ?", t)
+		}
+
+		_, err := tx.ExecContext(ctx, q, id)
+
+		if err != nil {
+			return fmt.Errorf("Failed to remove %s table, %w", t, err)
+		}
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return fmt.Errorf("Failed to commit transaction, %w", err)
+	}
+
+	return nil
+}
+
+func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagination.Options) ([]*geojson.Feature, pagination.Results, error) {
+
+	logger := slog.Default()
+	t1 := time.Now()
+
+	defer func() {
+		logger.Debug("Time to query", "time", time.Since(t1))
+	}()
+
+	if len(req.Query) < g.min_query_length {
+		return nil, nil, fmt.Errorf("Query below min query length")
+	}
+
+	query_str := g.prepareQuery(req.Query)
+
+	if query_str == "" {
+		return nil, nil, fmt.Errorf("empty or invalid search term")
+	}
+
+	if len(query_str) < g.min_query_length {
+		return nil, nil, fmt.Errorf("Query below min query length")
+	}
+
+	logger = logger.With("query", query_str)
+
+	sb := strings.Builder{}
+
+	sb.WriteString(`
+		SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies
+		FROM tokens_fts f
+		JOIN tokens t ON t.row_id = f.rowid
+		JOIN records r ON r.id = t.id
+        `)
+
+	if len(req.Placetype) > 0 {
+		sb.WriteString(" LEFT JOIN placetypes_alt p ON r.id = p.id")
+	}
+
+	if len(req.BelongsTo) > 0 {
+		sb.WriteString(" JOIN ancestors a ON r.id = a.id")
+	}
+
+	// dates
+
+	if req.DateStarts != nil || req.DateEnds != nil {
+		sb.WriteString(" JOIN dates d ON r.id = d.id")
+	}
+
+	// bounds
+
+	if req.Bounds != nil {
+		sb.WriteString(" JOIN bounds b ON r.id = b.wofid")
+	}
+
+	sb.WriteString(" WHERE f.token MATCH ?")
+
+	args := []any{
+		query_str,
+	}
+
+	// Dates
+
+	if req.DateStarts != nil {
+
+		sb.WriteString(" AND (? <= d.start_outer AND ? <= d.start_inner)")
+		args = append(args, req.DateStarts.Outer.Start)
+		args = append(args, req.DateStarts.Inner.Start)
+	}
+
+	if req.DateEnds != nil {
+
+		sb.WriteString(" AND (d.end_inner <= ? AND d.end_outer <= ?)")
+		args = append(args, req.DateEnds.Inner.End)
+		args = append(args, req.DateEnds.Outer.End)
+	}
+
+	// Bounds
+
+	if req.Bounds != nil {
+
+		coords := []any{
+			req.Bounds.Min.X(),
+			req.Bounds.Max.X(),
+			req.Bounds.Min.Y(),
+			req.Bounds.Max.Y(),
+		}
+
+		sb.WriteString(" AND (b.maxx >= ? AND b.minx <= ? AND b.maxy >= ? AND b.miny <= ?)")
+		args = append(args, coords...)
+	}
+
+	// Placetypes
+
+	if len(req.Placetype) > 0 {
+
+		placeholders := make([]string, len(req.Placetype))
+
+		for i, pt := range req.Placetype {
+			placeholders[i] = "?"
+			args = append(args, pt)
+		}
+
+		for i, pt := range req.Placetype {
+			placeholders[i] = "?"
+			args = append(args, pt)
+		}
+
+		str_placeholders := strings.Join(placeholders, ",")
+
+		sb.WriteString(fmt.Sprintf(" AND (r.placetype IN (%s) OR p.placetype IN (%s))", str_placeholders, str_placeholders))
+	}
+
+	// Belongs to (ancestors)
+
+	if len(req.BelongsTo) > 0 {
+
+		placeholders := make([]string, len(req.BelongsTo))
+
+		for i, anc_id := range req.BelongsTo {
+			placeholders[i] = "?"
+			args = append(args, anc_id)
+		}
+
+		sb.WriteString(fmt.Sprintf(" AND a.ancestor_id IN (%s)", strings.Join(placeholders, ",")))
+	}
+
+	// Language
+
+	if req.Lang != "" {
+		sb.WriteString(" AND r.lang = ?")
+		args = append(args, req.Tag)
+	}
+
+	// Language (x-) tag
+
+	if req.Tag != "" {
+		sb.WriteString(" AND r.tag = ?")
+		args = append(args, req.Tag)
+	}
+
+	// Countries
+
+	if len(req.Country) > 0 {
+
+		placeholders := make([]string, len(req.Country))
+
+		for i, pt := range req.Country {
+			placeholders[i] = "?"
+			args = append(args, pt)
+		}
+
+		sb.WriteString(fmt.Sprintf(" AND r.country IN (%s)", strings.Join(placeholders, ",")))
+	}
+
+	// Is current
+
+	if req.IsCurrent != nil {
+		sb.WriteString(" AND r.is_current = ?")
+		args = append(args, req.IsCurrent.StringFlag())
+	}
+
+	sb.WriteString(" GROUP BY r.id")
+
+	sb.WriteString(`
+		ORDER BY (
+			CASE r.is_current
+				WHEN 1 THEN 0.0
+				WHEN -1 THEN 1.0
+				ELSE 2.0
+                        END
+		) ASC,
+                MIN(CASE t.tag
+				WHEN 'concordance' THEN 0.5
+				WHEN 'preferred'    THEN 1.0
+				WHEN 'colloquial' THEN 2.0
+				WHEN 'variant'    THEN 4.0
+				WHEN 'historical'    THEN 5.0
+				WHEN 'unknown'   THEN 6.0
+				ELSE 10.0
+			END) ASC,
+		 r.population_rank DESC,
+			(CASE r.placetype
+				WHEN 'microhood' THEN 1.0
+				WHEN 'neighbourhood' THEN 1.0
+				WHEN 'borough' THEN 1.5
+				WHEN 'locality' THEN 2.0
+				WHEN 'localadmin' THEN 2.25
+				WHEN 'campus' THEN 2.5
+				WHEN 'postalcode' THEN 2.9
+				WHEN 'county' THEN 3.0
+				WHEN 'region' THEN 4.0
+				WHEN 'country' THEN 5.0	
+				ELSE 10.0
+                        END) ASC,
+                 MIN(f.rank) ASC
+	`)
+
+	page := countable.PageFromOptions(pg_opts)
+	per_page := pg_opts.PerPage()
+
+	sb.WriteString(fmt.Sprintf(" LIMIT %d", per_page))
+
+	if page > 1 {
+		offset := (page - 1) * per_page
+		sb.WriteString(fmt.Sprintf(" OFFSET %d", offset))
+	}
+
+	q := sb.String()
+	//slog.Info(q, "args", args)
+
+	rows, err := g.db.QueryContext(ctx, q, args...)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	var features []*geojson.Feature
+	var total_count int64
+
+	for rows.Next() {
+
+		var rank float64
+		var id int64
+		var parent_id int64
+		var name string
+		var country string
+		var placetype string
+		var is_current int
+		var latitude float64
+		var longitude float64
+		var inception string
+		var cessation string
+		var enc_hierarchies string
+
+		err := rows.Scan(&rank, &total_count, &id, &parent_id, &name, &placetype, &country, &is_current, &latitude, &longitude, &inception, &cessation, &enc_hierarchies)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		props := map[string]any{
+			"wof:id":          id,
+			"wof:parent_id":   parent_id,
+			"wof:name":        name,
+			"wof:country":     country,
+			"wof:placetype":   placetype,
+			"mz:is_current":   is_current,
+			"edtf:inception":  inception,
+			"edtf:cessation":  cessation,
+			"wof:hierarchies": enc_hierarchies,
+			"geocoder:rank":   rank,
+		}
+
+		pt := orb.Point([2]float64{longitude, latitude})
+		f := geojson.NewFeature(pt)
+
+		f.ID = id
+		f.Properties = props
+		features = append(features, f)
+	}
+
+	err = rows.Err()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logger = logger.With("total", total_count)
+
+	wg := new(sync.WaitGroup)
+
+	for _, f := range features {
+
+		wg.Go(func() {
+			g.assignExtra(ctx, f)
+		})
+	}
+
+	wg.Wait()
+
+	pg_rsp, err := countable.NewResultsFromCountWithOptions(pg_opts, total_count)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to create pagination response, %w", err)
+	}
+
+	return features, pg_rsp, nil
+}
+
+func (g *SQLGeocoder) Flush(ctx context.Context) error {
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if len(g.records) > 0 {
+
+		err := g.addRecords(ctx, g.records...)
+
+		if err != nil {
+			return err
+		}
+
+		g.records = make([]*Record, 0)
+	}
+
+	return nil
+}
+
+func (g *SQLGeocoder) Close() error {
+	return g.db.Close()
+}
+
+func (g *SQLGeocoder) assignExtra(ctx context.Context, f *geojson.Feature) error {
+
+	logger := slog.Default()
+	logger = logger.With("id", f.ID)
+
+	err := g.assignHierarchiesAndLabel(ctx, f)
+
+	if err != nil {
+		logger.Warn("Failed to assign label", "error", err)
+	}
+
+	err = g.assignPlacetypeAlt(ctx, f)
+
+	if err != nil {
+		logger.Warn("Failed to assign placetype alt", "error", err)
+	}
+
+	err = g.assignBBox(ctx, f)
+
+	if err != nil {
+		logger.Warn("Failed to assign bbox", "error", err)
+	}
+
+	return nil
+}
+
+func (g *SQLGeocoder) assignBBox(ctx context.Context, f *geojson.Feature) error {
+
+	bounds_q := fmt.Sprintf("SELECT MIN(minx), MIN(miny), MAX(maxx), MAX(maxy) FROM %s WHERE wofid = ?", geocoder_sql.BOUNDS_TABLE_NAME)
+
+	bounds_row := g.db.QueryRowContext(ctx, bounds_q, f.ID)
+
+	var minx float64
+	var miny float64
+	var maxx float64
+	var maxy float64
+
+	err := bounds_row.Scan(&minx, &miny, &maxx, &maxy)
+
+	if err != nil {
+		return fmt.Errorf("Failed to query bounds, %w", err)
+	}
+
+	bounds := orb.Bound{
+		Min: orb.Point([2]float64{minx, miny}),
+		Max: orb.Point([2]float64{maxx, maxy}),
+	}
+
+	f.BBox = geojson.NewBBox(bounds)
+	return nil
+}
+
+func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.Feature) error {
+
+	logger := slog.Default()
+	logger = logger.With("id", f.ID)
+
+	str_hiers := f.Properties.MustString("wof:hierarchies", "")
+
+	if str_hiers == "" {
+		f.Properties["wof:hierarchies"] = make([]map[string]int64, 0)
+		return nil
+	}
+
+	var hiers []map[string]int64
+
+	err := json.Unmarshal([]byte(str_hiers), &hiers)
+
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal hierarchies, %w", err)
+	}
+
+	f.Properties["wof:hierarchies"] = hiers
+
+	if len(hiers) == 0 {
+		return nil
+	}
+
+	// START OF put me in a function
+
+	name := f.Properties.MustString("wof:name")
+	str_pt := f.Properties.MustString("wof:placetype", "")
+
+	labels := []string{
+		name,
+	}
+
+	var parent_id int64
+	f_pid := f.Properties["wof:parent_id"]
+
+	switch f_pid.(type) {
+	case int64:
+		parent_id, _ = f_pid.(int64)
+	default:
+		parent_id = -1
+	}
+
+	label_opts := &hierarchies.AncestorIdsForLabelOptions{
+		Hierarchies: hiers,
+		Placetype:   str_pt,
+		ParentId:    parent_id,
+	}
+
+	name_ids := hierarchies.AncestorIdsForLabel(label_opts)
+
+	for _, id := range name_ids {
+
+		var id_name string
+		var id_placetype string
+		var id_country string
+
+		names_q := fmt.Sprintf("SELECT name, placetype, country from %s WHERE id = ?", geocoder_sql.RECORDS_TABLE_NAME)
+		row := g.db.QueryRowContext(ctx, names_q, id)
+
+		err := row.Scan(&id_name, &id_placetype, &id_country)
+
+		switch {
+		case err == db_sql.ErrNoRows:
+			continue
+		case err != nil:
+			logger.Warn("Failed to query ID for name", "name id", id)
+		default:
+
+			switch id_placetype {
+			case "country":
+				labels = append(labels, id_country)
+			default:
+				labels = append(labels, id_name)
+			}
+		}
+	}
+
+	f.Properties["wof:label"] = strings.Join(labels, ", ")
+	return nil
+}
+
+func (g *SQLGeocoder) assignPlacetypeAlt(ctx context.Context, f *geojson.Feature) error {
+
+	pt_q := fmt.Sprintf("SELECT placetype from %s WHERE id = ?", geocoder_sql.PLACETYPES_ALT_TABLE_NAME)
+
+	pt_rows, err := g.db.QueryContext(ctx, pt_q, f.ID)
+
+	if err != nil {
+		return err
+	}
+
+	defer pt_rows.Close()
+
+	alt_pt := make([]string, 0)
+
+	for pt_rows.Next() {
+
+		var pt string
+		err := pt_rows.Scan(&pt)
+
+		if err != nil {
+			return fmt.Errorf("Failed to scan placetypes row, %w", err)
+		}
+
+		alt_pt = append(alt_pt, pt)
+	}
+
+	err = pt_rows.Err()
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive alt placetypes, %w", err)
+	}
+
+	if len(alt_pt) > 0 {
+		f.Properties["wof:placetype_alt"] = alt_pt
+	}
+
+	return nil
+}
+
+func (g *SQLGeocoder) prepareQuery(input string) string {
+
+	if re_machinetag.MatchString(input) {
+		// To do: Support wildcards
+		input = strings.ReplaceAll(input, ":", "_")
+		input = strings.ReplaceAll(input, "=", "__")
+		return input
+	}
+
+	words := strings.Fields(placeholder.Normalize(input))
+
+	if len(words) == 0 {
+		return ""
+	}
+
+	var sanitized []string
+
+	for _, word := range words {
+
+		// Strip characters that disrupt FTS5 syntax (like raw quotes or dashes)
+		clean := strings.Map(func(r rune) rune {
+			// unicode.IsLetter handles all global alphabets (Greek, Cyrillic, CJK, Arabic, etc.)
+			// unicode.IsNumber handles global digits (0-9, and non-Arabic numeral systems)
+			if unicode.IsLetter(r) || unicode.IsNumber(r) {
+				return r
+			}
+
+			// Keep Unicode letters/numbers if working with global languages
+			return -1
+		}, word)
+
+		if clean != "" {
+			sanitized = append(sanitized, clean)
+		}
+	}
+
+	if len(sanitized) == 0 {
+		return ""
+	}
+
+	lastIdx := len(sanitized) - 1
+	sanitized[lastIdx] = sanitized[lastIdx] + "*"
+
+	return strings.Join(sanitized, " AND ")
+}

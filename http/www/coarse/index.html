@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+	<title>Who's On First coarse geocoder</title>
+	  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	  <meta name="referrer" content="origin">
+	  <meta http-equiv="X-UA-Compatible" content="IE=9" />
+	  <meta name="apple-mobile-web-app-capable" content="yes" />
+	  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	  <meta name="HandheldFriendly" content="true" />
+	  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+	  <link rel="stylesheet" type="text/css" href="css/bootstrap.5.3.8.min.css" />
+	  <link rel="stylesheet" type="text/css" href="css/MarkerCluster.Default.css" />		
+	  <link rel="stylesheet" type="text/css" href="css/leaflet-1.9.4.css" />
+	  <link rel="stylesheet" type="text/css" href="css/index.css" />	
+    </head>
+    <body>
+
+	<div class="container">
+	    
+	    <nav class="navbar navbar-expand-lg x-bg-body-tertiary">
+		<div class="container-fluid">
+		    <a class="navbar-brand" href="#">Geocoder</a>
+		    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		    </button>
+		    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+			    <!--			
+				 <li class="nav-item">
+				 <a class="nav-link active" aria-current="page" href="#">Home</a>
+				 </li>
+				 <li class="nav-item">
+				 <a class="nav-link" href="#">Link</a>
+				 </li>
+				 <li class="nav-item dropdown">
+				 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+				 Dropdown
+				 </a>
+				 <ul class="dropdown-menu">
+				 <li><a class="dropdown-item" href="#">Action</a></li>
+				 <li><a class="dropdown-item" href="#">Another action</a></li>
+				 <li><hr class="dropdown-divider"></li>
+				 <li><a class="dropdown-item" href="#">Something else here</a></li>
+				 </ul>
+				 </li>
+				 <li class="nav-item">
+				 <a class="nav-link disabled" aria-disabled="true">Disabled</a>
+				 </li>
+			    -->
+			</ul>
+			
+			<form class="d-flex" role="search">
+			    <input class="form-control me-2" type="search" placeholder="Search for Who's On First places" id="query" name="query" aria-label="Search"/>
+			    <button class="btn btn-outline-success" type="submit" id="query-submit">Search</button>
+			</form>
+		    </div>
+		</div>
+	    </nav>
+	    
+	    <div id="map" class=""></div>
+	    <div id="advanced">
+		<details id="advanced-details">
+		    <summary>Advanced</summary>
+		    <form class="form" id="advanced-form">
+
+			<div class="mb-3">
+			    <label for="advanced-query" class="form-label">Query string (required)</label>
+			    <input type="text" class="form-control" id="advanced-query" placeholder="Query string">
+			</div>
+
+			<div class="mb-3">
+			    <label for="advanced-placetype" class="form-label">Placetype</label>
+			    <input type="text" class="form-control" id="advanced-placetype" placeholder="Comma-separated list of placetypes">
+			</div>
+
+			<div class="mb-3">
+			    <label for="advanced-country" class="form-label">Country</label>
+			    <input type="text" class="form-control" id="advanced-country" placeholder="Comma-separated list of 2-letter country codes">
+			</div>
+
+			<div class="mb-3">
+			    <label for="advanced-belongsto" class="form-label">Belongs to</label>
+			    <input type="text" class="form-control" id="advanced-belongsto" placeholder="Comma-separated list of WOF IDs">
+			</div>			
+
+			<div class="mb-3">
+			    <label for="advanced-lang" class="form-label">Language</label>
+			    <input type="text" class="form-control" id="advanced-lang" placeholder="3-letter language code">
+			</div>
+
+			<div class="mb-3">
+			    <label for="advanced-tag" class="form-label">Language <q>tag</q></label>
+			    <input type="text" class="form-control" id="advanced-tag" placeholder="Who's On First language classifier">
+			</div>
+			
+			
+			<button class="btn btn-primary" type="submit" id="advanced-submit" disabled="disabled">Search</button>
+		    </form>
+		    </details>
+	    </div>
+	    <div id="feedback" class=""></div>	    
+	    <div id="results" class=""></div>
+	</div>
+	<footer></footer>
+    </body>    
+    <script type="text/javascript" src="javascript/bootstrap.5.3.8.bundle.min.js"></script>    
+    <script type="text/javascript" src="javascript/leaflet-1.9.4.js"></script>
+    <script type="text/javascript" src="javascript/leaflet.markercluster.js"></script>
+    <script type="text/javascript" src="javascript/init.js"></script>      
+</html>

@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS {{ .Name }} (
+       id INTEGER PRIMARY KEY,
+       start_outer INTEGER,
+       start_inner INTEGER,
+       end_inner INTEGER,
+       end_outer INTEGER       
+);
+
+-- CREATE INDEX idx_dates_outer ON dates (start_outer, end_outer);
+-- CREATE INDEX idx_dates_outer_inner ON dates (start_outer, end_inner);
+-- CREATE INDEX idx_dates_inner_outer ON dates (start_inner, end_outer);
+-- CREATE INDEX idx_dates_inner ON dates (start_inner, end_inner);
