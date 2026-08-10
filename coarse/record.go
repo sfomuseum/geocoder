@@ -10,23 +10,48 @@ import (
 	"github.com/sfomuseum/go-edtf/parser"
 )
 
+// Record represents the data stored in the coarse geocoder database.
+// The JSON tags are the same names that appear in Who's On First
+// GeoJSON files.  The struct contains a subset of the full
+// WOF schema – only the fields that are needed for coarse
+// geocoding are retained.
 type Record struct {
-	Id             int64                          `json:"wof:id"`
-	ParentId       int64                          `json:"wof:parent_id"`
-	Name           string                         `json:"wof:name"`
-	Country        string                         `json:"wof:country"`
-	Placetype      string                         `json:"wof:placetype"`
-	PlacetypeAlt   []string                       `json:"wof:placetype_alt"`
-	Hierarchies    []map[string]int64             `json:"wof:hierarchies"`
-	Centroid       *orb.Point                     `json:"wof:centroid"`
-	Bounds         []orb.Bound                    `json:"wof:bounds"`
-	Inception      string                         `json:"edtf:inception,omitempty"`
-	Cessation      string                         `json:"etdf:cessation,omitempty"`
-	PopulationRank int64                          `json:"wof:population_rank,omitempty"`
-	IsCurrent      string                         `json:"mz:is_current,omitempty"`
-	Tokens         map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
+	// Id is the Who's On First identifier of the place.
+	Id int64 `json:"wof:id"`
+	// ParentId is the Who's On First identifier of the parent place.
+	ParentId int64 `json:"wof:parent_id"`
+	// Name is the primary name of the place.
+	Name string `json:"wof:name"`
+	// Country is the ISO 3166‑1 alpha‑2 country code of the place.
+	Country string `json:"wof:country"`
+	// Placetype is the primary Who's On First placetype of the place.
+	Placetype string `json:"wof:placetype"`
+	// PlacetypeAlt contains any alternative placetypes stored in
+	// the Who's On First `wof:placetype_alt` property.
+	PlacetypeAlt []string `json:"wof:placetype_alt"`
+	// Hierarchies contains the ancestor hierarchies for the place.
+	// Each hierarchy is a map of placetype to ancestor ID.
+	Hierarchies []map[string]int64 `json:"wof:hierarchies"`
+	// Centroid is the geographic centroid of the place.
+	Centroid *orb.Point `json:"wof:centroid"`
+	// Bounds is a slice of bounding boxes that enclose the place.
+	Bounds []orb.Bound `json:"wof:bounds"`
+	// Inception is the EDTF representation of the start date of the place.
+	Inception string `json:"edtf:inception,omitempty"`
+	// Cessation is the EDTF representation of the end date of the place.
+	Cessation string `json:"etdf:cessation,omitempty"`
+	// PopulationRank is an integer that indicates relative population size.
+	PopulationRank int64 `json:"wof:population_rank,omitempty"`
+	// IsCurrent indicates whether the place is current (1), not current (0)
+	// or unknown (-1).
+	IsCurrent string `json:"mz:is_current,omitempty"`
+	// Tokens contains tokenised names and concordances indexed for full‑text search.
+	Tokens map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
 }
 
+// Hash returns a SHA‑256 digest of the record in JSON form.  The hash
+// is used to determine whether a record has changed between indexing
+// runs.
 func (r *Record) Hash() (string, error) {
 
 	enc, err := json.Marshal(r)
@@ -39,6 +64,13 @@ func (r *Record) Hash() (string, error) {
 	return fmt.Sprintf("%x", sum), nil
 }
 
+// DateRanges returns the four timestamp boundaries that are stored in a
+// "dates" table.  The returned values are:
+//
+//   - start_outer – the outermost (earliest) start date
+//   - start_inner – the inner (most precise) start date
+//   - end_inner   – the inner end date
+//   - end_outer   – the outermost end date
 func (r *Record) DateRanges() (*edtf.Timestamp, *edtf.Timestamp, *edtf.Timestamp, *edtf.Timestamp) {
 
 	// Note that there are also date range functions in sfomuseum/go-edtf/unix

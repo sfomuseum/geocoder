@@ -6,9 +6,9 @@ Who's On First-focused multi-lingual "coarse" geocoder.
 
 These tools are modeled after the [pelias/placeholder](https://github.com/pelias/placeholder) project. SFO Museum needed something written in Go, with support for the exiting Go language Who's On First tooling and the ability to apply custom filtering (see below). So now this package exists.
 
-## Document
+## Documentation
 
-`godoc` style documentation is incomplete.
+[![Go Reference](https://pkg.go.dev/badge/github.com/sfomuseum/geocoder.svg)](https://pkg.go.dev/github.com/sfomuseum/geocoder)
 
 ## Almost stable
 

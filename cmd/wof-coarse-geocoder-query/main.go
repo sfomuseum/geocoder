@@ -13,11 +13,11 @@ import (
 
 	"github.com/aaronland/go-pagination/countable"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/geocoder"
+	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/go-edtf/unix"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
-	"github.com/sfomuseum/geocoder"
-	"github.com/sfomuseum/geocoder/coarse"
 )
 
 func main() {
