@@ -148,6 +148,8 @@ $> ./bin/wof-coarse-geocoder-index \
 
 ```
 
+_Note that these Who's On First Parquet files are not available for download from the Who's On First servers yet so you'll need to create them manually. SFO Museum might provide alternate downloads in the interim._
+
 That database, in turn, can be supplemented with SFO Museum specific Who's On First style data repositories. For example:
 
 ```
