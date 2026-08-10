@@ -444,6 +444,7 @@ window.addEventListener("load", function load(event){
 
         var tile_layer = L.tileLayer(tile_url, {
             maxZoom: 19,
+	    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         });
 	
         tile_layer.addTo(map);
