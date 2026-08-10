@@ -1,6 +1,6 @@
 # geocoder
 
-Who's On First-focused coarse multi-lingual geocoder.
+Who's On First-focused multi-lingual "coarse" geocoder.
 
 ## Motivation
 
