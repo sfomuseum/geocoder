@@ -12,7 +12,7 @@ These tools are modeled after the [pelias/placeholder](https://github.com/pelias
 
 ## Almost stable
 
-This package and the tools it provides are "almost stable". Which is to say there probably won't be any major changes but there _might_ be. Mostly the question centers on whether or not extra columns needed to be added to certain database tables for improved sorting. It's also possible that the internal `Record` data structure will be changed to make things a bit more flexible. This is discussed in the [Data sources](#datasources) section below.
+This package and the tools it provides are "almost stable". Which is to say there probably won't be any major changes but there _might_ be. Mostly the question centers on whether or not extra columns needed to be added to certain database tables for improved sorting. It's also possible that the internal `Record` data structure will be changed to make things a bit more flexible. This is discussed in the [Data sources](#data-sources) section below.
 
 All of these things account for the initial `v0.9.0` version number. Once things have settled down it will be promoted to `v1.0.0`.
 
