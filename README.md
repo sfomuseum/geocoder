@@ -12,9 +12,9 @@ These tools are modeled after the [pelias/placeholder](https://github.com/pelias
 
 ## Almost stable
 
-This package and the tools it provides are "almost stable". Which is to say there probably won't be any major changes but there _might_ be. Mostly the question centers on whether or not extra columns needed to be added to certain database tables for improved sorting.
+This package and the tools it provides are "almost stable". Which is to say there probably won't be any major changes but there _might_ be. Mostly the question centers on whether or not extra columns needed to be added to certain database tables for improved sorting. It's also possible that the internal `Record` data structure will be changed to make things a bit more flexible. This is discussed in the [Data sources](#datasources) section below.
 
-This accounts for the initial `v0.9.0` version number. Once things have settled down it will be promoted to `v1.0.0`.
+All of these things account for the initial `v0.9.0` version number. Once things have settled down it will be promoted to `v1.0.0`.
 
 ## Geocoding support
 
@@ -56,6 +56,16 @@ For example:
 
 ```
 sql://sqlite?dsn=wof.db
+```
+
+## Data files
+
+This package does not contain any pre-built data files. Data files are created using the `wof-coarse-geocoder-index` tool described below.
+
+SFO Museum has produced a data file containing records from all the [whosonfirst-data-admin-*](https://github.com/whosonfirst-data/?q=whosonfirst-data-admin), [sfomuseum-data-architecture](https://github.com/sfomuseum-data/sfomuseum-data-architecture) and [sfomuseum-data-whosonfirst](https://github.com/sfomuseum-data/sfomuseum-data-whosonfirst) repositories which can be downloaded like this:
+
+```
+$> curl -s -o wof-sfom.db https://static.sfomuseum.org/geocoder/wof-sfom.db
 ```
 
 ## Tools
@@ -476,4 +486,4 @@ type Record struct {
 }
 ```
 
-Going forward the "easiest" thing may be to simply change this data structure to assume that all identifiers are strings and do the extra work, internally, to convert them to and from integer values. Maybe? It's just too soon to think about right now.
+Going forward the "easiest" thing may be to simply change this data structure to assume that all identifiers are strings – specifically machinetag-based string identifiers – and do the extra work, internally, to convert them to and from their source values. Maybe? It's just too soon to think about right now.
