@@ -339,8 +339,10 @@ window.addEventListener("load", function load(event){
 	    draw_results(data);
 	}).catch((err) => {
 	    submit_el.removeAttribute("disabled");
-	    adv_submit_el.removeAttribute("disabled");	    	    
-	    console.error(err);
+	    adv_submit_el.removeAttribute("disabled");
+
+	    feedback_el.innerText = "Failed to geocode query:" + err;
+	    console.error("Failed to geocode query", uri, err);
 	});
 	
     };
@@ -360,6 +362,8 @@ window.addEventListener("load", function load(event){
 	geocode(params);
 
 	results_el.innerHTML = "";
+	feedback_el.innerHTML = "";
+	
 	return false;
     };
 
@@ -411,6 +415,8 @@ window.addEventListener("load", function load(event){
 	geocode(params);
 
 	results_el.innerHTML = "";
+	feedback_el.innerHTML = "";
+	
 	adv_details_el.open = false;
 	return false;
     };
@@ -419,7 +425,7 @@ window.addEventListener("load", function load(event){
     
     const map_u = new URL(location);
     map_u.pathname = map_u.pathname + "map.json";
-
+	
     fetch(map_u.toString()).then(
 	rsp => rsp.json()
     ).then((cfg) => {
@@ -446,7 +452,9 @@ window.addEventListener("load", function load(event){
 	adv_submit_el.removeAttribute("disabled");
     	
     }).catch((err) => {
-	console.error("Failed to retrieve map config", err);
+
+	feedback_el.innerText = "Failed to retrieve map config:" + err;	
+	console.error("Failed to retrieve map config", map_u.toString(), err);
     });;
     
     

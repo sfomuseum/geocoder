@@ -72,7 +72,20 @@ func main() {
 			InitialView: "-180,-90,180,90",
 		}
 
-		maps.AssignMapConfigHandler(map_opts, mux, "/map.json")
+		map_uri := "/map.json"
+
+		if prefix != "" {
+
+			u, err := url.JoinPath(prefix, map_uri)
+
+			if err != nil {
+				log.Fatalf("Failed to add prefix to map config URL, %v", err)
+			}
+
+			map_uri = u
+		}
+		
+		maps.AssignMapConfigHandler(map_opts, mux, map_uri)
 
 		www_handler := http.FileServerFS(www_coarse.FS)
 

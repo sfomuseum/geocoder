@@ -1,10 +1,16 @@
 # geocoder
 
-Who's On First-focused coarse geocoder.
+Who's On First-focused coarse multi-lingual geocoder.
 
 ## Motivation
 
-These tools are modeled after the [pelias/placeholder](https://github.com/pelias/placeholder) project. I needed something written in Go, with support for the exiting Go language Who's On First tooling and the ability to add custom filtering (for example EDTF date strings). So now this package exists.
+These tools are modeled after the [pelias/placeholder](https://github.com/pelias/placeholder) project. SFO Museum needed something written in Go, with support for the exiting Go language Who's On First tooling and the ability to apply custom filtering (see below). So now this package exists.
+
+## Almost stable
+
+This package and the tools it provides are "almost stable". Which is to say there probably won't be any major changes but there _might_ be. Mostly the question centers on whether or not extra columns needed to be added to certain database tables for improved sorting.
+
+This accounts for the initial `v0.9.0` version number. Once things have settled down it will be promoted to `v1.0.0`.
 
 ## Geocoding support
 
@@ -114,7 +120,7 @@ $> ./bin/wof-coarse-geocoder-index \
 2026/08/08 11:21:34 INFO Post-indexing complete time=661.16725ms "time (total)"=6m29.676154166s
 ```
 
-Indexing time can depend a lot on the data source. Files on disk (above) can take a while. Indexing Who's On First Parquet files (produced by the [wof-parquet-export](#) tool in the `whosonfirst/go-whosonfirst` package) is significantly faster, taking only 20-30 minutes to create a geocoding database for all 6 million plus records:
+Indexing time can depend a lot on the data source. Files on disk (above) can take a while. Indexing Who's On First Parquet files (produced by the [wof-parquet-export](https://github.com/whosonfirst/go-whosonfirst) tool in the `whosonfirst/go-whosonfirst` package) is significantly faster, taking only 20-30 minutes to create a geocoding database for all 6 million plus records:
 
 ```
 $> ./bin/wof-coarse-geocoder-index \
@@ -138,7 +144,7 @@ $> ./bin/wof-coarse-geocoder-index \
 
 ```
 
-That database, in turn, can be supplemented with SFO Museum specific Who's On First style data. For example:
+That database, in turn, can be supplemented with SFO Museum specific Who's On First style data repositories. For example:
 
 ```
 $> ./bin/wof-coarse-geocoder-index \
@@ -161,7 +167,7 @@ $> ./bin/wof-coarse-geocoder-index \
 2026/08/08 12:48:44 INFO Post-indexing complete time=6m19.407913166s "time (total)"=15m4.061988625s
 
 $> du -h wof-sfom.db 
-6.9G	wof-sfom.db
+6.5G	wof-sfom.db
 ```
 
 Valid data sources are anything the [whosonfirst/go-whosonfirst/v4/iterate](https://github.com/whosonfirst/go-whosonfirst/tree/main/iterate) package can support. Please consult documentation for details.
@@ -423,8 +429,7 @@ $> curl -s 'http://localhost:8080/api/query/?query=SFO&placetype=airport' | jq
 
 #### Demo mode
 
-When started with the `-demo` flag the server will host a simple web application at its root URL. When you open your web browser to `http://localhost:8080` you'll see something like this:
-
+When started with the `-demo` flag the server will host a simple web application at its root URL. When you open your web browser to `http://localhost:8080` (or whatever you've configured the `-server-uri` flag to be) you'll see something like this:
 
 ![](docs/images/geocoder-demo-launch.png)
 
@@ -466,5 +471,3 @@ type Record struct {
 ```
 
 Going forward the "easiest" thing may be to simply change this data structure to assume that all identifiers are strings and do the extra work, internally, to convert them to and from integer values. Maybe? It's just too soon to think about right now.
-
-
