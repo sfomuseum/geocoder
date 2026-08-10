@@ -9,21 +9,33 @@ import (
 	"github.com/aaronland/go-pagination"
 	"github.com/aaronland/go-pagination/countable"
 	"github.com/paulmach/orb/geojson"
-	"github.com/sfomuseum/go-edtf/unix"
 	"github.com/sfomuseum/geocoder"
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/go-edtf/unix"
 )
 
+// APIResponse represents the JSON structure returned by the
+// HTTP /api/query endpoint.  It contains a pagination object
+// and a GeoJSON FeatureCollection.
 type APIResponse struct {
-	Pagination pagination.Results         `json:"pagination"`
-	Results    *geojson.FeatureCollection `json:"results"`
+	// Pagination contains pagination metadata such as total results, current page and number of pages.
+	Pagination pagination.Results `json:"pagination"`
+	// Results is the GeoJSON FeatureCollection returned by the query.
+	Results *geojson.FeatureCollection `json:"results"`
 }
 
+// CoarseGeocoderHandlerOptions contains configuration options
+// for the HTTP handler that implements the /api/query endpoint.
 type CoarseGeocoderHandlerOptions struct {
-	Geocoder          coarse.Geocoder
+	// Geocoder is the Geocoder instance that will be used  to execute the query.
+	Geocoder coarse.Geocoder
+	// PaginationPerPage is the maximum number of results that should be returned per API request.
 	PaginationPerPage int64
 }
 
+// CoarseGeocoderHandler creates an HTTP handler that exposes the geocoder as a REST API.
+// The handler validates request parameters, performs a query and returns the results in
+// JSON format.
 func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, error) {
 
 	fn := func(rsp http.ResponseWriter, req *http.Request) {

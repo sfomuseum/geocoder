@@ -20,9 +20,9 @@ import (
 	"github.com/aaronland/go-pagination/countable"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
-	"github.com/sfomuseum/go-database/sql"
 	geocoder_sql "github.com/sfomuseum/geocoder/coarse/sql"
 	"github.com/sfomuseum/geocoder/placeholder"
+	"github.com/sfomuseum/go-database/sql"
 	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
 )
 

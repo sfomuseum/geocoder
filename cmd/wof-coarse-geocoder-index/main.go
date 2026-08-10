@@ -15,8 +15,8 @@ import (
 	_ "github.com/whosonfirst/go-whosonfirst/v4/iterate/parquet"
 
 	"github.com/aaronland/go-json-query"
-	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/alt"
 	"github.com/whosonfirst/go-whosonfirst/v4/iterate"
 	"github.com/whosonfirst/go-whosonfirst/v4/uri"

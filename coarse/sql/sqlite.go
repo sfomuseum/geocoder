@@ -7,6 +7,10 @@ import (
 	sfom_sql "github.com/sfomuseum/go-database/sql"
 )
 
+// SQLiteTables returns a slice of Table objects that describe
+// all tables used by the SQLite backend.  The slice can be
+// passed to the database configuration code to create the
+// required schema on demand.
 func SQLiteTables(ctx context.Context) ([]sfom_sql.Table, error) {
 
 	records_table, err := NewRecordsTable(ctx)

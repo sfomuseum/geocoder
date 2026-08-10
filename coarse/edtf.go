@@ -4,6 +4,9 @@ import (
 	"github.com/sfomuseum/go-edtf"
 )
 
+// ensureValidEDTF normalises EDTF strings that use the 2012
+// Open/Unspecified markers to the 2015 values expected by the
+// rest of the code base.
 func ensureValidEDTF(input string) string {
 
 	edtf_updates := map[string]string{

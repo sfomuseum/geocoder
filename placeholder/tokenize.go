@@ -8,25 +8,24 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// ---------------------------------------------------------------------
-// Normalisation helpers
-// ---------------------------------------------------------------------
 func normalizeNFKC(s string) string {
 	return norm.NFKC.String(s)
 }
 
-// ---------------------------------------------------------------------
-// Regular expressions
-// ---------------------------------------------------------------------
 // Characters that are written from “major to minor” (Arabic, Hebrew,
 // Chinese, Cyrillic, etc.).  The regex contains the **real
 // Unicode characters**, not escape sequences.
 var majorMinor = regexp.MustCompile(`[\x{0591}-\x{07FF}\x{1100}-\x{11FF}\x{3130}-\x{318F}\x{A960}-\x{A97F}\x{AC00}-\x{D7AF}\x{D7B0}-\x{D7FF}\x{0400}-\x{04FF}]`)
 
-// ---------------------------------------------------------------------
-// Tokeniser
-// ---------------------------------------------------------------------
-
+// Normalize normalises an arbitrary string for tokenisation.  The
+// normalisation pipeline includes:
+//
+//  1. NFKC Unicode normalisation
+//  2. Trimming of whitespace
+//  3. Replacement of punctuation (except apostrophes) with a space
+//
+// The function is idempotent – calling it repeatedly yields the
+// same result – and is suitable for use with any Unicode text.
 func Normalize(input string) string {
 
 	// 1. Normalise
@@ -49,6 +48,11 @@ func Normalize(input string) string {
 	return input
 }
 
+// Tokenize splits a string into a slice of lower‑case tokens suitable
+// for full‑text search.  It first normalises the input, removes
+// punctuation, splits on whitespace, and, for strings that start
+// with a "major‑minor" character class (e.g. Arabic, Cyrillic),
+// reverses the token order to optimise SQLite FTS5 ranking.
 func Tokenize(input string) []string {
 
 	input = Normalize(input)

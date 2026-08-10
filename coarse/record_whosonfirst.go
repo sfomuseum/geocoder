@@ -9,13 +9,17 @@ import (
 	"strings"
 
 	"github.com/paulmach/orb"
-	"github.com/tidwall/gjson"
 	"github.com/sfomuseum/geocoder/placeholder"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-rfc-5646/tags"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/properties"
 )
 
+// NewWhosOnFirstRecord converts a raw Who's On First GeoJSON document
+// into a Record struct.  The function parses all required fields,
+// normalises text, tokenises names, collects concordances and
+// returns a fully populated Record ready for indexing.
 func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
 
 	// Important: Note all the sorting of strings. This is important

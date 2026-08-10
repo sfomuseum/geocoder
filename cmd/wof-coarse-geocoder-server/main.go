@@ -11,10 +11,10 @@ import (
 
 	"github.com/aaronland/go-http-maps/v2"
 	"github.com/aaronland/go-http/v4/server"
-	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/geocoder/http/api"
 	www_coarse "github.com/sfomuseum/geocoder/http/www/coarse"
+	"github.com/sfomuseum/go-flags/flagset"
 )
 
 func main() {
@@ -84,7 +84,7 @@ func main() {
 
 			map_uri = u
 		}
-		
+
 		maps.AssignMapConfigHandler(map_opts, mux, map_uri)
 
 		www_handler := http.FileServerFS(www_coarse.FS)
