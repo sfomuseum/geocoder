@@ -1,0 +1,19 @@
+[Unit]
+Description=SFO Museum coarse geocoder server
+ConditionPathExists=/usr/local/src/geocoder/bin/wof-coarse-geocoder-server
+After=network.target
+ 
+[Service]
+Type=simple
+User=geocoder
+Group=geocoder
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+
+WorkingDirectory=/usr/local/bin
+ExecStart=/usr/local/src/geocoder/bin/wof-coarse-geocoder-server -geocoder-uri='sql://sqlite?dsn=/usr/local/data/geocoder/wof.db' -server-uri http://0.0.0.0:3000
+ 
+[Install]
+WantedBy=multi-user.target
