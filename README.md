@@ -487,3 +487,15 @@ type Record struct {
 ```
 
 Going forward the "easiest" thing may be to simply change this data structure to assume that all identifiers are strings – specifically machinetag-based string identifiers – and do the extra work, internally, to convert them to and from their source values. Maybe? It's just too soon to think about right now.
+
+## Experimental
+
+### Getty Thesaurus of Geographic Names (TGN)
+
+There is experimental support for indexing place records from Getty's Thesaurus of Geographic Names (TGN). This support manages to map Getty place details on to the existing `Record` data structure described above.
+
+Wherever possible TGN placetypes are mapped to their Who's On First equivalent. When a match is not found that place is assigned a Who's On First placetype of "custom". Both parts of a TGN placetype (its numeric identifier and string label) are indexed, separately, as alternate placetypes. The placetypes mappings can be found in [x/tgn/placetypes.json](x/tgn/placetypes.json). These choices may contain errors or inaccuracies and we welcome your feedback if you think that is the case.
+
+These placetype mappings are also used to construct a Who's On First style hierarchy. This hierarchy is important because, as of this writing at least, it is what is used to generate a fully-qualified label for a place.
+
+In the case of TGN specifically these is little likelihood of ID collision (in the `Id`, `ParentId` or `Hierarchies` properties) with existing Who's On First IDs but the potential again highlights the need to move towards something like machinetag-based identifiers.
