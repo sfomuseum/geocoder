@@ -274,9 +274,20 @@ window.addEventListener("load", function load(event){
 	    const label_feature = document.createElement("td");
 	    label_feature.appendChild(document.createTextNode(props["wof:label"]));
 	    feature_row.appendChild(label_feature);
+
+	    var all_placetypes = [
+		props["wof:placetype"],
+	    ];
+
+	    if (props["wof:placetype_alt"]){
+
+		for (const i in props["wof:placetype_alt"]){
+		    all_placetypes.push(props["wof:placetype_alt"][i]);
+		}
+	    }
 	    
 	    const placetype_feature = document.createElement("td");
-	    placetype_feature.appendChild(document.createTextNode(props["wof:placetype"]));
+	    placetype_feature.appendChild(document.createTextNode(all_placetypes.join("; ")));
 	    feature_row.appendChild(placetype_feature);
 	    
 	    const country_feature = document.createElement("td");

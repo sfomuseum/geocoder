@@ -62,7 +62,6 @@ func main() {
 	}
 	defer reader.Close()
 
-	country_map := new(sync.Map)
 	placetype_map := new(sync.Map)
 
 	now := time.Now()
@@ -193,6 +192,7 @@ func main() {
 		//
 
 		hier := make(map[string]int64)
+		country := "XZ"
 
 		ancestor_id := parent_id
 
@@ -237,7 +237,7 @@ func main() {
 				// slog.Info("hier", "pt", wof_pt, "id", ancestor_id)
 
 				if wof_pt == "country" {
-					country_map.Store(ancestor_id, anc_name)
+					country = tgn.TgnToWhosOnFirstCountry(ancestor_id)
 				}
 			}
 
@@ -276,6 +276,18 @@ func main() {
 						is_current = "0"
 					}
 				}
+
+				after, err := e.After(e_now)
+
+				if err != nil {
+					slog.Warn("Failed to determine after-iness", "now", e_now, "then", e, "error", err)
+				} else {
+
+					if after {
+						is_current = "1"
+					}
+				}
+
 			}
 		}
 
@@ -286,6 +298,7 @@ func main() {
 			ParentId:     parent_id,
 			Name:         name,
 			Placetype:    pt,
+			Country:      country,
 			PlacetypeAlt: strings.Split(tgn_pt, "/"),
 			Centroid:     &centroid,
 			Bounds: []orb.Bound{
@@ -327,8 +340,8 @@ func main() {
 		log.Fatalf("Post-indexing failed, %v", err)
 	}
 
-	country_map.Range(func(k, v any) bool {
-		fmt.Println(v.(string))
+	placetype_map.Range(func(k, v any) bool {
+		fmt.Println(k.(string))
 		return true
 	})
 
