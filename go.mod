@@ -7,6 +7,7 @@ require (
 	github.com/aaronland/go-http/v4 v4.1.0
 	github.com/aaronland/go-json-query v0.2.1
 	github.com/aaronland/go-pagination v0.3.0
+	github.com/netascode/xmldot v0.5.1
 	github.com/paulmach/orb v0.13.0
 	github.com/sfomuseum/go-database v0.0.20
 	github.com/sfomuseum/go-edtf v1.3.0
