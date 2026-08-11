@@ -1,9 +1,10 @@
 package tgn
 
 import (
-	"sync"
 	"encoding/json"
+	"log/slog"
 	"strings"
+	"sync"
 )
 
 var loadLanguagesMap = sync.OnceValues(func() (map[string]string, error) {
@@ -15,9 +16,9 @@ var loadLanguagesMap = sync.OnceValues(func() (map[string]string, error) {
 	}
 
 	var lang_map map[string]string
-	
+
 	dec := json.NewDecoder(r)
-	err = dec.Decode(lang_map)
+	err = dec.Decode(&lang_map)
 
 	if err != nil {
 		return nil, err
@@ -35,12 +36,14 @@ func TgnToWhosOnFirstLanguage(tgn_lang string) (string, string) {
 	lang_map, err := loadLanguagesMap()
 
 	if err != nil {
+		slog.Error("Unable to load languages map", "error", err)
 		return "und", "preferred"
 	}
 
 	lang, ok := lang_map[tgn_lang]
 
-	if !ok { 
+	if !ok {
+		// slog.Warn("TGN language not found", "lang", tgn_lang)
 		return "und", "preferred"
 	}
 

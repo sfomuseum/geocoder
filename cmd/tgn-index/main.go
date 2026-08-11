@@ -10,9 +10,11 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"strings"
 	"slices"
-	
+	"strings"
+	"sync"
+	"time"
+
 	_ "modernc.org/sqlite"
 
 	"github.com/netascode/xmldot"
@@ -21,6 +23,7 @@ import (
 	"github.com/sfomuseum/geocoder/placeholder"
 	"github.com/sfomuseum/geocoder/x/tgn"
 	"github.com/sfomuseum/go-database/sql"
+	"github.com/sfomuseum/go-edtf/parser"
 )
 
 func main() {
@@ -59,7 +62,18 @@ func main() {
 	}
 	defer reader.Close()
 
-	// Stream file names
+	country_map := new(sync.Map)
+	placetype_map := new(sync.Map)
+
+	now := time.Now()
+	yyyy := now.Format("2006")
+
+	e_now, err := parser.ParseString(yyyy)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for _, f := range reader.File {
 
 		// fmt.Println(f.Name)
@@ -142,8 +156,6 @@ func main() {
 			"preferred": placeholder.Tokenize(name),
 		}
 
-		tokens["und"] = make(map[string][]string)
-
 		names_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Terms.Non-Preferred_Term")
 
 		for _, n_rsp := range names_rsp.Array() {
@@ -167,14 +179,15 @@ func main() {
 				lang_toks = make([]string, 0)
 				tokens[wof_lang][wof_tag] = lang_toks
 			}
-			
-			
+
 			for _, t := range placeholder.Tokenize(t_rsp.String()) {
 
-				if !slices.Contains(tokens[wof_lang][wof_tag], t){
+				if !slices.Contains(tokens[wof_lang][wof_tag], t) {
 					tokens[wof_lang][wof_tag] = append(tokens[wof_lang][wof_tag], t)
 				}
 			}
+
+			slog.Debug("Set tokens", "lang", wof_lang, "tag", wof_tag, "tokens", tokens[wof_lang][wof_tag])
 		}
 
 		//
@@ -210,16 +223,50 @@ func main() {
 				case "10003/facet":
 					// pass
 				default:
-					slog.Info("pt", "id", ancestor_id, "pt", anc_pt, "wof pt", wof_pt)
+
+					_, ok := placetype_map.LoadOrStore(anc_pt, true)
+
+					if !ok {
+						slog.Info("Unregistered placetype", "id", ancestor_id, "pt", anc_pt, "wof pt", wof_pt)
+					}
 				}
 
 			} else {
 				k := fmt.Sprintf("%s_id", wof_pt)
 				hier[k] = ancestor_id
 				// slog.Info("hier", "pt", wof_pt, "id", ancestor_id)
+
+				if wof_pt == "country" {
+					country_map.Store(ancestor_id, anc_name)
+				}
 			}
 
 			ancestor_id = anc_parent
+		}
+
+		//
+
+		is_current := "-1"
+
+		if end_date != "" {
+
+			e, err := parser.ParseString(end_date)
+
+			if err != nil {
+				slog.Warn("Failed to parse end date", "date", end_date, "error", err)
+			} else {
+
+				before, err := e.Before(e_now)
+
+				if err != nil {
+					slog.Warn("Failed to determine before-iness", "now", e_now, "then", e, "error", err)
+				} else {
+
+					if before {
+						is_current = "0"
+					}
+				}
+			}
 		}
 
 		//
@@ -234,7 +281,7 @@ func main() {
 			Bounds: []orb.Bound{
 				centroid.Bound(),
 			},
-			IsCurrent: "-1",
+			IsCurrent: is_current,
 			Inception: start_date,
 			Cessation: end_date,
 			Tokens:    tokens,
@@ -243,8 +290,12 @@ func main() {
 			},
 		}
 
-		enc := json.NewEncoder(os.Stdout)
-		enc.Encode(rec)
+		dump := false
+
+		if dump {
+			enc := json.NewEncoder(os.Stdout)
+			enc.Encode(rec)
+		}
 
 		err = gc.AddRecord(ctx, rec)
 
@@ -265,5 +316,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Post-indexing failed, %v", err)
 	}
+
+	country_map.Range(func(k, v any) bool {
+		fmt.Println(v.(string))
+		return true
+	})
 
 }
