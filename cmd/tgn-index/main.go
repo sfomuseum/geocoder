@@ -4,14 +4,15 @@ import (
 	"archive/zip"
 	"context"
 	db_sql "database/sql"
-	_ "encoding/json"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"log/slog"
-	_ "os"
+	"os"
 	"strings"
-
+	"slices"
+	
 	_ "modernc.org/sqlite"
 
 	"github.com/netascode/xmldot"
@@ -150,19 +151,30 @@ func main() {
 			t_rsp := n_rsp.Get("Term_Text")
 			l_rsp := n_rsp.Get("Term_Languages.Term_Language.Language")
 
-			tag := l_rsp.String()
-			// slog.Info("N", "t", t_rsp.String(), "l", l_rsp.String())
+			tgn_lang := l_rsp.String()
+			wof_lang, wof_tag := tgn.TgnToWhosOnFirstLanguage(tgn_lang)
 
-			toks, ok := tokens["und"][tag]
+			lang_map, ok := tokens[wof_lang]
 
 			if !ok {
-				toks = make([]string, 0)
+				lang_map = make(map[string][]string)
+				tokens[wof_lang] = lang_map
 			}
 
-			token_str := placeholder.Tokenize(t_rsp.String())
-			toks = append(toks, token_str...)
+			lang_toks, ok := tokens[wof_lang][wof_tag]
 
-			tokens["und"][tag] = toks
+			if !ok {
+				lang_toks = make([]string, 0)
+				tokens[wof_lang][wof_tag] = lang_toks
+			}
+			
+			
+			for _, t := range placeholder.Tokenize(t_rsp.String()) {
+
+				if !slices.Contains(tokens[wof_lang][wof_tag], t){
+					tokens[wof_lang][wof_tag] = append(tokens[wof_lang][wof_tag], t)
+				}
+			}
 		}
 
 		//
@@ -231,8 +243,8 @@ func main() {
 			},
 		}
 
-		//enc := json.NewEncoder(os.Stdout)
-		//enc.Encode(rec)
+		enc := json.NewEncoder(os.Stdout)
+		enc.Encode(rec)
 
 		err = gc.AddRecord(ctx, rec)
 

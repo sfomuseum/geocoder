@@ -1,6 +1,55 @@
 package tgn
 
+import (
+	"sync"
+	"encoding/json"
+)
+
+var loadPlacetypesMap = sync.OnceValues(func() (map[string]string, error) {
+
+	r, err := FS.Open("placetypes.json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	var pt_map map[string]string
+	
+	dec := json.NewDecoder(r)
+	err = dec.Decode(pt_map)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pt_map, nil
+})
+
+func TgnToWhosOnFirstPlacetypeMap() (map[string]string, error) {
+	return loadPlacetypesMap()
+}
+
+
 func TgnToWhosOnFirstPlacetype(tgn_pt string) string {
+
+	pt_map, err := loadPlacetypesMap()
+
+	if err != nil {
+		return "custom"
+	}
+
+	pt, ok := pt_map[tgn_pt]
+
+	if !ok { 
+		return "custom"
+	}
+
+	return pt
+}
+
+/*
+
+func xTgnToWhosOnFirstPlacetype(tgn_pt string) string {
 
 	var pt string
 
@@ -73,3 +122,4 @@ func TgnToWhosOnFirstPlacetype(tgn_pt string) string {
 
 	return pt
 }
+*/
