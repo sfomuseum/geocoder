@@ -248,7 +248,17 @@ func main() {
 
 		is_current := "-1"
 
-		if end_date != "" {
+		if end_date == "" {
+
+			// I suppose we should check that start date is not in the future
+			// but I am going to go out on a limb and suggest that is not Getty's
+			// jam...
+
+			if start_date != "" {
+				is_current = "1"
+			}
+
+		} else {
 
 			e, err := parser.ParseString(end_date)
 

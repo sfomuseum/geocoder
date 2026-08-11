@@ -1,27 +1,26 @@
 package tgn
 
 import (
-	"errors"
 	"fmt"
 	"math"
 )
 
-func TgnToEdtfYear(tgnInt int) (string, error) {
+func TgnToEdtfYear(tgn_year int) (string, error) {
 
-	if tgnInt > 0 {
+	if tgn_year > 0 {
 		// Positive year: format directly to a minimum of 4 digits padded with zeros
-		return fmt.Sprintf("%04d", tgnInt), nil
-	} else if tgnInt < 0 {
+		return fmt.Sprintf("%04d", tgn_year), nil
+	} else if tgn_year < 0 {
 		// Negative year: shift by 1 for astronomical year zero alignment
-		shiftedYear := tgnInt + 1
+		shifted := tgn_year + 1
 
 		// Take the absolute value for padding math
-		absYear := int(math.Abs(float64(shiftedYear)))
+		abs_year := int(math.Abs(float64(shifted)))
 
 		// Return with an explicit negative sign prefix
-		return fmt.Sprintf("-%04d", absYear), nil
+		return fmt.Sprintf("-%04d", abs_year), nil
 	} else {
 		// TGN data uses -1 for 1 BCE and 1 for 1 CE; a raw 0 is invalid data
-		return "", errors.New("TGN data should not contain a raw 0 integer")
+		return "", fmt.Errorf("TGN data should not contain a raw 0 integer")
 	}
 }
