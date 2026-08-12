@@ -49,6 +49,12 @@ func main() {
 
 	flagset.Parse(fs)
 
+	err := flagset.SetFlagsFromEnvVars(fs, "GEOCODER")
+
+	if err != nil {
+		log.Fatalf("Failed to set flags from environment variables, %v", err)
+	}
+	
 	if verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Verbose logging enabled")

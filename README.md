@@ -525,7 +525,7 @@ id		name		placetype	is current	inception	cessation	label
 102061079	Gowanus Heights	neighbourhood	-1		2012				Gowanus Heights, New York, New York, US
 ```
 
-Note the use of the `-query-timeout` flag. The default query timeout is 5 seconds which may not be enough depending on the specifics of your remote database (VFS) configuration.
+Note the use of the `-query-timeout` flag. The default query timeout is 5 seconds which may not be enough depending on the specifics of your remote database (VFS) configuration. For example, initial testing using a VFS layer in an Amazon AWS Lambda + AWS S3 setup required timeouts in excess of 30 seconds which largely makes it impractical for most applications.
 
 ### Getty Thesaurus of Geographic Names (TGN)
 
