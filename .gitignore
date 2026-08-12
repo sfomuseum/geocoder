@@ -3,3 +3,4 @@ bin
 work
 go.work*
 *.db
+*.zip

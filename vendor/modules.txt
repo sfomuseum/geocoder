@@ -798,4 +798,5 @@ modernc.org/memory
 ## explicit; go 1.25.0
 modernc.org/sqlite
 modernc.org/sqlite/lib
+modernc.org/sqlite/vfs
 modernc.org/sqlite/vtab

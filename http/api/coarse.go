@@ -1,8 +1,10 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/aaronland/go-http/v4/sanitize"
 	"github.com/aaronland/go-http/v4/slog"
@@ -31,6 +33,8 @@ type CoarseGeocoderHandlerOptions struct {
 	Geocoder coarse.Geocoder
 	// PaginationPerPage is the maximum number of results that should be returned per API request.
 	PaginationPerPage int64
+	// The maximum allowable time in seconds for a query to complete.
+	QueryTimeout int
 }
 
 // CoarseGeocoderHandler creates an HTTP handler that exposes the geocoder as a REST API.
@@ -234,7 +238,10 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			pg_opts.Pointer(page)
 		}
 
-		ctx := req.Context()
+		timeout := time.Duration(opts.QueryTimeout) * time.Second
+
+		ctx, cancel := context.WithTimeout(req.Context(), timeout)
+		defer cancel()
 
 		query_rsp, pg_rsp, err := opts.Geocoder.Query(ctx, query_req, pg_opts)
 

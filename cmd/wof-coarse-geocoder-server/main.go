@@ -23,6 +23,7 @@ func main() {
 	var server_uri string
 	var prefix string
 
+	var query_timeout int
 	var per_page int64
 
 	var demo bool
@@ -34,6 +35,7 @@ func main() {
 	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "A registered aaronland/go-http/v4/server.Server URI.")
 	fs.StringVar(&prefix, "prefix", "", "An optional URL prefix to listen for requests on.")
 
+	fs.IntVar(&query_timeout, "query-timeout", 5, "The maximum allowable time in seconds for a query to complete.")
 	fs.BoolVar(&demo, "demo", false, "Start a web-based demo on the root URL of the server.")
 	fs.Int64Var(&per_page, "pagination-per-page", 50, "The maximum number of results to include per API request.")
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
@@ -47,6 +49,12 @@ func main() {
 
 	flagset.Parse(fs)
 
+	err := flagset.SetFlagsFromEnvVars(fs, "GEOCODER")
+
+	if err != nil {
+		log.Fatalf("Failed to set flags from environment variables, %v", err)
+	}
+	
 	if verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Verbose logging enabled")
@@ -106,6 +114,7 @@ func main() {
 	api_opts := &api.CoarseGeocoderHandlerOptions{
 		Geocoder:          gc,
 		PaginationPerPage: per_page,
+		QueryTimeout:      query_timeout,
 	}
 
 	api_handler, err := api.CoarseGeocoderHandler(api_opts)
