@@ -24,23 +24,192 @@ import (
 	"github.com/sfomuseum/geocoder/x/tgn"
 	"github.com/sfomuseum/go-database/sql"
 	"github.com/sfomuseum/go-edtf/parser"
+	"github.com/sfomuseum/go-flags/flagset"
 )
 
 func main() {
 
+	var tgn_data string
+	var do_index bool
+
+	var index_db_uri string
+	var geocoder_uri string
+
+	var verbose bool
+
+	fs := flagset.NewFlagSet("tgn")
+
+	fs.StringVar(&tgn_data, "tgn-data", "", "The path to the compressed (zip) TGN XML records.")
+	fs.BoolVar(&do_index, "do-index", false, "...")
+
+	fs.StringVar(&index_db_uri, "index-db-uri", "sql://sqlite?dsn=tgn_records.db", "...")
+	fs.StringVar(&geocoder_uri, "geocoder-uri", "sql://sqlite?dsn=tgn2.db", "...")
+	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
+
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Index one or more Who's On First data sources in a (coarse) geocoding database.\n")
+		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [options] uri(N) uri(N) uri(N)\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Valid options are:\n")
+		fs.PrintDefaults()
+	}
+
+	flagset.Parse(fs)
+
 	ctx := context.Background()
 
-	db_uri := "sql://sqlite?dsn=tgn_records.db"
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.Debug("Verbose logging enabled")
+	}
 
-	db, err := sql.OpenWithURI(ctx, db_uri)
+	//
+
+	records_count := 0
+	records_seen := 0
+
+	placetype_map := new(sync.Map)
+	country_map := new(sync.Map)
+
+	now := time.Now()
+	yyyy := now.Format("2006")
+
+	e_now, err := parser.ParseString(yyyy)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Set up "index" database
+
+	if index_db_uri == "" {
+
+		if !do_index {
+			log.Fatal("-do-index flag is false but -index-db-uri flag is empty")
+		}
+
+		f, err := os.CreateTemp("", "tgn-index.*.db")
+
+		if err != nil {
+			log.Fatalf("Failed to create temp file for index database, %v", err)
+		}
+
+		f.Close()
+
+		fname := f.Name()
+		defer os.Remove(fname)
+
+		index_db_uri = fmt.Sprintf("sql://sqlite?dsn=%s", fname)
+	}
+
+	db, err := sql.OpenWithURI(ctx, index_db_uri)
+
+	if err != nil {
+		log.Fatalf("Failed to open indexing database, %v", err)
+	}
+
 	defer db.Close()
 
-	geocoder_uri := "sql://sqlite?dsn=tgn2.db"
+	//
+
+	if do_index {
+
+		_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS records (id INTEGER PRIMARY KEY, name TEXT, parent_id INTEGER, placetype)`)
+
+		if err != nil {
+			log.Fatalf("Failed to create indexing database 'records' table, %v", err)
+		}
+
+		reader, err := zip.OpenReader(tgn_data)
+
+		if err != nil {
+			log.Fatalf("failed to open TGN data, %v", err)
+		}
+
+		defer reader.Close()
+
+		for _, f := range reader.File {
+
+			if f.FileInfo().IsDir() {
+				continue
+			}
+
+			fname := f.Name
+			records_count += 1
+
+			r, err := f.Open()
+
+			if err != nil {
+				log.Fatalf("Failed to open TGN %s for reading, %v", fname, err)
+			}
+
+			defer r.Close()
+
+			body, err := io.ReadAll(r)
+
+			r.Close()
+
+			if err != nil {
+				log.Fatalf("Failed to read TGN %s, %v", fname, err)
+			}
+
+			id_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.@Subject_ID")
+
+			if !id_rsp.Exists() {
+				continue
+			}
+
+			id := id_rsp.Int()
+
+			name_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Terms.Preferred_Term.Term_Text")
+			name := name_rsp.String()
+
+			parent_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Parent_Relationships.Preferred_Parent.Parent_Subject_ID")
+			parent_id := parent_rsp.Int()
+
+			pt_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Place_Types.Preferred_Place_Type.Place_Type_ID")
+			pt := pt_rsp.String()
+
+			_, err = db.ExecContext(ctx, "INSERT OR REPLACE INTO records (id, name, parent_id, placetype) VALUES (?, ?, ?, ?)", id, name, parent_id, pt)
+
+			if err != nil {
+				log.Fatalf("Failed to add %s to indexing database, %v", fname, err)
+			}
+		}
+	} else {
+
+		q := "SELECT COUNT(id) FROM records"
+		row := db.QueryRowContext(ctx, q)
+
+		err := row.Scan(&records_count)
+
+		if err != nil {
+			log.Fatalf("Failed to determine record count from indexing database, %v", err)
+		}
+	}
+
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	done_ch := make(chan bool)
+
+	defer func() {
+		done_ch <- true
+	}()
+
+	go func() {
+
+		for {
+			select {
+			case <-done_ch:
+				return
+			case <-ticker.C:
+				slog.Info("Processing", "seen", records_seen, "total", records_count)
+			}
+		}
+	}()
+
+	// Set up geocoder database
+
 	gc, err := coarse.NewSQLGeocoder(ctx, geocoder_uri)
 
 	if err != nil {
@@ -55,36 +224,29 @@ func main() {
 		log.Fatalf("Pre-indexing failed, %v", err)
 	}
 
-	reader, err := zip.OpenReader("/Users/asc/Downloads/tgn_xml_0126.zip")
+	// Read TGN data
+
+	reader, err := zip.OpenReader(tgn_data)
 
 	if err != nil {
-		log.Fatalf("failed to open zip: %v", err)
+		log.Fatalf("Failed to open TGN data, %v", err)
 	}
+
 	defer reader.Close()
 
-	placetype_map := new(sync.Map)
-
-	now := time.Now()
-	yyyy := now.Format("2006")
-
-	e_now, err := parser.ParseString(yyyy)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	for _, f := range reader.File {
-
-		// fmt.Println(f.Name)
 
 		if f.FileInfo().IsDir() {
 			continue
 		}
 
+		fname := f.Name
+		records_seen += 1
+
 		r, err := f.Open()
 
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to open TGN %s for reading, %v", fname, err)
 		}
 
 		defer r.Close()
@@ -94,7 +256,7 @@ func main() {
 		r.Close()
 
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to read TGN %s, %v", fname, err)
 		}
 
 		id_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.@Subject_ID")
@@ -145,8 +307,6 @@ func main() {
 		lat := lat_rsp.Float()
 		lon := lon_rsp.Float()
 
-		// fmt.Println(id, lat, lon)
-
 		centroid := orb.Point([2]float64{lon, lat})
 
 		tokens := make(map[string]map[string][]string)
@@ -186,13 +346,13 @@ func main() {
 				}
 			}
 
-			slog.Debug("Set tokens", "lang", wof_lang, "tag", wof_tag, "tokens", tokens[wof_lang][wof_tag])
+			// slog.Debug("Set tokens", "lang", wof_lang, "tag", wof_tag, "tokens", tokens[wof_lang][wof_tag])
 		}
 
 		//
 
 		hier := make(map[string]int64)
-		country := "XZ"
+		wof_co := ""
 
 		ancestor_id := parent_id
 
@@ -227,17 +387,25 @@ func main() {
 					_, ok := placetype_map.LoadOrStore(anc_pt, true)
 
 					if !ok {
-						slog.Info("Unregistered placetype", "id", ancestor_id, "pt", anc_pt, "wof pt", wof_pt)
+						slog.Debug("Unregistered placetype", "id", ancestor_id, "pt", anc_pt, "wof pt", wof_pt)
 					}
 				}
 
 			} else {
 				k := fmt.Sprintf("%s_id", wof_pt)
 				hier[k] = ancestor_id
-				// slog.Info("hier", "pt", wof_pt, "id", ancestor_id)
 
 				if wof_pt == "country" {
-					country = tgn.TgnToWhosOnFirstCountry(ancestor_id)
+
+					wof_co = tgn.TgnToWhosOnFirstCountry(anc_name)
+
+					if wof_co == "XY" {
+						_, ok := country_map.LoadOrStore(anc_name, true)
+
+						if !ok {
+							slog.Debug("Unregistered country", "country", anc_name)
+						}
+					}
 				}
 			}
 
@@ -298,7 +466,7 @@ func main() {
 			ParentId:     parent_id,
 			Name:         name,
 			Placetype:    pt,
-			Country:      country,
+			Country:      wof_co,
 			PlacetypeAlt: strings.Split(tgn_pt, "/"),
 			Centroid:     &centroid,
 			Bounds: []orb.Bound{
@@ -323,7 +491,7 @@ func main() {
 		err = gc.AddRecord(ctx, rec)
 
 		if err != nil {
-			log.Fatalf("Failed to index records, %v", err)
+			log.Fatalf("Failed to index TGN record %s, %v", fname, err)
 		}
 
 	}
@@ -341,6 +509,11 @@ func main() {
 	}
 
 	placetype_map.Range(func(k, v any) bool {
+		fmt.Println(k.(string))
+		return true
+	})
+
+	country_map.Range(func(k, v any) bool {
 		fmt.Println(k.(string))
 		return true
 	})

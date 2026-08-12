@@ -76,7 +76,7 @@ func main() {
 
 		id := id_rsp.Int()
 
-		name_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Terms.PreferredTerm.Term_Text")
+		name_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Terms.Preferred_Term.Term_Text")
 		name := name_rsp.String()
 
 		parent_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Parent_Relationships.Preferred_Parent.Parent_Subject_ID")
@@ -84,15 +84,6 @@ func main() {
 
 		pt_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Place_Types.Preferred_Place_Type.Place_Type_ID")
 		pt := pt_rsp.String()
-
-		/*
-			lat_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Coordinates.Standard.Latitude.Decimal")
-			lon_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Coordinates.Standard.Longitude.Decimal")
-			lat := lat_rsp.Float()
-			lon := lon_rsp.Float()
-
-			fmt.Println(id, lat, lon)
-		*/
 
 		_, err = db.ExecContext(ctx, "INSERT OR REPLACE INTO records (id, name, parent_id, placetype) VALUES (?, ?, ?, ?)", id, name, parent_id, pt)
 

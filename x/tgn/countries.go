@@ -3,7 +3,6 @@ package tgn
 import (
 	"encoding/json"
 	"log/slog"
-	"strconv"
 	"sync"
 )
 
@@ -31,7 +30,7 @@ func TgnToWhosOnFirstCountryMap() (map[string]string, error) {
 	return loadCountriesMap()
 }
 
-func TgnToWhosOnFirstCountry(tgn_co int64) string {
+func TgnToWhosOnFirstCountry(tgn_co string) string {
 
 	co_map, err := loadCountriesMap()
 
@@ -40,8 +39,7 @@ func TgnToWhosOnFirstCountry(tgn_co int64) string {
 		return "XZ"
 	}
 
-	str_co := strconv.FormatInt(tgn_co, 10)
-	pt, ok := co_map[str_co]
+	pt, ok := co_map[tgn_co]
 
 	if !ok {
 		// slog.Warn("TGN country not found", "pt", tgn_pt)
