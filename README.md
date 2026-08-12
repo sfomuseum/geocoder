@@ -498,4 +498,6 @@ Wherever possible TGN placetypes are mapped to their Who's On First equivalent. 
 
 These placetype mappings are also used to construct a Who's On First style hierarchy. This hierarchy is important because, as of this writing at least, it is what is used to generate a fully-qualified label for a place.
 
+Language qualifiers (variant, preferred, etc.) are almost certain to contain mistakes. I do not fully understand (yet) how TGN defines these things so this will probably require some finessing.
+
 In the case of TGN specifically these is little likelihood of ID collision (in the `Id`, `ParentId` or `Hierarchies` properties) with existing Who's On First IDs but the potential again highlights the need to move towards something like machinetag-based identifiers.

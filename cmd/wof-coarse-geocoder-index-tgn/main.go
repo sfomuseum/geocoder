@@ -35,19 +35,22 @@ func main() {
 	var index_db_uri string
 	var geocoder_uri string
 
+	var list_missing bool
 	var verbose bool
 
 	fs := flagset.NewFlagSet("tgn")
 
 	fs.StringVar(&tgn_data, "tgn-data", "", "The path to the compressed (zip) TGN XML records.")
-	fs.BoolVar(&do_index, "do-index", false, "...")
+	fs.BoolVar(&do_index, "create-index", true, "Create a new indexing/lookup database before processing TGN records.")
 
-	fs.StringVar(&index_db_uri, "index-db-uri", "sql://sqlite?dsn=tgn_records.db", "...")
-	fs.StringVar(&geocoder_uri, "geocoder-uri", "sql://sqlite?dsn=tgn2.db", "...")
+	fs.StringVar(&index_db_uri, "index-db-uri", "", "A valid")
+	fs.StringVar(&geocoder_uri, "geocoder-uri", "", "...")
+
+	fs.BoolVar(&list_missing, "list-missing", false, "...")
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
 	fs.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Index one or more Who's On First data sources in a (coarse) geocoding database.\n")
+		fmt.Fprintf(os.Stderr, "Index Getty Thesaurus of Geographic Names (TGN) data in a (coarse) geocoding database.\n")
 		fmt.Fprintf(os.Stderr, "Usage:\n\t%s [options] uri(N) uri(N) uri(N)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Valid options are:\n")
 		fs.PrintDefaults()
@@ -63,6 +66,8 @@ func main() {
 	}
 
 	//
+
+	t1 := time.Now()
 
 	records_count := 0
 	records_seen := 0
@@ -112,6 +117,8 @@ func main() {
 	//
 
 	if do_index {
+
+		slog.Info("Set up indexing database")
 
 		_, err = db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS records (id INTEGER PRIMARY KEY, name TEXT, parent_id INTEGER, placetype)`)
 
@@ -175,6 +182,9 @@ func main() {
 				log.Fatalf("Failed to add %s to indexing database, %v", fname, err)
 			}
 		}
+
+		slog.Info("Populating indexing database complete", "records", records_count, "time", time.Since(t1))
+
 	} else {
 
 		q := "SELECT COUNT(id) FROM records"
@@ -191,10 +201,7 @@ func main() {
 	defer ticker.Stop()
 
 	done_ch := make(chan bool)
-
-	defer func() {
-		done_ch <- true
-	}()
+	t2 := time.Now()
 
 	go func() {
 
@@ -203,7 +210,7 @@ func main() {
 			case <-done_ch:
 				return
 			case <-ticker.C:
-				slog.Info("Processing", "seen", records_seen, "total", records_count)
+				slog.Info("Processing", "seen", records_seen, "total", records_count, "time", time.Since(t2))
 			}
 		}
 	}()
@@ -233,6 +240,8 @@ func main() {
 	}
 
 	defer reader.Close()
+
+	slog.Info("Process TGN records", "records", records_count)
 
 	for _, f := range reader.File {
 
@@ -496,11 +505,17 @@ func main() {
 
 	}
 
+	done_ch <- true
+
+	slog.Info("Flushing pending records to database")
+
 	err = gc.Flush(ctx)
 
 	if err != nil {
 		log.Fatalf("Failed to flush database, %v", err)
 	}
+
+	slog.Info("Post-indexing database")
 
 	err = gc.PostIndex(ctx)
 
@@ -508,14 +523,23 @@ func main() {
 		log.Fatalf("Post-indexing failed, %v", err)
 	}
 
-	placetype_map.Range(func(k, v any) bool {
-		fmt.Println(k.(string))
-		return true
-	})
+	slog.Info("Indexing complete", "time", time.Since(t1))
 
-	country_map.Range(func(k, v any) bool {
-		fmt.Println(k.(string))
-		return true
-	})
+	if list_missing {
+
+		fmt.Println("# Missing (unregistered) placetypes")
+
+		placetype_map.Range(func(k, v any) bool {
+			fmt.Println(k.(string))
+			return true
+		})
+
+		fmt.Println("# Missing (unregistered) countries")
+
+		country_map.Range(func(k, v any) bool {
+			fmt.Println(k.(string))
+			return true
+		})
+	}
 
 }
