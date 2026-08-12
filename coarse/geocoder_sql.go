@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,8 +25,10 @@ import (
 	"github.com/paulmach/orb/geojson"
 	geocoder_sql "github.com/sfomuseum/geocoder/coarse/sql"
 	"github.com/sfomuseum/geocoder/placeholder"
+	x_vfs "github.com/sfomuseum/geocoder/x/vfs"
 	"github.com/sfomuseum/go-database/sql"
 	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
+	"modernc.org/sqlite/vfs"
 )
 
 // To do: Support wildcard machine tags
@@ -40,6 +45,87 @@ type SQLGeocoder struct {
 }
 
 func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
+
+	u, err := url.Parse(uri)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse URI, %w", err)
+	}
+
+	switch u.Host {
+	case "sqlite":
+
+		q := u.Query()
+
+		vfs_enable := false
+
+		if q.Has("vfs-enable") {
+
+			v, err := strconv.ParseBool(q.Get("vfs-enable"))
+
+			if err != nil {
+				return nil, err
+			}
+
+			vfs_enable = v
+		}
+
+		if vfs_enable {
+
+			vfs_base := q.Get("vfs-base")
+
+			if vfs_base == "" {
+				return nil, fmt.Errorf("Missing or empty ?vfs-base paramter")
+			}
+
+			_, err := url.Parse(vfs_base)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to parse ?vfs-base parameter, %w", err)
+			}
+
+			vfs_dbname := q.Get("vfs-dbname")
+
+			if vfs_base == "" {
+				return nil, fmt.Errorf("Missing or empty ?vfs-dbname paramter")
+			}
+
+			vfs_timeout := 5
+
+			if q.Has("vfs-timeout") {
+
+				v, err := strconv.Atoi(q.Get("vfs-timeout"))
+
+				if err != nil {
+					return nil, fmt.Errorf("Failed to parse ?vfs-timeout= parameter, %v", err)
+				}
+
+				vfs_timeout = v
+			}
+
+			vfs_fs := &x_vfs.RemoteHTTPFS{
+				BaseURL: vfs_base,
+				Client: &http.Client{
+					Timeout: time.Duration(vfs_timeout) * time.Second,
+				},
+			}
+
+			vfs_name, _, err := vfs.New(vfs_fs)
+
+			if err != nil {
+				return nil, fmt.Errorf("Failed to derive VFS name, %w", err)
+			}
+
+			dsn := fmt.Sprintf("file:%s?vfs=%s&mode=ro", vfs_dbname, vfs_name)
+			enc_dsn := url.QueryEscape(dsn)
+			uri = fmt.Sprintf("sql://sqlite?dsn=%s", enc_dsn)
+
+			slog.Info("Rewrite geocoder URI to enable VFS", "uri", uri)
+		}
+
+	default:
+		// pass
+	}
 
 	db, err := sql.OpenWithURI(ctx, uri)
 
@@ -959,8 +1045,6 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	name_ids := hierarchies.AncestorIdsForLabel(label_opts)
 
-	logger.Info("WTF", "parent_id", parent_id, "name ids", name_ids)
-
 	for _, id := range name_ids {
 
 		var id_name string
@@ -981,7 +1065,6 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 			switch id_placetype {
 			case "country":
-				logger.Info("YO", "country", id_country, "q", names_q, "id", id)
 				labels = append(labels, id_country)
 			default:
 				labels = append(labels, id_name)

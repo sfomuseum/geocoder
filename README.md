@@ -224,6 +224,8 @@ Valid options are:
     	Zero or more placetypes to filter results by.
   -query string
     	The term to query for. Required.
+  -query-timeout int
+    	The maximum allowable time in seconds for a query to complete. (default 5)	
   -tag string
     	An option WOF language tag to filter results by.
   -verbose
@@ -354,6 +356,8 @@ Valid options are:
     	The maximum number of results to include per API request. (default 50)
   -prefix string
     	An optional URL prefix to listen for requests on.
+  -query-timeout int
+    	The maximum allowable time in seconds for a query to complete. (default 5)	
   -server-uri string
     	A registered aaronland/go-http/v4/server.Server URI. (default "http://localhost:8080")
   -verbose
@@ -493,6 +497,35 @@ Going forward the "easiest" thing may be to simply change this data structure to
 Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1) and some sort of "source" property may be added. These remain "to be determined".
 
 ## Experimental
+
+### Virtual File System (VFS) support
+
+There is experimental (SQLite) VFS support for `geocoder` databases hosted on remote HTTP(S) servers, for example AWS S3. To enable remote VFS databases add the following query parameters to you `-geocoder-uri` URi:
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| vfs-enable | boolean | yes | This is the query parameter that gets everything started. |
+| vfs-base | string | yes | The root URL of the remote database to use. |
+| vfs-dbname | string | yes | The name of the remote database to use. |
+| vfs-timeout | int | no | The default timeout in seconds for the VFS HTTP client. Default is 5. |
+
+For example:
+
+```
+$> bin/wof-coarse-geocoder-query \
+	-geocoder-uri 'sql://sqlite?vfs-enable=true&vfs-base=https://static.sfomuseum.org/geocoder&vfs-dbname=wof-sfom.db' \
+	-query-timeout 15 \	
+	-query gowanus
+	
+2026/08/12 12:51:39 INFO Rewrite geocoder URI to enable VFS uri="sql://sqlite?dsn=file%3Awof-sfom.db%3Fvfs%3Dvfs1%26mode%3Dro"
+2026/08/12 12:51:43 INFO Query results total=2 page=1 pages=1
+
+id		name		placetype	is current	inception	cessation	label
+85865587	Gowanus		neighbourhood	1						Gowanus, New York, New York, US
+102061079	Gowanus Heights	neighbourhood	-1		2012				Gowanus Heights, New York, New York, US
+```
+
+Note the use of the `-query-timeout` flag. The default query timeout is 5 seconds which may not be enough depending on the specifics of your remote database (VFS) configuration.
 
 ### Getty Thesaurus of Geographic Names (TGN)
 

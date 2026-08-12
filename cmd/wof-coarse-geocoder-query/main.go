@@ -37,6 +37,8 @@ func main() {
 	var page int64
 	var per_page int64
 
+	var query_timeout int
+
 	var mode string
 	var verbose bool
 
@@ -52,6 +54,8 @@ func main() {
 	fs.StringVar(&str_bounds, "bounds", "", "Optional bounding box (in the form of 'minx,miny,maxx,mayx') to filter results by.")
 	fs.StringVar(&date_starts, "date-starts", "", "Optional ETDF starting date string to filter results by.")
 	fs.StringVar(&date_ends, "date-ends", "", "Optional ETDF ending date string to filter results by.")
+
+	fs.IntVar(&query_timeout, "query-timeout", 5, "The maximum allowable time in seconds for a query to complete.")
 
 	fs.Int64Var(&page, "page", 1, "The specific page number to query for paginated result sets.")
 	fs.Int64Var(&per_page, "per-page", 100, "The number of results to include for paginated result sets.")
@@ -152,7 +156,7 @@ func main() {
 		req.DateEnds = ranges
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(query_timeout)*time.Second)
 	defer cancel()
 
 	// To do: derive options from URI constructor...
