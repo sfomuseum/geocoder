@@ -43,10 +43,10 @@ func main() {
 	fs.StringVar(&tgn_data, "tgn-data", "", "The path to the compressed (zip) TGN XML records.")
 	fs.BoolVar(&do_index, "create-index", true, "Create a new indexing/lookup database before processing TGN records.")
 
-	fs.StringVar(&index_db_uri, "index-db-uri", "", "A valid")
-	fs.StringVar(&geocoder_uri, "geocoder-uri", "", "...")
+	fs.StringVar(&index_db_uri, "index-db-uri", "", "A valid 'sql://sqlite?dsn={DSN}' URI. If empty then a temporary database will be created and removed when the application exists.")
+	fs.StringVar(&geocoder_uri, "geocoder-uri", "sql://sqlite?dsn=:memory:", "A registered sfomuseum/geocoder/coarse.Geocoder URI.")
 
-	fs.BoolVar(&list_missing, "list-missing", false, "...")
+	fs.BoolVar(&list_missing, "list-missing", false, "List missing (unaccounted for) placetypes and countries before exiting.")
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
 	fs.Usage = func() {
@@ -197,6 +197,10 @@ func main() {
 		}
 	}
 
+	if records_count == 0 {
+		log.Fatal("Indexing database reported no records. Something is wrong.")
+	}
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -268,6 +272,8 @@ func main() {
 			log.Fatalf("Failed to read TGN %s, %v", fname, err)
 		}
 
+		// Extract properties
+
 		id_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.@Subject_ID")
 
 		if !id_rsp.Exists() {
@@ -287,6 +293,8 @@ func main() {
 
 		start_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Place_Types.Preferred_Place_Type.PT_Date.Start_Date")
 		end_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Place_Types.Preferred_Place_Type.PT_Date.End_Date")
+
+		// Process dates
 
 		start_date := start_rsp.String()
 		end_date := end_rsp.String()
@@ -309,7 +317,7 @@ func main() {
 			}
 		}
 
-		pt := tgn.TgnToWhosOnFirstPlacetype(tgn_pt)
+		// Process coordinates
 
 		lat_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Coordinates.Standard.Latitude.Decimal")
 		lon_rsp := xmldot.GetBytes(body, "Vocabulary.Subject.Coordinates.Standard.Longitude.Decimal")
@@ -317,6 +325,8 @@ func main() {
 		lon := lon_rsp.Float()
 
 		centroid := orb.Point([2]float64{lon, lat})
+
+		// Process tokens
 
 		tokens := make(map[string]map[string][]string)
 
@@ -358,10 +368,28 @@ func main() {
 			// slog.Debug("Set tokens", "lang", wof_lang, "tag", wof_tag, "tokens", tokens[wof_lang][wof_tag])
 		}
 
-		//
+		// Process placetype
+
+		wof_pt := tgn.TgnToWhosOnFirstPlacetype(tgn_pt)
+
+		// Process (ISO) country
+
+		wof_co := tgn.TgnToWhosOnFirstCountry(name)
+
+		if wof_co == "XY" {
+
+			_, ok := country_map.LoadOrStore(name, true)
+
+			if !ok {
+				slog.Debug("Unregistered country", "country", name)
+			}
+		}
+
+		// Process hierarchy
 
 		hier := make(map[string]int64)
-		wof_co := ""
+		k := fmt.Sprintf("%s_id", wof_pt)
+		hier[k] = id
 
 		ancestor_id := parent_id
 
@@ -379,14 +407,14 @@ func main() {
 			if err != nil {
 
 				if err != db_sql.ErrNoRows {
-					slog.Warn("Failed to query ancestor", "id", ancestor_id, err)
+					slog.Warn("Failed to query ancestor", "id", ancestor_id, "error", err)
 				}
 				break
 			}
 
-			wof_pt := tgn.TgnToWhosOnFirstPlacetype(anc_pt)
+			anc_wof_pt := tgn.TgnToWhosOnFirstPlacetype(anc_pt)
 
-			if wof_pt == "custom" {
+			if anc_wof_pt == "custom" {
 
 				switch anc_pt {
 				case "10003/facet":
@@ -396,15 +424,15 @@ func main() {
 					_, ok := placetype_map.LoadOrStore(anc_pt, true)
 
 					if !ok {
-						slog.Debug("Unregistered placetype", "id", ancestor_id, "pt", anc_pt, "wof pt", wof_pt)
+						slog.Debug("Unregistered placetype", "id", ancestor_id, "pt", anc_pt)
 					}
 				}
 
 			} else {
-				k := fmt.Sprintf("%s_id", wof_pt)
+				k := fmt.Sprintf("%s_id", anc_wof_pt)
 				hier[k] = ancestor_id
 
-				if wof_pt == "country" {
+				if anc_wof_pt == "country" {
 
 					wof_co = tgn.TgnToWhosOnFirstCountry(anc_name)
 
@@ -421,7 +449,7 @@ func main() {
 			ancestor_id = anc_parent
 		}
 
-		//
+		// Process "is current"
 
 		is_current := "-1"
 
@@ -468,13 +496,13 @@ func main() {
 			}
 		}
 
-		//
+		// Add to database
 
 		rec := &coarse.Record{
 			Id:           id,
 			ParentId:     parent_id,
 			Name:         name,
-			Placetype:    pt,
+			Placetype:    wof_pt,
 			Country:      wof_co,
 			PlacetypeAlt: strings.Split(tgn_pt, "/"),
 			Centroid:     &centroid,
@@ -490,12 +518,17 @@ func main() {
 			},
 		}
 
+		// START OF this is for internal debugging
+		// but maybe it needs a command-line flag?
+
 		dump := false
 
 		if dump {
 			enc := json.NewEncoder(os.Stdout)
 			enc.Encode(rec)
 		}
+
+		// END OF this is for internal debugging
 
 		err = gc.AddRecord(ctx, rec)
 

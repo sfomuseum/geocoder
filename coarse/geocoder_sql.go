@@ -959,6 +959,8 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	name_ids := hierarchies.AncestorIdsForLabel(label_opts)
 
+	logger.Info("WTF", "parent_id", parent_id, "name ids", name_ids)
+
 	for _, id := range name_ids {
 
 		var id_name string
@@ -979,6 +981,7 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 			switch id_placetype {
 			case "country":
+				logger.Info("YO", "country", id_country, "q", names_q, "id", id)
 				labels = append(labels, id_country)
 			default:
 				labels = append(labels, id_name)

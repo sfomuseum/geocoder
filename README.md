@@ -20,6 +20,8 @@ All of these things account for the initial `v0.9.0` version number. Once things
 
 Currently only "coarse" (or admin-level) geocoding is supported. This does not include venues yet but will, eventually. I am not thinking about address-level geocoding at this time.
 
+These tools do not do any kind of query "parsing" trying to derive specific properies or facets to filter by. For example parsing out that the query string "Montreal CA" should filter for records in Canada. Support for that kind of thing will probably be added in time but as of this writing the entire query string is used for matching.
+
 ### Query filters
 
 Query strings may be filtered by the following:
@@ -488,6 +490,8 @@ type Record struct {
 
 Going forward the "easiest" thing may be to simply change this data structure to assume that all identifiers are strings – specifically machinetag-based string identifiers – and do the extra work, internally, to convert them to and from their source values. Maybe? It's just too soon to think about right now.
 
+Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1) and some sort of "source" property may be added. These remain "to be determined".
+
 ## Experimental
 
 ### Getty Thesaurus of Geographic Names (TGN)
@@ -500,4 +504,93 @@ These placetype mappings are also used to construct a Who's On First style hiera
 
 Language qualifiers (variant, preferred, etc.) are almost certain to contain mistakes. I do not fully understand (yet) how TGN defines these things so this will probably require some finessing.
 
+If TGN has population data (or equivalent signals) to use for search result ranking I haven't found it yet.
+
 In the case of TGN specifically these is little likelihood of ID collision (in the `Id`, `ParentId` or `Hierarchies` properties) with existing Who's On First IDs but the potential again highlights the need to move towards something like machinetag-based identifiers.
+
+To create a `geocoder`-compatible database of TGN data use the `wof-coarse-geocoder-index-tgn` tool described below.
+
+#### wof-coarse-geocoder-index-tgn
+
+Index Getty Thesaurus of Geographic Names (TGN) data in a (coarse) geocoding database.
+
+```
+$> ./bin/wof-coarse-geocoder-index-tgn -h
+Index Getty Thesaurus of Geographic Names (TGN) data in a (coarse) geocoding database.
+Usage:
+	./bin/wof-coarse-geocoder-index-tgn [options] uri(N) uri(N) uri(N)
+Valid options are:
+  -create-index
+    	Create a new indexing/lookup database before processing TGN records. (default true)
+  -geocoder-uri string
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "sql://sqlite?dsn=:memory:")
+  -index-db-uri string
+    	A valid 'sql://sqlite?dsn={DSN}' URI. If empty then a temporary database will be created and removed when the application exists.
+  -list-missing
+    	List missing (unaccounted for) placetypes and countries before exiting.
+  -tgn-data string
+    	The path to the compressed (zip) TGN XML records.
+  -verbose
+    	Enable verbose (debug) logging.
+```
+
+This tool generates a `geocoder`-compatible database of TGN records derived from the [Getty's XML download](http://tgndownloads.getty.edu/) pages. There are a few things to note about this:
+
+1. The `tgndownloads.getty.edu` website does not have a valid TLS certificate so you'll have to access it over unencrypted HTTP.
+2. Getty appears to be moving away from XML exports to JSON-based "linked open data" exports. At the same time it's not clear whether those exports are available anywhere because the Getty also seems to be rethinking every facet of their controlled vocabularies and how they are published.
+
+Start by downloading in the most recent XML export. It is about 3GB in size. You do not need to uncompress it. That will take a long time and fill up your hard drive. The `wof-coarse-geocoder-index-tgn` tool is designed to read data directly from the compressed file.
+
+```
+$> wget http://tgndownloads.getty.edu/VocabData/tgn_xml_0126.zip
+```
+
+The tool will do two passes over the TGN data. One to build a database of parent-child relationships to enable Who's On First -style hierarchies to be generated. This is called the "index-database". The second pass will actually create the geocoding database. For example:
+
+```
+$> go run cmd/wof-coarse-geocoder-index-tgn/main.go -geocoder-uri 'sql://sqlite?dsn=tgn.db' -tgn-data ~/Downloads/tgn_xml_0126.zip
+2026/08/11 22:05:48 INFO Set up indexing database
+2026/08/11 22:22:43 INFO Populating indexing database complete records=2991142 time=16m54.159242167s
+2026/08/11 22:22:49 INFO Process TGN records records=2991142
+2026/08/11 22:23:43 INFO Processing seen=60522 total=2991142 time=1m0.000042458s
+2026/08/11 22:23:55 WARN Failed to parse end date date=-499999 error="Unrecognized EDTF string '-499999' (Invalid or unsupported EDTF string)"
+2026/08/11 22:24:43 INFO Processing seen=128389 total=2991142 time=2m0.00201775s
+2026/08/11 22:25:05 WARN Failed to parse end date date=-229999999 error="Unrecogn
+
+...time passes
+
+2026/08/11 23:07:42 INFO Processing seen=2979737 total=2991142 time=45m0.001506958s
+2026/08/11 23:07:53 INFO Flushing pending records to database
+2026/08/11 23:07:54 INFO Post-indexing database
+2026/08/11 23:12:05 INFO Indexing complete time=1h6m16.185558333s
+
+$> du -h tgn.db 
+4.5G	tgn.db
+```
+
+And then you can use the newly created `tgn.db` as you normally would with the `wof-coarse-geocoder-query` or `wof-coarse-geocoder-server` tools:
+    
+```
+$> ./bin/wof-coarse-geocoder-query \
+	-geocoder-uri 'sql://sqlite?dsn=tgn.db' \
+	-country CA -query laval
+
+2026/08/12 09:36:29 INFO Query results total=15 page=1 pages=1
+
+id	name				placetype	is current	inception	cessation	label
+1015480	Lavaltrie			locality	-1						Lavaltrie, Québec, CA
+7013063	Laval				locality	-1						Laval, Québec, CA
+9218033	Laval				locality	-1						Laval, Québec, CA
+9220988	Laval				locality	-1						Laval, Québec, CA
+9220991	Lavaltrie			locality	-1						Lavaltrie, Québec, CA
+1004951	Laval-Oest			locality	-1						Laval-Oest, Québec, CA
+4002106	Calixa-Lavallée			locality	-1						Calixa-Lavallée, Québec, CA
+9220990	Laval-Ouest			locality	-1						Laval-Ouest, Québec, CA
+9225833	Calixa-Lavallée			locality	-1						Calixa-Lavallée, Québec, CA
+1004952	Laval-des-Rapides		locality	-1						Laval-des-Rapides, Québec, CA
+9220989	Laval-des-Rapides		locality	-1						Laval-des-Rapides, Québec, CA
+1005506	Saint-François-de-Laval		locality	-1						Saint-François-de-Laval, Québec, CA
+9222959	Sainte-Angèle-de-Laval		locality	-1						Sainte-Angèle-de-Laval, Québec, CA
+9225598	Sainte-Brigitte-de-Laval	locality	-1						Sainte-Brigitte-de-Laval, Québec, CA
+9222992	Saint-Elzéar			county		-1						Saint-Elzéar, Québec, CA
+```
