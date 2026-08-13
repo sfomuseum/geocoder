@@ -627,3 +627,22 @@ id	name				placetype	is current	inception	cessation	label
 9225598	Sainte-Brigitte-de-Laval	locality	-1						Sainte-Brigitte-de-Laval, Québec, CA
 9222992	Saint-Elzéar			county		-1						Saint-Elzéar, Québec, CA
 ```
+
+### WebAssembly (WASM)
+
+In a nutshell: Nope, not yet.
+
+```
+$> make wasmjs
+GOOS=js GOARCH=wasm \
+		go build -mod vendor -ldflags="-s -w" -tags wasmjs \
+		-o work/geocoder-query.wasm \
+		cmd/wof-coarse-geocoder-query-wasm/main.go
+		
+package command-line-arguments
+	imports github.com/sfomuseum/geocoder/x/wasm
+	imports github.com/sfomuseum/geocoder/coarse
+	imports modernc.org/sqlite
+	imports modernc.org/libc
+	imports modernc.org/libc/errno: build constraints exclude all Go files in /usr/local/sfomuseum/geocoder/vendor/modernc.org/libc/errno
+```	
