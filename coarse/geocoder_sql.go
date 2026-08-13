@@ -21,33 +21,49 @@ import (
 
 	"github.com/aaronland/go-pagination"
 	"github.com/aaronland/go-pagination/countable"
+	"github.com/bwmarrin/snowflake"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	geocoder_sql "github.com/sfomuseum/geocoder/coarse/sql"
 	"github.com/sfomuseum/geocoder/placeholder"
 	x_vfs "github.com/sfomuseum/geocoder/x/vfs"
 	"github.com/sfomuseum/go-database/sql"
+	"github.com/sfomuseum/go-embeddings"
 	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
 	"modernc.org/sqlite/vfs"
+	// sqlite_vec "modernc.org/sqlite/vec"
 )
 
 // To do: Support wildcard machine tags
 var re_machinetag = regexp.MustCompile(`^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+=[^\s]+$`)
 
+var snowflake_node *snowflake.Node
+
 func init() {
 	ctx := context.Background()
 	MustRegisterGeocoder(ctx, "sql", NewSQLGeocoder)
+
+	n, err := snowflake.NewNode(1)
+
+	if err != nil {
+		panic(err)
+	}
+
+	snowflake_node = n
 }
 
 type SQLGeocoder struct {
 	Geocoder
-	db               *db_sql.DB
-	vfs              *vfs.FS
-	mu               *sync.RWMutex
-	min_query_length int
-	records          []*Record
-	batch_size       int
-	bulk_workers     int
+	db                 *db_sql.DB
+	vfs                *vfs.FS
+	embedder           embeddings.Embedder[float32]
+	embedder_models    []string
+	vector_compression string
+	mu                 *sync.RWMutex
+	min_query_length   int
+	records            []*Record
+	batch_size         int
+	bulk_workers       int
 }
 
 type NewSQLGeocoderOptions struct {
@@ -586,6 +602,81 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				}
 			}
 
+			// Vectors
+
+			if rec.VectorEmbeddings != nil {
+
+				var vec_q string
+
+				switch g.vector_compression {
+				case geocoder_sql.SQLiteVecQuantizeCompression:
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", geocoder_sql.VEC_TABLE_NAME)
+				case geocoder_sql.SQLiteVecMatroyshkaCompression:
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", geocoder_sql.VEC_TABLE_NAME, geocoder_sql.SQLiteMatroyshkaDimensions)
+				case geocoder_sql.SQLiteVecDefaultCompression:
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, ?)", geocoder_sql.VEC_TABLE_NAME)
+				default:
+					err_ch <- fmt.Errorf("Invalid or unsupported compression, '%s'", g.vector_compression)
+					return
+				}
+
+				vec_st, err := tx.Prepare(vec_q)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to prepare vector statement, %w", err)
+					return
+				}
+
+				defer vec_st.Close()
+
+				vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", geocoder_sql.VEC_RECORDS_TABLE_NAME)
+
+				vrec_st, err := tx.Prepare(vrec_q)
+
+				if err != nil {
+					err_ch <- fmt.Errorf("Failed to prepare vector record statement, %w", err)
+					return
+				}
+
+				defer vrec_st.Close()
+
+				for _, v := range rec.VectorEmbeddings {
+
+					for _, e := range v.Embeddings {
+
+						vrec_id, err := g.uidForVectorRecord(ctx, rec.Id, v.Model, e.Language, e.Tag)
+
+						if err != nil {
+							err_ch <- err
+							return
+						}
+
+						enc_e, err := geocoder_sql.SerializeFloat32(e.Embeddings)
+
+						if err != nil {
+							err_ch <- err
+							return
+						}
+
+						_, err = vec_st.ExecContext(ctx, vec_q, vrec_id, enc_e)
+
+						if err != nil {
+							err_ch <- err
+							return
+						}
+
+						_, err = vrec_st.ExecContext(ctx, vrec_id, rec.Id, v.Model, e.Language, e.Tag)
+
+						if err != nil {
+							err_ch <- err
+							return
+						}
+					}
+				}
+			}
+
+			// All done...
+
 		}(rec)
 	}
 
@@ -724,7 +815,26 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(" JOIN bounds b ON r.id = b.wofid")
 	}
 
-	sb.WriteString(" WHERE f.token MATCH ?")
+	if req.UseEmbeddings {
+
+		emb_req := &embeddings.EmbeddingsRequest{
+			Id:    query_str,
+			Model: req.UseEmbeddingsModel,
+			Body:  []byte(query_str),
+		}
+
+		emb_rsp, err := g.embedder.TextEmbeddings(ctx, emb_req)
+
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to derive text embeddings for query, %w", err)
+		}
+
+		slog.Info("GOT EMBEDDINGS", "rsp", emb_rsp)
+		return nil, nil, fmt.Errorf("Not implemented")
+
+	} else {
+		sb.WriteString(" WHERE f.token MATCH ?")
+	}
 
 	args := []any{
 		query_str,
@@ -1208,4 +1318,24 @@ func (g *SQLGeocoder) prepareQuery(input string) string {
 	sanitized[lastIdx] = sanitized[lastIdx] + "*"
 
 	return strings.Join(sanitized, " AND ")
+}
+
+func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, record_id int64, model string, language string, tag string) (int64, error) {
+
+	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", geocoder_sql.VEC_RECORDS_TABLE_NAME)
+
+	row := g.db.QueryRowContext(ctx, q, record_id, model, language, tag)
+
+	var id int64
+	err := row.Scan(&id)
+
+	switch {
+	case err == db_sql.ErrNoRows:
+		new_id := snowflake_node.Generate()
+		return new_id.Int64(), nil
+	case err != nil:
+		return 0, err
+	default:
+		return id, nil
+	}
 }

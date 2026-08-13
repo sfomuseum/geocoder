@@ -1,0 +1,9 @@
+CREATE TABLE {{ .Name  }} (
+       id INTEGER PRIMARY KEY,
+       record_id INTEGER,
+       model TEXT,
+       language TEXT,
+       tag TEXT
+);
+
+CREATE UNIQUE INDEX vec_record_model ON {{ .Name }} (record_id, model, language, tag);

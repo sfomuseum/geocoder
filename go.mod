@@ -8,10 +8,12 @@ require (
 	github.com/aaronland/go-json-query v0.2.1
 	github.com/aaronland/go-pagination v0.3.0
 	github.com/aaronland/go-roster v1.0.0
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/netascode/xmldot v0.5.1
 	github.com/paulmach/orb v0.13.0
 	github.com/sfomuseum/go-database v0.0.20
 	github.com/sfomuseum/go-edtf v1.3.0
+	github.com/sfomuseum/go-embeddings v0.5.1
 	github.com/sfomuseum/go-flags v0.12.1
 	github.com/tidwall/gjson v1.19.0
 	github.com/whosonfirst/go-rfc-5646 v0.1.0
@@ -83,6 +85,8 @@ require (
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
+	github.com/sfomuseum/go-encoderfile v0.0.1 // indirect
+	github.com/sfomuseum/go-mobileclip v0.1.3 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

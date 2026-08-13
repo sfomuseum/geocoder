@@ -223,6 +223,9 @@ github.com/aws/smithy-go/traits
 github.com/aws/smithy-go/transport/http
 github.com/aws/smithy-go/transport/http/internal/io
 github.com/aws/smithy-go/waiter
+# github.com/bwmarrin/snowflake v0.3.0
+## explicit
+github.com/bwmarrin/snowflake
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
@@ -467,10 +470,21 @@ github.com/sfomuseum/go-edtf/parser
 github.com/sfomuseum/go-edtf/re
 github.com/sfomuseum/go-edtf/tests
 github.com/sfomuseum/go-edtf/unix
+# github.com/sfomuseum/go-embeddings v0.5.1
+## explicit; go 1.26.0
+github.com/sfomuseum/go-embeddings
+# github.com/sfomuseum/go-encoderfile v0.0.1
+## explicit; go 1.25.0
+github.com/sfomuseum/go-encoderfile/client
+github.com/sfomuseum/go-encoderfile/embeddings
 # github.com/sfomuseum/go-flags v0.12.1
 ## explicit; go 1.22
 github.com/sfomuseum/go-flags/flagset
 github.com/sfomuseum/go-flags/multi
+# github.com/sfomuseum/go-mobileclip v0.1.3
+## explicit; go 1.25.0
+github.com/sfomuseum/go-mobileclip
+github.com/sfomuseum/go-mobileclip/grpc
 # github.com/skeema/knownhosts v1.3.1
 ## explicit; go 1.22
 github.com/skeema/knownhosts
@@ -798,5 +812,6 @@ modernc.org/memory
 ## explicit; go 1.25.0
 modernc.org/sqlite
 modernc.org/sqlite/lib
+modernc.org/sqlite/vec
 modernc.org/sqlite/vfs
 modernc.org/sqlite/vtab

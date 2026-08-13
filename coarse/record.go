@@ -10,6 +10,23 @@ import (
 	"github.com/sfomuseum/go-edtf/parser"
 )
 
+type Tokens struct {
+	Language string
+	Tag      string
+	Tokens   []string
+}
+
+type Embeddings struct {
+	Language   string
+	Tag        string
+	Embeddings []float32
+}
+
+type VectorEmbeddings struct {
+	Model      string
+	Embeddings []*Embeddings
+}
+
 // Record represents the data stored in the coarse geocoder database.
 // The JSON tags are the same names that appear in Who's On First
 // GeoJSON files.  The struct contains a subset of the full
@@ -47,6 +64,8 @@ type Record struct {
 	IsCurrent string `json:"mz:is_current,omitempty"`
 	// Tokens contains tokenised names and concordances indexed for full‑text search.
 	Tokens map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
+	// Vectors ...
+	VectorEmbeddings []*VectorEmbeddings
 }
 
 // Hash returns a SHA‑256 digest of the record in JSON form.  The hash
