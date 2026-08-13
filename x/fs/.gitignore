@@ -1,0 +1,4 @@
+*
+!.gitignore
+!fs.go
+!sfomuseum_arch.db

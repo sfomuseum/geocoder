@@ -10,15 +10,22 @@ cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-index cmd/wof-coarse-geocoder-index/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-index-tgn cmd/wof-coarse-geocoder-index-tgn/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-query cmd/wof-coarse-geocoder-query/main.go
+	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-query-fs cmd/wof-coarse-geocoder-query-fs/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-server cmd/wof-coarse-geocoder-server/main.go
 
-lambda:
-	@make lambda-server
+wasmjs:
+	GOOS=js GOARCH=wasm \
+		go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags wasmjs \
+		-o work/geocoder-query.wasm \
+		cmd/wof-coarse-geocoder-query-wasm/main.go
 
-lambda-server:
+lambda:
+	@make lambda-server-fs
+
+lambda-server-fs:
 	if test -f bootstrap; then rm -f bootstrap; fi
 	if test -f geocoder-server.zip; then rm -f geocoder-server.zip; fi
-	GOARCH=arm64 GOOS=linux go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags lambda.norpc -o bootstrap cmd/wof-coarse-geocoder-server/main.go
+	GOARCH=arm64 GOOS=linux go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags lambda.norpc -o bootstrap cmd/wof-coarse-geocoder-server-fs/main.go
 	zip geocoder-server.zip bootstrap
 	rm -f bootstrap
 

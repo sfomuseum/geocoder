@@ -34,14 +34,25 @@ import (
 // To do: Support wildcard machine tags
 var re_machinetag = regexp.MustCompile(`^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+=[^\s]+$`)
 
+func init() {
+	ctx := context.Background()
+	MustRegisterGeocoder(ctx, "sql", NewSQLGeocoder)
+}
+
 type SQLGeocoder struct {
 	Geocoder
 	db               *db_sql.DB
+	vfs              *vfs.FS
 	mu               *sync.RWMutex
 	min_query_length int
 	records          []*Record
 	batch_size       int
 	bulk_workers     int
+}
+
+type NewSQLGeocoderOptions struct {
+	Database *db_sql.DB
+	VFS      *vfs.FS
 }
 
 func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
@@ -171,7 +182,39 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 		return nil, fmt.Errorf("Unsupported SQL driver, %s", driver)
 	}
 
-	err = db.PingContext(ctx)
+	opts := &NewSQLGeocoderOptions{
+		Database: db,
+	}
+
+	return NewSQLGeocoderWithOptions(ctx, opts)
+}
+
+func NewSQLGeocoderWithFS(ctx context.Context, db_fs fs.FS, db_name string) (Geocoder, error) {
+
+	vfs_name, vfs_fs, err := vfs.New(db_fs)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create VFS, %w", err)
+	}
+
+	dsn := fmt.Sprintf("file:%s?vfs=%s", db_name, vfs_name)
+	db, err := db_sql.Open("sqlite", dsn)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open database, %w", err)
+	}
+
+	opts := &NewSQLGeocoderOptions{
+		Database: db,
+		VFS:      vfs_fs,
+	}
+
+	return NewSQLGeocoderWithOptions(ctx, opts)
+}
+
+func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions) (Geocoder, error) {
+
+	err := opts.Database.PingContext(ctx)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ping database, %w", err)
@@ -180,7 +223,8 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 	mu := new(sync.RWMutex)
 
 	g := &SQLGeocoder{
-		db:               db,
+		db:               opts.Database,
+		vfs:              opts.VFS,
 		mu:               mu,
 		min_query_length: 2,
 		records:          make([]*Record, 0),
@@ -937,6 +981,11 @@ func (g *SQLGeocoder) Flush(ctx context.Context) error {
 }
 
 func (g *SQLGeocoder) Close() error {
+
+	if g.vfs != nil {
+		g.vfs.Close()
+	}
+
 	return g.db.Close()
 }
 
