@@ -22,7 +22,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs := flagset.NewFlagSet("query")
 
-	fs.StringVar(&geocoder_uri, "geocoder-uri", "", "A registered sfomuseum/geocoder/coarse.Geocoder URI.")
+	fs.StringVar(&geocoder_uri, "geocoder-uri", "null://", "A registered sfomuseum/geocoder/coarse.Geocoder URI.")
 	fs.StringVar(&server_uri, "server-uri", "http://localhost:8080", "A registered aaronland/go-http/v4/server.Server URI.")
 	fs.StringVar(&prefix, "prefix", "", "An optional URL prefix to listen for requests on.")
 

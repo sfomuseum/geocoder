@@ -20,12 +20,12 @@ wasmjs:
 		cmd/wof-coarse-geocoder-query-wasm/main.go
 
 lambda:
-	@make lambda-server
+	@make lambda-server-fs
 
-lambda-server:
+lambda-server-fs:
 	if test -f bootstrap; then rm -f bootstrap; fi
 	if test -f geocoder-server.zip; then rm -f geocoder-server.zip; fi
-	GOARCH=arm64 GOOS=linux go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags lambda.norpc -o bootstrap cmd/wof-coarse-geocoder-server/main.go
+	GOARCH=arm64 GOOS=linux go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags lambda.norpc -o bootstrap cmd/wof-coarse-geocoder-server-fs/main.go
 	zip geocoder-server.zip bootstrap
 	rm -f bootstrap
 

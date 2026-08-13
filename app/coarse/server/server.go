@@ -10,10 +10,8 @@ import (
 
 	"github.com/aaronland/go-http-maps/v2"
 	"github.com/aaronland/go-http/v4/server"
-	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/geocoder/http/api"
 	www_coarse "github.com/sfomuseum/geocoder/http/www/coarse"
-	"github.com/sfomuseum/go-flags/flagset"
 )
 
 func Run(ctx context.Context) error {
@@ -24,26 +22,27 @@ func Run(ctx context.Context) error {
 
 func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
-	flagset.Parse(fs)
-
-	err := flagset.SetFlagsFromEnvVars(fs, "GEOCODER")
+	opts, err := OptionsFromFlagSet(ctx, fs)
 
 	if err != nil {
-		return fmt.Errorf("Failed to set flags from environment variables, %w", err)
+		return fmt.Errorf("Failed to derive options, %w", err)
 	}
 
-	if verbose {
+	return RunWithOptions(ctx, opts)
+}
+
+func RunWithOptions(ctx context.Context, opts *Options) error {
+
+	if opts.Verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Verbose logging enabled")
 	}
 
-	gc, err := coarse.NewSQLGeocoder(ctx, geocoder_uri)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create geocoder, %w", err)
+	if opts.Geocoder == nil {
+		return fmt.Errorf("Missing geocoder")
 	}
 
-	defer gc.Close()
+	defer opts.Geocoder.Close()
 
 	mux := http.NewServeMux()
 
@@ -57,9 +56,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 		map_uri := "/map.json"
 
-		if prefix != "" {
+		if opts.Prefix != "" {
 
-			u, err := url.JoinPath(prefix, map_uri)
+			u, err := url.JoinPath(opts.Prefix, map_uri)
 
 			if err != nil {
 				return fmt.Errorf("Failed to add prefix to map config URL, %w", err)
@@ -72,24 +71,24 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 		www_handler := http.FileServerFS(www_coarse.FS)
 
-		if prefix == "" {
+		if opts.Prefix == "" {
 			mux.Handle("/", www_handler)
 		} else {
 
-			root_uri, err := url.JoinPath(prefix, "/")
+			root_uri, err := url.JoinPath(opts.Prefix, "/")
 
 			if err != nil {
 				return fmt.Errorf("Failed to apply prefix to root (demo) URL, %w", err)
 			}
 
-			mux.Handle(root_uri, http.StripPrefix(prefix, www_handler))
+			mux.Handle(root_uri, http.StripPrefix(opts.Prefix, www_handler))
 		}
 	}
 
 	api_opts := &api.CoarseGeocoderHandlerOptions{
-		Geocoder:          gc,
-		PaginationPerPage: per_page,
-		QueryTimeout:      query_timeout,
+		Geocoder:          opts.Geocoder,
+		PaginationPerPage: opts.PaginationPerPage,
+		QueryTimeout:      opts.QueryTimeout,
 	}
 
 	api_handler, err := api.CoarseGeocoderHandler(api_opts)
@@ -98,11 +97,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		return fmt.Errorf("Failed to create coarse geocoder handler, %w", err)
 	}
 
-	if prefix == "" {
+	if opts.Prefix == "" {
 		mux.Handle("/api/query/", api_handler)
 	} else {
 
-		api_uri, err := url.JoinPath(prefix, "/api/query/")
+		api_uri, err := url.JoinPath(opts.Prefix, "/api/query/")
 
 		if err != nil {
 			return fmt.Errorf("Failed to apply prefix to API (query) URL, %w", err)
@@ -111,7 +110,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		mux.Handle(api_uri, api_handler)
 	}
 
-	s, err := server.NewServer(ctx, server_uri)
+	s, err := server.NewServer(ctx, opts.ServerURI)
 
 	if err != nil {
 		return fmt.Errorf("Failed to create new server, %w", err)

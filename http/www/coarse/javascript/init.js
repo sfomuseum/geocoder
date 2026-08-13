@@ -94,10 +94,10 @@ window.addEventListener("load", function load(event){
     
     const draw_results = function(rsp){
 
+	feedback_el.innerHTML = "";
+	
 	const pg = rsp.pagination;
 	const data = rsp.results;
-
-	console.log("PG", pg);
 	
 	draw_results_map(data);
 
@@ -112,6 +112,7 @@ window.addEventListener("load", function load(event){
 
 	switch (total) {
 	    case 0:
+		feedback_el.innerText = "There are no results for that query.";
 		return;
 	    case 1:
 		pagination.appendChild(document.createTextNode("There is one result"));
@@ -162,7 +163,6 @@ window.addEventListener("load", function load(event){
 		break;
 	}
 
-	feedback_el.innerHTML = "";
 	feedback_el.appendChild(pagination);
 	
 	const table = document.createElement("table");
@@ -190,6 +190,16 @@ window.addEventListener("load", function load(event){
 	label_header.setAttribute("scope", "col");		
 	label_header.appendChild(document.createTextNode("Label"));
 	header_row.appendChild(label_header);
+
+	const latitude_header = document.createElement("th");
+	latitude_header.setAttribute("scope", "col");		
+	latitude_header.appendChild(document.createTextNode("Latitude"));
+	header_row.appendChild(latitude_header);
+
+	const longitude_header = document.createElement("th");
+	longitude_header.setAttribute("scope", "col");		
+	longitude_header.appendChild(document.createTextNode("Longitude"));
+	header_row.appendChild(longitude_header);
 	
 	const placetype_header = document.createElement("th");
 	placetype_header.setAttribute("scope", "col");		
@@ -275,6 +285,14 @@ window.addEventListener("load", function load(event){
 	    label_feature.appendChild(document.createTextNode(props["wof:label"]));
 	    feature_row.appendChild(label_feature);
 
+	    const latitude_feature = document.createElement("td");
+	    latitude_feature.appendChild(document.createTextNode(f.geometry.coordinates[1]));
+	    feature_row.appendChild(latitude_feature);
+
+	    const longitude_feature = document.createElement("td");
+	    longitude_feature.appendChild(document.createTextNode(f.geometry.coordinates[0]));
+	    feature_row.appendChild(longitude_feature);
+	    
 	    var all_placetypes = [
 		props["wof:placetype"],
 	    ];
@@ -342,9 +360,15 @@ window.addEventListener("load", function load(event){
 
 	results_el.style.display = "none";
 	
-	fetch(uri).then(
-	    rsp => rsp.json()
-	).then((data) => {
+	fetch(uri).then(rsp => {
+
+	    if (! rsp.ok){
+		throw new Error(`HTTP error ${rsp.status}`);
+	    }
+	    
+	    return rsp.json();
+	    
+	}).then((data) => {
 	    submit_el.removeAttribute("disabled");
 	    adv_submit_el.removeAttribute("disabled");	    
 	    draw_results(data);

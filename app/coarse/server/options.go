@@ -1,4 +1,4 @@
-package query
+package server
 
 import (
 	"context"
@@ -10,21 +10,13 @@ import (
 )
 
 type Options struct {
-	Geocoder     coarse.Geocoder
-	Query        string
-	Lang         string
-	LangTag      string
-	Placetypes   []string
-	Countries    []string
-	BelongsTo    []int64
-	Bounds       string
-	DateStarts   string
-	DateEnds     string
-	Page         int64
-	PerPage      int64
-	QueryTimeout int
-	Mode         string
-	Verbose      bool
+	Geocoder          coarse.Geocoder
+	ServerURI         string
+	Prefix            string
+	QueryTimeout      int
+	PaginationPerPage int64
+	Demo              bool
+	Verbose           bool
 }
 
 func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error) {
@@ -47,17 +39,12 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 
 	opts.Geocoder = gc
 
-	opts.Placetypes = placetypes
-	opts.Query = query
-	opts.Countries = countries
-	opts.BelongsTo = belongsto
-	opts.Bounds = str_bounds
-	opts.DateStarts = date_starts
-	opts.DateEnds = date_ends
-	opts.Page = page
-	opts.PerPage = per_page
+	opts.ServerURI = server_uri
+	opts.Prefix = prefix
 	opts.QueryTimeout = query_timeout
-	opts.Mode = mode
+	opts.PaginationPerPage = per_page
+	opts.Demo = demo
+
 	opts.Verbose = verbose
 
 	return opts, nil
