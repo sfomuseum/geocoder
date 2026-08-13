@@ -4,3 +4,4 @@ work
 go.work*
 *.db
 *.zip
+main
