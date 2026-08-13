@@ -1,5 +1,7 @@
 package sql
 
+// Move this in to sfomuseum/go-database/sql
+
 import (
 	"bytes"
 	"encoding/binary"

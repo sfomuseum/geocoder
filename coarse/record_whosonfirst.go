@@ -10,52 +10,59 @@ import (
 
 	"github.com/paulmach/orb"
 	"github.com/sfomuseum/geocoder/placeholder"
+	"github.com/sfomuseum/go-embeddings"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-rfc-5646/tags"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/properties"
 )
 
+type NewWhosOnFirstRecordOptions struct {
+	Body           []byte
+	Embedder       embeddings.Embedder[float32]
+	EmbedderModels []string
+}
+
 // NewWhosOnFirstRecord converts a raw Who's On First GeoJSON document
 // into a Record struct.  The function parses all required fields,
 // normalises text, tokenises names, collects concordances and
 // returns a fully populated Record ready for indexing.
-func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
+func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions) (*Record, error) {
 
 	// Important: Note all the sorting of strings. This is important
 	// when generating record hashes.
 
-	id, err := properties.Id(body)
+	id, err := properties.Id(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive ID, %w", err)
 	}
 
-	parent_id, err := properties.ParentId(body)
+	parent_id, err := properties.ParentId(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive parent ID, %w", err)
 	}
 
-	name, err := properties.Name(body)
+	name, err := properties.Name(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive name, %w", err)
 	}
 
-	pt, err := properties.Placetype(body)
+	pt, err := properties.Placetype(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive placetype, %w", err)
 	}
 
-	is_current, err := properties.IsCurrent(body)
+	is_current, err := properties.IsCurrent(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive is current, %w", err)
 	}
 
-	centroid, _, err := properties.Centroid(body)
+	centroid, _, err := properties.Centroid(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive centroid, %w", err)
@@ -65,7 +72,7 @@ func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
 
 	bounds := make([]orb.Bound, 0)
 
-	geom, err := geometry.Geometry(body)
+	geom, err := geometry.Geometry(opts.Body)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive geometry, %w", err)
@@ -93,18 +100,18 @@ func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
 
 	// END OF put me in go-whosonfirst/v4/feature/geometry
 
-	inception := properties.Inception(body)
-	cessation := properties.Cessation(body)
+	inception := properties.Inception(opts.Body)
+	cessation := properties.Cessation(opts.Body)
 
 	inception = ensureValidEDTF(inception)
 	cessation = ensureValidEDTF(cessation)
 
 	// START OF put me in go-whosonfirst/v4/feature/properties
 
-	rank_rsp := gjson.GetBytes(body, "properties.wof:population_rank")
+	rank_rsp := gjson.GetBytes(opts.Body, "properties.wof:population_rank")
 	pop_rank := rank_rsp.Int()
 
-	alt_rsp := gjson.GetBytes(body, "properties.wof:placetype_alt")
+	alt_rsp := gjson.GetBytes(opts.Body, "properties.wof:placetype_alt")
 	alt_count := len(alt_rsp.Array())
 
 	pt_alt := make([]string, alt_count)
@@ -115,12 +122,13 @@ func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
 
 	// END OF put me in go-whosonfirst/v4/feature/properties
 
-	co := properties.Country(body)
-	hiers := properties.Hierarchies(body)
+	co := properties.Country(opts.Body)
+	hiers := properties.Hierarchies(opts.Body)
 
 	tokens := make(map[string]map[string][]string)
+	vectors := make([]*VectorEmbeddings, 0)
 
-	for lang_str, names := range properties.Names(body) {
+	for lang_str, names := range properties.Names(opts.Body) {
 
 		lang_tag, err := tags.NewLangTag(lang_str)
 
@@ -168,13 +176,54 @@ func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
 
 		sort.Strings(lang_tokens)
 		tokens[lang][tag] = lang_tokens
+
+		//
+
+		if opts.Embedder != nil {
+
+			for _, m := range opts.EmbedderModels {
+
+				name_embeddings := make([]*Embeddings, len(name))
+
+				for idx, n := range names {
+
+					emb_req := &embeddings.EmbeddingsRequest{
+						Id:    n,
+						Model: m,
+						Body:  []byte(n),
+					}
+
+					emb_rsp, err := opts.Embedder.TextEmbeddings(ctx, emb_req)
+
+					if err != nil {
+						slog.Warn("Failed to generate embeddings", "model", m, "name", n)
+						continue
+					}
+
+					e := &Embeddings{
+						Language:   lang,
+						Tag:        tag,
+						Embeddings: emb_rsp.Embeddings(),
+					}
+
+					name_embeddings[idx] = e
+				}
+
+				v := &VectorEmbeddings{
+					Model:      m,
+					Embeddings: name_embeddings,
+				}
+
+				vectors = append(vectors, v)
+			}
+		}
 	}
 
 	// Add concordances as eng_x_concordance
 
 	concordances := make([]string, 0)
 
-	for k, v := range properties.Concordances(body) {
+	for k, v := range properties.Concordances(opts.Body) {
 		// To do: Support wildcards
 		k = strings.ReplaceAll(k, ":", "_")
 		concordances = append(concordances, fmt.Sprintf("%s__%v", k, v))
@@ -195,20 +244,21 @@ func NewWhosOnFirstRecord(ctx context.Context, body []byte) (*Record, error) {
 	sort.Strings(pt_alt)
 
 	r := &Record{
-		Id:             id,
-		ParentId:       parent_id,
-		Name:           name,
-		Placetype:      pt,
-		PlacetypeAlt:   pt_alt,
-		Hierarchies:    hiers,
-		Country:        co,
-		Inception:      inception,
-		Cessation:      cessation,
-		IsCurrent:      is_current.StringFlag(),
-		PopulationRank: pop_rank,
-		Centroid:       centroid,
-		Bounds:         bounds,
-		Tokens:         tokens,
+		Id:               id,
+		ParentId:         parent_id,
+		Name:             name,
+		Placetype:        pt,
+		PlacetypeAlt:     pt_alt,
+		Hierarchies:      hiers,
+		Country:          co,
+		Inception:        inception,
+		Cessation:        cessation,
+		IsCurrent:        is_current.StringFlag(),
+		PopulationRank:   pop_rank,
+		Centroid:         centroid,
+		Bounds:           bounds,
+		Tokens:           tokens,
+		VectorEmbeddings: vectors,
 	}
 
 	return r, nil

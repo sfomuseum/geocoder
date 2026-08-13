@@ -180,7 +180,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 			continue
 		}
 
-		rec, err := coarse.NewWhosOnFirstRecord(ctx, body)
+		opts := &coarse.NewWhosOnFirstRecordOptions{
+			Body: body,
+		}
+
+		rec, err := coarse.NewWhosOnFirstRecord(ctx, opts)
 
 		if err != nil {
 			return fmt.Errorf("Failed to create new record, %w", err)

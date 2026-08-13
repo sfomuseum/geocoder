@@ -58,5 +58,24 @@ func SQLiteTables(ctx context.Context) ([]sfom_sql.Table, error) {
 		bounds_table,
 	}
 
+	vector_tables := false
+
+	if vector_tables {
+
+		vec_table, err := NewVectorsTable(ctx)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to instantiate vectors table, %w", err)
+		}
+
+		vrec_table, err := NewVectorRecordsTable(ctx)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to instantiate vector records table, %w", err)
+		}
+
+		db_tables = append(db_tables, vec_table, vrec_table)
+	}
+
 	return db_tables, nil
 }
