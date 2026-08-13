@@ -27,7 +27,7 @@ func main() {
 	opts, err := server.OptionsFromFlagSet(ctx, fs)
 
 	if err != nil {
-		log.Fatalf("Failed to derive options, %v")
+		log.Fatalf("Failed to derive options, %v", err)
 	}
 
 	db_fs := x_fs.FS

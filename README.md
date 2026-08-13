@@ -500,6 +500,12 @@ Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1
 
 ### Virtual File System (VFS) support
 
+#### Bundled filesystems
+
+There is experimental (SQLite) VFS support for `geocoder` databases which are bundled with an application using an embedded file system. In order to use this functionality you want to create a geocoder instance using the `coarse.NewSQLGeocoderWithFS` method. This means you will have to write and compile custom code. See the [cmd/wof-coarse-geocoder-query-fs](cmd/wof-coarse-geocoder-query-fs/main.go) and [cmd/wof-coarse-geocoder-server-fs](cmd/wof-coarse-geocoder-server-fs/main.go) tools for details.
+
+#### Remote (HTTP) data
+
 There is experimental (SQLite) VFS support for `geocoder` databases hosted on remote HTTP(S) servers, for example AWS S3. To enable remote VFS databases add the following query parameters to you `-geocoder-uri` URi:
 
 | Name | Type | Required | Notes |
@@ -630,7 +636,7 @@ id	name				placetype	is current	inception	cessation	label
 
 ### WebAssembly (WASM)
 
-In a nutshell: Nope, not yet.
+In a nutshell: Nope, not yet. WASM tools depend on the `modernc.org/sqlite/vfs` package to bunlde a SQLite database in an embedded filesystem which in turn depends on the `modernc.org/libc` package which does not target the "JS" operating system:
 
 ```
 $> make wasmjs
@@ -645,4 +651,6 @@ package command-line-arguments
 	imports modernc.org/sqlite
 	imports modernc.org/libc
 	imports modernc.org/libc/errno: build constraints exclude all Go files in /usr/local/sfomuseum/geocoder/vendor/modernc.org/libc/errno
-```	
+```
+
+Some day, maybe?

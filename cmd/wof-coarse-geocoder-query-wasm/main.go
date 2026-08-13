@@ -1,6 +1,12 @@
 //go:build wasmjs
 package main
 
+// This code will NOT compile. It will not compile because it depends
+// on the `modernc.org/sqlite/vfs` package to bunlde a SQLite database in
+// an embedded filesystem which in turn depends on the `modernc.org/libc`
+// package which does not target the "JS" operating system. It is included
+// for documentary purposes and in the hope that "JS" will be a build option.
+
 import (
 	"context"
 	"fmt"
