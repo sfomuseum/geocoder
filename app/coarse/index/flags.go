@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sfomuseum/go-flags/flagset"	
+	"github.com/sfomuseum/go-flags/flagset"
 )
-	
-	var iterator_uri string
-	var offset int64
-	var geocoder_uri string
-	var fresh bool
-	var prune bool
-	var index_juggling bool
 
-	var exclude_deprecated bool
-	var exclude_superseded bool
-	var exclude_funky bool
-	var exclude_nullisland bool
+var iterator_uri string
+var offset int64
+var geocoder_uri string
+var fresh bool
+var prune bool
+var index_juggling bool
 
-	var verbose bool
+var exclude_deprecated bool
+var exclude_superseded bool
+var exclude_funky bool
+var exclude_nullisland bool
+
+var verbose bool
 
 func DefaultFlagSet() *flag.FlagSet {
 

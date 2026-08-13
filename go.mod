@@ -7,6 +7,7 @@ require (
 	github.com/aaronland/go-http/v4 v4.1.0
 	github.com/aaronland/go-json-query v0.2.1
 	github.com/aaronland/go-pagination v0.3.0
+	github.com/aaronland/go-roster v1.0.0
 	github.com/netascode/xmldot v0.5.1
 	github.com/paulmach/orb v0.13.0
 	github.com/sfomuseum/go-database v0.0.20
@@ -24,7 +25,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect
 	github.com/aaronland/go-aws/v3 v3.7.1 // indirect
-	github.com/aaronland/go-roster v1.0.0 // indirect
 	github.com/aaronland/gocloud v1.3.2 // indirect
 	github.com/akrylysov/algnhsa v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect

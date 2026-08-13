@@ -6,4 +6,3 @@ import (
 
 //go:embed *.db
 var FS embed.FS
-

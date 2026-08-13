@@ -34,6 +34,11 @@ import (
 // To do: Support wildcard machine tags
 var re_machinetag = regexp.MustCompile(`^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+=[^\s]+$`)
 
+func init() {
+	ctx := context.Background()
+	MustRegisterGeocoder(ctx, "sql", NewSQLGeocoder)
+}
+
 type SQLGeocoder struct {
 	Geocoder
 	db               *db_sql.DB
