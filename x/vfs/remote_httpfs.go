@@ -1,3 +1,4 @@
+// gobuild: vfs_remote
 package vfs
 
 import (

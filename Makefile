@@ -13,11 +13,24 @@ cli:
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-query-fs cmd/wof-coarse-geocoder-query-fs/main.go
 	go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -o bin/wof-coarse-geocoder-server cmd/wof-coarse-geocoder-server/main.go
 
+# This does not compile because modernc.org/libc doesn not target GOOS=js
 wasmjs:
 	GOOS=js GOARCH=wasm \
 		go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags wasmjs \
 		-o work/geocoder-query.wasm \
 		cmd/wof-coarse-geocoder-query-wasm/main.go
+
+# This does not compile because modernc.org/libc doesn not target GOOS=wasip1
+wasip1:
+	GOARCH=wasm GOOS=wasip1 \
+		go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags wasip1 \
+		-o work/query-p1.wasm \
+		./cmd/wof-coarse-geocoder-query-wasi/main.go
+
+# I don't know if the compiles because tinygo doesn't get that far failing on unsupported
+# net/http/httputil imported by vendor deps...
+wasip2:
+	tinygo build -target wasip2 -o work/query-p2.wasm ./cmd/wof-coarse-geocoder-query-wasi/main.go
 
 lambda:
 	@make lambda-server-fs
