@@ -455,7 +455,7 @@ github.com/remyoudompheng/bigfft
 # github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 ## explicit; go 1.13
 github.com/sergi/go-diff/diffmatchpatch
-# github.com/sfomuseum/go-database v0.0.20
+# github.com/sfomuseum/go-database v0.0.21
 ## explicit; go 1.26.5
 github.com/sfomuseum/go-database/sql
 # github.com/sfomuseum/go-edtf v1.3.0

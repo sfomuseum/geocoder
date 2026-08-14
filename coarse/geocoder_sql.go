@@ -41,6 +41,7 @@ var re_machinetag = regexp.MustCompile(`^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+=[^\s]+$`)
 var snowflake_node *snowflake.Node
 
 func init() {
+
 	ctx := context.Background()
 	MustRegisterGeocoder(ctx, "sql", NewSQLGeocoder)
 
@@ -56,6 +57,7 @@ func init() {
 type SQLGeocoder struct {
 	Geocoder
 	db                 *db_sql.DB
+	tables             map[string]sql.Table
 	vfs                *vfs.FS
 	embedder           embeddings.Embedder[float32]
 	embedder_models    []string
@@ -174,6 +176,12 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 			return nil, fmt.Errorf("Failed to instantiate SQLite tables, %w", err)
 		}
 
+		to_create := make([]sql.Table, 0)
+
+		for _, t := range db_tables {
+			to_create = append(to_create, t)
+		}
+
 		db_opts := &sql.ConfigureDatabaseOptions{
 			// https://github.com/pelias/placeholder/blob/master/lib/Database.js
 			Pragma: []string{
@@ -186,7 +194,7 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 				"PRAGMA TEMP_STORE=MEMORY",
 			},
 			CreateTablesIfNecessary: true,
-			Tables:                  db_tables,
+			Tables:                  to_create,
 		}
 
 		err = sql.ConfigureDatabase(ctx, db, db_opts)
@@ -237,10 +245,18 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		return nil, fmt.Errorf("Failed to ping database, %w", err)
 	}
 
+	// To do: Account for other SQL databases
+	db_tables, err := geocoder_sql.SQLiteTables(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to derive tables, %w", err)
+	}
+
 	mu := new(sync.RWMutex)
 
 	g := &SQLGeocoder{
 		db:                 opts.Database,
+		tables:             db_tables,
 		vfs:                opts.VFS,
 		mu:                 mu,
 		vector_compression: geocoder_sql.SQLiteVecDefaultCompression,
@@ -309,7 +325,7 @@ func (g *SQLGeocoder) HasRecordHashChanged(ctx context.Context, rec *Record) (bo
 		return false, false, err
 	}
 
-	q := fmt.Sprintf("SELECT record_hash FROM %s WHERE id = ?", geocoder_sql.RECORDS_TABLE_NAME)
+	q := fmt.Sprintf("SELECT record_hash FROM %s WHERE id = ?", g.tableName("records"))
 	row := g.db.QueryRowContext(ctx, q, rec.Id)
 
 	var record_hash string
@@ -331,7 +347,7 @@ func (g *SQLGeocoder) HasRecordHashChanged(ctx context.Context, rec *Record) (bo
 
 func (g *SQLGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) {
 
-	q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = ?", geocoder_sql.RECORDS_TABLE_NAME)
+	q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = ?", g.tableName("records"))
 	row := g.db.QueryRowContext(ctx, q, id)
 
 	var stub int
@@ -442,7 +458,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", geocoder_sql.RECORDS_TABLE_NAME)
+			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
 
 			_, err = tx.ExecContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
 
@@ -453,7 +469,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Placetypes (alt)
 
-			pt_stq := fmt.Sprintf("INSERT INTO %s (id, placetype) VALUES(?, ?)", geocoder_sql.PLACETYPES_ALT_TABLE_NAME)
+			pt_stq := fmt.Sprintf("INSERT INTO %s (id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))
 
 			pt_st, err := tx.Prepare(pt_stq)
 
@@ -476,7 +492,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Ancestors
 
-			anc_stq := fmt.Sprintf("INSERT INTO %s (id, ancestor_id) VALUES(?, ?)", geocoder_sql.ANCESTORS_TABLE_NAME)
+			anc_stq := fmt.Sprintf("INSERT INTO %s (id, ancestor_id) VALUES(?, ?)", g.tableName("ancestors"))
 			anc_st, err := tx.Prepare(anc_stq)
 
 			if err != nil {
@@ -510,7 +526,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Bounds
 
-			bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, wofid) VALUES(?, ?, ?, ?, ?)", geocoder_sql.BOUNDS_TABLE_NAME)
+			bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, wofid) VALUES(?, ?, ?, ?, ?)", g.tableName("bounds"))
 			bounds_st, err := tx.Prepare(bounds_stq)
 
 			if err != nil {
@@ -570,7 +586,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 					date_placeholders[i] = "?"
 				}
 
-				date_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (%s) VALUES (%s)", geocoder_sql.DATES_TABLE_NAME, strings.Join(date_fields, ","), strings.Join(date_placeholders, ","))
+				date_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (%s) VALUES (%s)", g.tableName("dates"), strings.Join(date_fields, ","), strings.Join(date_placeholders, ","))
 
 				_, err := tx.ExecContext(ctx, date_q, date_args...)
 
@@ -582,7 +598,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Tokens
 
-			tok_stq := fmt.Sprintf("INSERT INTO %s (id, token, lang, tag) VALUES(?, ?, ?, ?)", geocoder_sql.TOKENS_TABLE_NAME)
+			tok_stq := fmt.Sprintf("INSERT INTO %s (id, token, lang, tag) VALUES(?, ?, ?, ?)", g.tableName("tokens"))
 			tok_st, err := tx.Prepare(tok_stq)
 
 			if err != nil {
@@ -608,15 +624,17 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			if rec.VectorEmbeddings != nil {
 
+				emb_table := g.tableName("embeddings")
+
 				var vec_q string
 
 				switch g.vector_compression {
 				case geocoder_sql.SQLiteVecQuantizeCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", geocoder_sql.EMBEDDINGS_TABLE_NAME)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", emb_table)
 				case geocoder_sql.SQLiteVecMatroyshkaCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", geocoder_sql.EMBEDDINGS_TABLE_NAME, geocoder_sql.SQLiteMatroyshkaDimensions)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", emb_table, geocoder_sql.SQLiteMatroyshkaDimensions)
 				case geocoder_sql.SQLiteVecDefaultCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, ?)", geocoder_sql.EMBEDDINGS_TABLE_NAME)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, ?)", emb_table)
 				default:
 					err_ch <- fmt.Errorf("Invalid or unsupported compression, '%s'", g.vector_compression)
 					return
@@ -631,7 +649,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 				defer vec_st.Close()
 
-				vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", geocoder_sql.EMBEDDINGS_RECORDS_TABLE_NAME)
+				vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", g.tableName("embeddings_records"))
 
 				vrec_st, err := tx.Prepare(vrec_q)
 
@@ -728,12 +746,14 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
 	}()
 
 	tables := []string{
-		geocoder_sql.RECORDS_TABLE_NAME,
-		geocoder_sql.PLACETYPES_ALT_TABLE_NAME,
-		geocoder_sql.DATES_TABLE_NAME,
-		geocoder_sql.BOUNDS_TABLE_NAME,
-		geocoder_sql.ANCESTORS_TABLE_NAME,
-		geocoder_sql.TOKENS_TABLE_NAME,
+		g.tableName("records"),
+		g.tableName("placetypes_alt"),
+		g.tableName("dates"),
+		g.tableName("bounds"),
+		g.tableName("ancestors"),
+		g.tableName("tokens"),
+		g.tableName("embeddings"),
+		g.tableName("embeddings_records"),
 	}
 
 	for _, t := range tables {
@@ -741,8 +761,10 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
 		var q string
 
 		switch t {
-		case geocoder_sql.BOUNDS_TABLE_NAME:
+		case g.tableName("bounds"):
 			q = fmt.Sprintf("DELETE FROM %s WHERE wofid = ?", t)
+		case g.tableName("embeddings_records"):
+			q = fmt.Sprintf("DELETE FROM %s WHERE record_id = ?", t)
 		default:
 			q = fmt.Sprintf("DELETE FROM %s WHERE id = ?", t)
 		}
@@ -1129,7 +1151,7 @@ func (g *SQLGeocoder) assignExtra(ctx context.Context, f *geojson.Feature) error
 
 func (g *SQLGeocoder) assignBBox(ctx context.Context, f *geojson.Feature) error {
 
-	bounds_q := fmt.Sprintf("SELECT MIN(minx), MIN(miny), MAX(maxx), MAX(maxy) FROM %s WHERE wofid = ?", geocoder_sql.BOUNDS_TABLE_NAME)
+	bounds_q := fmt.Sprintf("SELECT MIN(minx), MIN(miny), MAX(maxx), MAX(maxy) FROM %s WHERE wofid = ?", g.tableName("bounds"))
 
 	bounds_row := g.db.QueryRowContext(ctx, bounds_q, f.ID)
 
@@ -1206,15 +1228,15 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	name_ids := hierarchies.AncestorIdsForLabel(label_opts)
 
+	names_q := fmt.Sprintf("SELECT name, placetype, country from %s WHERE id = ?", g.tableName("records"))
+
 	for _, id := range name_ids {
 
 		var id_name string
 		var id_placetype string
 		var id_country string
 
-		names_q := fmt.Sprintf("SELECT name, placetype, country from %s WHERE id = ?", geocoder_sql.RECORDS_TABLE_NAME)
 		row := g.db.QueryRowContext(ctx, names_q, id)
-
 		err := row.Scan(&id_name, &id_placetype, &id_country)
 
 		switch {
@@ -1239,7 +1261,7 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 func (g *SQLGeocoder) assignPlacetypeAlt(ctx context.Context, f *geojson.Feature) error {
 
-	pt_q := fmt.Sprintf("SELECT placetype from %s WHERE id = ?", geocoder_sql.PLACETYPES_ALT_TABLE_NAME)
+	pt_q := fmt.Sprintf("SELECT placetype from %s WHERE id = ?", g.tableName("placetypes_alt"))
 
 	pt_rows, err := g.db.QueryContext(ctx, pt_q, f.ID)
 
@@ -1324,7 +1346,7 @@ func (g *SQLGeocoder) prepareQuery(input string) string {
 
 func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, record_id int64, model string, language string, tag string) (int64, error) {
 
-	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", geocoder_sql.EMBEDDINGS_RECORDS_TABLE_NAME)
+	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", g.tableName("embeddings_records"))
 
 	row := g.db.QueryRowContext(ctx, q, record_id, model, language, tag)
 
@@ -1340,4 +1362,16 @@ func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, record_id int64, m
 	default:
 		return id, nil
 	}
+}
+
+func (g *SQLGeocoder) tableName(label string) string {
+
+	t, ok := g.tables[label]
+
+	if !ok {
+		slog.Warn("Failed to retrieve table for label", "label", label)
+		return ""
+	}
+
+	return t.Name()
 }

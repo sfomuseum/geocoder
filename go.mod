@@ -11,7 +11,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/netascode/xmldot v0.5.1
 	github.com/paulmach/orb v0.13.0
-	github.com/sfomuseum/go-database v0.0.20
+	github.com/sfomuseum/go-database v0.0.21
 	github.com/sfomuseum/go-edtf v1.3.0
 	github.com/sfomuseum/go-embeddings v0.5.1
 	github.com/sfomuseum/go-flags v0.12.1

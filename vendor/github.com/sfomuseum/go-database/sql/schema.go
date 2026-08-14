@@ -5,11 +5,22 @@ import (
 	"bytes"
 	db_sql "database/sql"
 	"fmt"
-	"text/template"
 	"io/fs"
+	"text/template"
 )
 
 func LoadSchema(db *db_sql.DB, schema_fs fs.FS, table_name string) (string, error) {
+
+	vars := struct {
+		Name string
+	}{
+		Name: table_name,
+	}
+
+	return LoadSchemaWithVars(db, schema_fs, table_name, vars)
+}
+
+func LoadSchemaWithVars(db *db_sql.DB, schema_fs fs.FS, table_name string, vars any) (string, error) {
 
 	driver := Driver(db)
 
@@ -25,12 +36,6 @@ func LoadSchema(db *db_sql.DB, schema_fs fs.FS, table_name string) (string, erro
 
 	if err != nil {
 		return "", fmt.Errorf("Failed to parse %s template, %w", fname, err)
-	}
-
-	vars := struct {
-		Name string
-	}{
-		Name: table_name,
 	}
 
 	var buf bytes.Buffer

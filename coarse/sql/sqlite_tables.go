@@ -3,15 +3,14 @@ package sql
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	sfom_sql "github.com/sfomuseum/go-database/sql"
 )
 
-// SQLiteTables returns a slice of Table objects that describe
-// all tables used by the SQLite backend.  The slice can be
-// passed to the database configuration code to create the
-// required schema on demand.
-func SQLiteTables(ctx context.Context) ([]sfom_sql.Table, error) {
+var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {
+
+	ctx := context.Background()
 
 	records_table, err := NewRecordsTable(ctx)
 
@@ -61,16 +60,24 @@ func SQLiteTables(ctx context.Context) ([]sfom_sql.Table, error) {
 		return nil, fmt.Errorf("Failed to instantiate embeddings records table, %w", err)
 	}
 
-	db_tables := []sfom_sql.Table{
-		records_table,
-		tokens_table,
-		dates_table,
-		ancestors_table,
-		placetypes_alt_table,
-		bounds_table,
-		embeddings_table,
-		embeddings_records_table,
+	db_tables := map[string]sfom_sql.Table{
+		"records":            records_table,
+		"tokens":             tokens_table,
+		"dates":              dates_table,
+		"ancestors":          ancestors_table,
+		"placetypes_alt":     placetypes_alt_table,
+		"bounds":             bounds_table,
+		"embeddings":         embeddings_table,
+		"embeddings_records": embeddings_records_table,
 	}
 
 	return db_tables, nil
+})
+
+// SQLiteTables returns a slice of Table objects that describe
+// all tables used by the SQLite backend.  The slice can be
+// passed to the database configuration code to create the
+// required schema on demand.
+func SQLiteTables(ctx context.Context) (map[string]sfom_sql.Table, error) {
+	return sqliteTables()
 }

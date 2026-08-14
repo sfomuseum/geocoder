@@ -15,6 +15,7 @@ import (
 
 	"github.com/aaronland/go-json-query"
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/go-embeddings"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/alt"
 	"github.com/whosonfirst/go-whosonfirst/v4/iterate"
@@ -144,6 +145,12 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		}
 	}()
 
+	embedder, err := embeddings.NewEmbedder32(ctx, "ollama://?model=embeddingsgemma")
+
+	if err != nil {
+		return fmt.Errorf("Failed to create embedder, %w", err)
+	}
+
 	iterator_uris := fs.Args()
 
 	for rec, err := range iter.Iterate(ctx, iterator_uris...) {
@@ -181,7 +188,8 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		}
 
 		opts := &coarse.NewWhosOnFirstRecordOptions{
-			Body: body,
+			Body:     body,
+			Embedder: embedder,
 		}
 
 		rec, err := coarse.NewWhosOnFirstRecord(ctx, opts)
