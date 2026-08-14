@@ -1,9 +1,9 @@
 CREATE TABLE {{ .Name  }} (
        id INTEGER PRIMARY KEY,
-       record_id INTEGER,
-       model TEXT,
-       language TEXT,
-       tag TEXT
+       record_id INTEGER NOT NULL,
+       model TEXT NOT NULL,
+       language TEXT NOT NULL,
+       tag TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX vec_record_model ON {{ .Name }} (record_id, model, language, tag);
+-- CREATE UNIQUE INDEX vec_record_model ON {{ .Name }} (record_id, model, language, tag);

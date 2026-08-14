@@ -90,7 +90,6 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 	}
 
 	logger = logger.With("id", id)
-	logger.Info("ADD RECORD")
 
 	parent_id, err := properties.ParentId(opts.Body)
 
@@ -218,7 +217,7 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 	if opts.Embedder != nil {
 
-		workers := 25
+		workers := 50
 
 		throttle := make(chan bool, workers)
 
@@ -277,6 +276,8 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 				for _, m := range opts.EmbedderModels {
 
 					emb_id := fmt.Sprintf("%d-%s-%s", id, lang, tag)
+
+					// Cache the hell out of model + str_names...
 
 					emb_req := &embeddings.EmbeddingsRequest{
 						Id:    emb_id,

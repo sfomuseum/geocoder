@@ -32,7 +32,6 @@ import (
 	"github.com/sfomuseum/go-embeddings"
 	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
 	"modernc.org/sqlite/vfs"
-	// sqlite_vec "modernc.org/sqlite/vec"
 )
 
 // To do: Support wildcard machine tags
@@ -636,7 +635,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				case geocoder_sql.SQLiteVecMatroyshkaCompression:
 					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", emb_table, geocoder_sql.SQLiteMatroyshkaDimensions)
 				case geocoder_sql.SQLiteVecDefaultCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, ?)", emb_table)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (:id, vec_f32(:vector))", emb_table)
 				default:
 					err_ch <- fmt.Errorf("Invalid or unsupported compression, '%s'", g.vector_compression)
 					return
@@ -662,39 +661,47 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 				defer vrec_st.Close()
 
+				del_q := fmt.Sprintf("DELETE FROM %s WHERE rowid = ?", emb_table)
+
 				for _, v := range rec.VectorEmbeddings {
 
 					for _, e := range v.Embeddings {
 
-						logger.Info("Add embeddings")
-
-						vrec_id, err := g.uidForVectorRecord(ctx, rec.Id, v.Model, e.Language, e.Tag)
+						enc_e, err := json.Marshal(e.Embeddings)
 
 						if err != nil {
-							err_ch <- err
+							err_ch <- fmt.Errorf("Failed to marshal embeddings, %w", err)
 							return
 						}
 
-						logger.Info("Add embeddings with ID", vrec_id)
-
-						enc_e, err := geocoder_sql.SerializeFloat32(e.Embeddings)
+						vrec_id, err := g.uidForVectorRecord(ctx, tx, rec.Id, v.Model, e.Language, e.Tag)
 
 						if err != nil {
-							err_ch <- err
+							err_ch <- fmt.Errorf("Failed to derive UID for vector record, %w", err)
 							return
 						}
 
-						_, err = vec_st.ExecContext(ctx, vec_q, vrec_id, enc_e)
+						_, err = tx.ExecContext(ctx, del_q, vrec_id)
 
 						if err != nil {
-							err_ch <- err
+							logger.Error("NOPE vec delet", "q", del_q, "id", vrec_id, "error", err)
+							err_ch <- fmt.Errorf("Failed to delete row (%d) from mebeddings, %w", vrec_id, err)
+							return
+						}
+
+						_, err = vec_st.ExecContext(ctx, vec_q, db_sql.Named("id", vrec_id), db_sql.Named("vector", string(enc_e)))
+
+						if err != nil {
+							logger.Error("NOPE vec", "q", vec_q, "error", err)
+							err_ch <- fmt.Errorf("Failed to add embeddings, %w", err)
 							return
 						}
 
 						_, err = vrec_st.ExecContext(ctx, vrec_id, rec.Id, v.Model, e.Language, e.Tag)
 
 						if err != nil {
-							err_ch <- err
+							logger.Error("NOPE vec r", "error", err)
+							err_ch <- fmt.Errorf("Failed to add vector record row, %w", err)
 							return
 						}
 					}
@@ -1350,11 +1357,11 @@ func (g *SQLGeocoder) prepareQuery(input string) string {
 	return strings.Join(sanitized, " AND ")
 }
 
-func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, record_id int64, model string, language string, tag string) (int64, error) {
+func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, tx *db_sql.Tx, record_id int64, model string, language string, tag string) (int64, error) {
 
 	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", g.tableName("embeddings_records"))
 
-	row := g.db.QueryRowContext(ctx, q, record_id, model, language, tag)
+	row := tx.QueryRowContext(ctx, q, record_id, model, language, tag)
 
 	var id int64
 	err := row.Scan(&id)
