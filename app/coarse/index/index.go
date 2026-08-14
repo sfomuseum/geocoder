@@ -145,7 +145,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		}
 	}()
 
-	embedder, err := embeddings.NewEmbedder32(ctx, "ollama://?model=embeddingsgemma")
+	embedder, err := embeddings.NewEmbedder32(ctx, "ollama://")
 
 	if err != nil {
 		return fmt.Errorf("Failed to create embedder, %w", err)
@@ -190,6 +190,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		opts := &coarse.NewWhosOnFirstRecordOptions{
 			Body:     body,
 			Embedder: embedder,
+			EmbedderModels: []string{
+				"embeddinggemma",
+			},
 		}
 
 		rec, err := coarse.NewWhosOnFirstRecord(ctx, opts)

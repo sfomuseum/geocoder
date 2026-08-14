@@ -7,6 +7,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/paulmach/orb"
 	"github.com/sfomuseum/geocoder/placeholder"
@@ -17,10 +19,57 @@ import (
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/properties"
 )
 
+var langtag_map = new(sync.Map)
+
 type NewWhosOnFirstRecordOptions struct {
 	Body           []byte
 	Embedder       embeddings.Embedder[float32]
 	EmbedderModels []string
+}
+
+func ParseLangTag(lang_str string) (string, string, error) {
+
+	v, ok := langtag_map.Load(lang_str)
+
+	if ok {
+
+		switch v.(type) {
+		case [2]string:
+			lt := v.([2]string)
+			return lt[0], lt[1], nil
+		case error:
+			return "", "", v.(error)
+		default:
+			return "", "", fmt.Errorf("Unexpected cache type for '%s', %v", lang_str, v)
+		}
+	}
+
+	lang_tag, err := tags.NewLangTag(lang_str)
+
+	var lang string
+	var tag string
+
+	if err != nil {
+
+		parts := strings.Split(lang_str, "_x_")
+
+		if len(parts) != 2 {
+			err := fmt.Errorf("Failed to parse language tag, %w", err)
+			langtag_map.Store(lang_str, err)
+			return "", "", err
+		}
+
+		lang = parts[0]
+		tag = parts[1]
+
+	} else {
+
+		lang = lang_tag.Language()
+		tag = lang_tag.PrivateUse()
+	}
+
+	langtag_map.Store(lang_str, [2]string{lang, tag})
+	return lang, tag, nil
 }
 
 // NewWhosOnFirstRecord converts a raw Who's On First GeoJSON document
@@ -28,6 +77,8 @@ type NewWhosOnFirstRecordOptions struct {
 // normalises text, tokenises names, collects concordances and
 // returns a fully populated Record ready for indexing.
 func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions) (*Record, error) {
+
+	logger := slog.Default()
 
 	// Important: Note all the sorting of strings. This is important
 	// when generating record hashes.
@@ -37,6 +88,9 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 	if err != nil {
 		return nil, fmt.Errorf("Failed to derive ID, %w", err)
 	}
+
+	logger = logger.With("id", id)
+	logger.Info("ADD RECORD")
 
 	parent_id, err := properties.ParentId(opts.Body)
 
@@ -130,27 +184,11 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 	for lang_str, names := range properties.Names(opts.Body) {
 
-		lang_tag, err := tags.NewLangTag(lang_str)
-
-		var lang string
-		var tag string
+		lang, tag, err := ParseLangTag(lang_str)
 
 		if err != nil {
-
-			parts := strings.Split(lang_str, "_x_")
-
-			if len(parts) != 2 {
-				slog.Warn("Failed to parse language tag", "lang", lang_str, "error", err)
-				continue
-			}
-
-			lang = parts[0]
-			tag = parts[1]
-
-		} else {
-
-			lang = lang_tag.Language()
-			tag = lang_tag.PrivateUse()
+			slog.Warn("Failed to parse language tag", "lang", lang_str, "error", err)
+			continue
 		}
 
 		lang_tokens := make([]string, 0)
@@ -176,29 +214,84 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 		sort.Strings(lang_tokens)
 		tokens[lang][tag] = lang_tokens
+	}
 
-		//
+	if opts.Embedder != nil {
 
-		if opts.Embedder != nil {
+		workers := 25
 
-			for _, m := range opts.EmbedderModels {
+		throttle := make(chan bool, workers)
 
-				name_embeddings := make([]*Embeddings, len(name))
+		for i := 0; i < workers; i++ {
+			throttle <- true
+		}
 
-				for idx, n := range names {
+		vectors_mu := new(sync.RWMutex)
+		wg := new(sync.WaitGroup)
+
+		t1 := time.Now()
+
+		for lang_str, names := range properties.Names(opts.Body) {
+
+			<-throttle
+
+			wg.Go(func() {
+
+				defer func() {
+					throttle <- true
+				}()
+
+				lang, tag, err := ParseLangTag(lang_str)
+
+				if err != nil {
+					slog.Warn("Failed to parse language tag", "lang", lang_str, "error", err)
+					return
+				}
+
+				// logger.Info("Process name vectors", "lang", lang, "tag", tag)
+
+				names_map := new(sync.Map)
+
+				for _, n := range names {
+
+					_, seen := names_map.LoadOrStore(n, true)
+
+					if seen {
+						continue
+					}
+				}
+
+				names_uniq := make([]string, 0)
+
+				names_map.Range(func(k, v any) bool {
+					names_uniq = append(names_uniq, k.(string))
+					return true
+				})
+
+				if len(names_uniq) == 0 {
+					return
+				}
+
+				str_names := strings.Join(names_uniq, " ")
+
+				for _, m := range opts.EmbedderModels {
+
+					emb_id := fmt.Sprintf("%d-%s-%s", id, lang, tag)
 
 					emb_req := &embeddings.EmbeddingsRequest{
-						Id:    n,
+						Id:    emb_id,
 						Model: m,
-						Body:  []byte(n),
+						Body:  []byte(str_names),
 					}
 
 					emb_rsp, err := opts.Embedder.TextEmbeddings(ctx, emb_req)
 
 					if err != nil {
-						slog.Warn("Failed to generate embeddings", "model", m, "name", n)
+						logger.Warn("Failed to generate embeddings", "model", m, "id", emb_id, "error", err)
 						continue
 					}
+
+					// logger.Info("Add embeddings", "id", emb_id, "names", str_names)
 
 					e := &Embeddings{
 						Language:   lang,
@@ -206,17 +299,20 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 						Embeddings: emb_rsp.Embeddings(),
 					}
 
-					name_embeddings[idx] = e
-				}
+					v := &VectorEmbeddings{
+						Model:      m,
+						Embeddings: []*Embeddings{e},
+					}
 
-				v := &VectorEmbeddings{
-					Model:      m,
-					Embeddings: name_embeddings,
+					vectors_mu.Lock()
+					vectors = append(vectors, v)
+					vectors_mu.Unlock()
 				}
-
-				vectors = append(vectors, v)
-			}
+			})
 		}
+
+		wg.Wait()
+		logger.Info("Processed names", "vectors", len(vectors), "time", time.Since(t1))
 	}
 
 	// Add concordances as eng_x_concordance

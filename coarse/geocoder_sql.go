@@ -262,7 +262,7 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		vector_compression: geocoder_sql.SQLiteVecDefaultCompression,
 		min_query_length:   2,
 		records:            make([]*Record, 0),
-		batch_size:         500,
+		batch_size:         10,
 		bulk_workers:       50,
 	}
 
@@ -622,7 +622,9 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Vectors
 
-			if rec.VectorEmbeddings != nil {
+			if rec.VectorEmbeddings != nil && len(rec.VectorEmbeddings) > 0 {
+
+				slog.Info("Add vector embeddings", "id", rec.Id, "count", len(rec.VectorEmbeddings))
 
 				emb_table := g.tableName("embeddings")
 
@@ -664,12 +666,16 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 					for _, e := range v.Embeddings {
 
+						logger.Info("Add embeddings")
+
 						vrec_id, err := g.uidForVectorRecord(ctx, rec.Id, v.Model, e.Language, e.Tag)
 
 						if err != nil {
 							err_ch <- err
 							return
 						}
+
+						logger.Info("Add embeddings with ID", vrec_id)
 
 						enc_e, err := geocoder_sql.SerializeFloat32(e.Embeddings)
 
