@@ -18,6 +18,7 @@ import (
 	"unicode"
 
 	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite/vec"
 
 	"github.com/aaronland/go-pagination"
 	"github.com/aaronland/go-pagination/countable"
@@ -239,13 +240,14 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 	mu := new(sync.RWMutex)
 
 	g := &SQLGeocoder{
-		db:               opts.Database,
-		vfs:              opts.VFS,
-		mu:               mu,
-		min_query_length: 2,
-		records:          make([]*Record, 0),
-		batch_size:       500,
-		bulk_workers:     50,
+		db:                 opts.Database,
+		vfs:                opts.VFS,
+		mu:                 mu,
+		vector_compression: geocoder_sql.SQLiteVecDefaultCompression,
+		min_query_length:   2,
+		records:            make([]*Record, 0),
+		batch_size:         500,
+		bulk_workers:       50,
 	}
 
 	return g, nil
@@ -610,11 +612,11 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 				switch g.vector_compression {
 				case geocoder_sql.SQLiteVecQuantizeCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", geocoder_sql.VEC_TABLE_NAME)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", geocoder_sql.EMBEDDINGS_TABLE_NAME)
 				case geocoder_sql.SQLiteVecMatroyshkaCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", geocoder_sql.VEC_TABLE_NAME, geocoder_sql.SQLiteMatroyshkaDimensions)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", geocoder_sql.EMBEDDINGS_TABLE_NAME, geocoder_sql.SQLiteMatroyshkaDimensions)
 				case geocoder_sql.SQLiteVecDefaultCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, ?)", geocoder_sql.VEC_TABLE_NAME)
+					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, ?)", geocoder_sql.EMBEDDINGS_TABLE_NAME)
 				default:
 					err_ch <- fmt.Errorf("Invalid or unsupported compression, '%s'", g.vector_compression)
 					return
@@ -629,7 +631,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 				defer vec_st.Close()
 
-				vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", geocoder_sql.VEC_RECORDS_TABLE_NAME)
+				vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", geocoder_sql.EMBEDDINGS_RECORDS_TABLE_NAME)
 
 				vrec_st, err := tx.Prepare(vrec_q)
 
@@ -1322,7 +1324,7 @@ func (g *SQLGeocoder) prepareQuery(input string) string {
 
 func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, record_id int64, model string, language string, tag string) (int64, error) {
 
-	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", geocoder_sql.VEC_RECORDS_TABLE_NAME)
+	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", geocoder_sql.EMBEDDINGS_RECORDS_TABLE_NAME)
 
 	row := g.db.QueryRowContext(ctx, q, record_id, model, language, tag)
 

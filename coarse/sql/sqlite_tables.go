@@ -49,6 +49,18 @@ func SQLiteTables(ctx context.Context) ([]sfom_sql.Table, error) {
 		return nil, fmt.Errorf("Failed to instantiate bounds table, %w", err)
 	}
 
+	embeddings_table, err := NewEmbeddingsTable(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to instantiate embeddings table, %w", err)
+	}
+
+	embeddings_records_table, err := NewEmbeddingsRecordsTable(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to instantiate embeddings records table, %w", err)
+	}
+
 	db_tables := []sfom_sql.Table{
 		records_table,
 		tokens_table,
@@ -56,25 +68,8 @@ func SQLiteTables(ctx context.Context) ([]sfom_sql.Table, error) {
 		ancestors_table,
 		placetypes_alt_table,
 		bounds_table,
-	}
-
-	vector_tables := false
-
-	if vector_tables {
-
-		vec_table, err := NewVectorsTable(ctx)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to instantiate vectors table, %w", err)
-		}
-
-		vrec_table, err := NewVectorRecordsTable(ctx)
-
-		if err != nil {
-			return nil, fmt.Errorf("Failed to instantiate vector records table, %w", err)
-		}
-
-		db_tables = append(db_tables, vec_table, vrec_table)
+		embeddings_table,
+		embeddings_records_table,
 	}
 
 	return db_tables, nil
