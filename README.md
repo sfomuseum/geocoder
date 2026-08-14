@@ -118,6 +118,7 @@ For example:
 ```
 $> ./bin/wof-coarse-geocoder-index \
 	-fresh \
+	-exclude-superseded=false \
 	-iterator-uri repo:// \
 	-geocoder-uri 'sql://sqlite?dsn=sfom.db' \
 	/usr/local/data/sfomuseum-data-architecture \
