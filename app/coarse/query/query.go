@@ -208,7 +208,6 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 				fmt.Sprintf("%d", f.ID),
 				f.Properties["wof:name"].(string),
 				strings.Join(all_pt, "; "),
-				f.Properties["wof:placetype"].(string),
 				strconv.FormatFloat(lat, 'g', -1, 64),
 				strconv.FormatFloat(lon, 'g', -1, 64),
 				fmt.Sprintf("%v", f.Properties["mz:is_current"]),
