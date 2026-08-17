@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/aaronland/go-pagination/countable"
+	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/geocoder"
 	"github.com/sfomuseum/geocoder/coarse"
@@ -159,6 +161,8 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			"id",
 			"name",
 			"placetype",
+			"latitude",
+			"longitude",
 			"is current",
 			"inception",
 			"cessation",
@@ -170,10 +174,42 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 		for _, f := range rsp {
 
+			all_pt := []string{
+				f.Properties["wof:placetype"].(string),
+			}
+
+			alt_pt, ok := f.Properties["wof:placetype_alt"]
+
+			if ok {
+
+				switch alt_pt.(type) {
+				case []string:
+					all_pt = append(all_pt, alt_pt.([]string)...)
+				default:
+					// pass
+				}
+			}
+
+			lat := 0.0
+			lon := 0.0
+
+			orb_geom := f.Geometry
+
+			switch orb_geom.GeoJSONType() {
+			case "Point":
+				pt := orb_geom.(orb.Point)
+				lat = pt.Lat()
+				lon = pt.Lon()
+			default:
+				// pass
+			}
+
 			vals := []string{
 				fmt.Sprintf("%d", f.ID),
 				f.Properties["wof:name"].(string),
-				f.Properties["wof:placetype"].(string),
+				strings.Join(all_pt, "; "),
+				strconv.FormatFloat(lat, 'g', -1, 64),
+				strconv.FormatFloat(lon, 'g', -1, 64),
 				fmt.Sprintf("%v", f.Properties["mz:is_current"]),
 				f.Properties["edtf:inception"].(string),
 				f.Properties["edtf:cessation"].(string),
