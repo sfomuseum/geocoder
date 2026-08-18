@@ -54,21 +54,9 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			return nil, nil, fmt.Errorf("Failed to encode embeddings, %w", err)
 		}
 
-		sb.WriteString(`WITH vector_matches AS (
-    -- This inner query runs instantly because it uses the vector index directly
-    SELECT rowid, distance 
-    FROM embeddings 
-    WHERE embedding MATCH ? 
-    LIMIT 20
-)
-SELECT 
-    vm.distance AS distance, 
-    COUNT(*) OVER() as total_count, 
-    r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies
-FROM vector_matches vm
-JOIN embeddings_records er ON er.id = vm.rowid
-JOIN records r             ON r.id = er.record_id
-`)
+		sb.WriteString("WITH vector_matches AS (SELECT rowid, distance FROM embeddings WHERE embedding MATCH ? LIMIT 100)")
+		sb.WriteString(" SELECT vm.distance AS distance, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
+		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.id = vm.rowid JOIN records r ON r.id = er.record_id")
 
 		args = []any{
 			string(enc_e),
@@ -76,13 +64,9 @@ JOIN records r             ON r.id = er.record_id
 
 	} else {
 
-		sb.WriteString(`
-		SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies
-		FROM tokens_fts f
-		JOIN tokens t ON t.row_id = f.rowid
-		JOIN records r ON r.id = t.id
-        `)
-
+		sb.WriteString("SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
+		sb.WriteString(" FROM tokens_fts f JOIN tokens t ON t.row_id = f.rowid JOIN records r ON r.id = t.id")
+		
 	}
 
 	if len(req.Placetype) > 0 {
@@ -107,10 +91,8 @@ JOIN records r             ON r.id = er.record_id
 
 	// Query stuff
 
-	if len(req.QueryEmbeddings) > 0 {
-		//
+	if len(req.QueryEmbeddings) == 0 {
 
-	} else {
 		sb.WriteString(" WHERE f.token MATCH ?")
 
 		args = []any{
@@ -223,7 +205,21 @@ JOIN records r             ON r.id = er.record_id
 
 	/*
 
-	                MIN(CASE t.tag
+	*/
+
+	sb.WriteString(` ORDER BY (
+			CASE r.is_current
+				WHEN 1 THEN 0.0
+				WHEN -1 THEN 1.0
+				ELSE 2.0
+                        END
+		) ASC`)
+
+	if len(req.QueryEmbeddings) > 0 {
+		sb.WriteString(`, vm.distance ASC`)
+	} else {
+
+		sb.WriteString(`, MIN(CASE t.tag
 					WHEN 'concordance' THEN 0.5
 					WHEN 'preferred'    THEN 1.0
 					WHEN 'colloquial' THEN 2.0
@@ -231,18 +227,11 @@ JOIN records r             ON r.id = er.record_id
 					WHEN 'historical'    THEN 5.0
 					WHEN 'unknown'   THEN 6.0
 					ELSE 10.0
-				END) ASC,
-	*/
+				END) ASC`)
 
-	sb.WriteString(`
-		ORDER BY (
-			CASE r.is_current
-				WHEN 1 THEN 0.0
-				WHEN -1 THEN 1.0
-				ELSE 2.0
-                        END
-		) ASC,
-		 r.population_rank DESC,
+	}
+	
+	sb.WriteString(` ,r.population_rank DESC,
 			(CASE r.placetype
 				WHEN 'microhood' THEN 1.0
 				WHEN 'neighbourhood' THEN 1.0
@@ -255,8 +244,7 @@ JOIN records r             ON r.id = er.record_id
 				WHEN 'region' THEN 4.0
 				WHEN 'country' THEN 5.0	
 				ELSE 10.0
-                        END) ASC
-	`)
+                        END) ASC`)
 
 	page := countable.PageFromOptions(pg_opts)
 	per_page := pg_opts.PerPage()
