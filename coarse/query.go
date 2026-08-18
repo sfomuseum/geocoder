@@ -13,10 +13,8 @@ import (
 type QueryRequest struct {
 	// Query is the term to query for.  The field is required.
 	Query string `json:"query"`
-	// ...
-	UseEmbeddings bool
-	// ...
-	UseEmbeddingsModel string
+	//
+	QueryEmbeddings []float32 `json:"query_embeddings"`
 	// Lang is an optional 3‑letter language code that limits the
 	// search to tokens in that language.
 	Lang string `json:"lang,omitempty"`

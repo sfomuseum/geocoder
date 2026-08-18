@@ -18,6 +18,7 @@ import (
 	"github.com/sfomuseum/geocoder"
 	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/go-edtf/unix"
+	"github.com/sfomuseum/go-embeddings"
 )
 
 func Run(ctx context.Context) error {
@@ -117,6 +118,30 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 		req.DateEnds = ranges
 	}
+
+	// START OF...
+
+	embedder, err := embeddings.NewEmbedder32(ctx, "ollama://")
+
+	if err != nil {
+		return fmt.Errorf("Failed to create embedder, %w", err)
+	}
+
+	emb_req := &embeddings.EmbeddingsRequest{
+		Id:    req.Query,
+		Model: "embeddinggemma",
+		Body:  []byte(req.Query),
+	}
+
+	emb_rsp, err := embedder.TextEmbeddings(ctx, emb_req)
+
+	if err != nil {
+		return fmt.Errorf("Failed to derive text embeddings for query, %w", err)
+	}
+
+	req.QueryEmbeddings = emb_rsp.Embeddings()
+
+	// END OF...
 
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.QueryTimeout)*time.Second)
 	defer cancel()

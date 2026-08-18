@@ -2,6 +2,7 @@ package coarse
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/aaronland/go-pagination/countable"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
-	"github.com/sfomuseum/go-embeddings"
 )
 
 func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagination.Options) ([]*geojson.Feature, pagination.Results, error) {
@@ -43,14 +43,47 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 	logger = logger.With("query", query_str)
 
+	args := make([]any, 0)
 	sb := strings.Builder{}
 
-	sb.WriteString(`
+	if len(req.QueryEmbeddings) > 0 {
+
+		enc_e, err := json.Marshal(req.QueryEmbeddings)
+
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to encode embeddings, %w", err)
+		}
+
+		sb.WriteString(`WITH vector_matches AS (
+    -- This inner query runs instantly because it uses the vector index directly
+    SELECT rowid, distance 
+    FROM embeddings 
+    WHERE embedding MATCH ? 
+    LIMIT 20
+)
+SELECT 
+    vm.distance AS distance, 
+    COUNT(*) OVER() as total_count, 
+    r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies
+FROM vector_matches vm
+JOIN embeddings_records er ON er.id = vm.rowid
+JOIN records r             ON r.id = er.record_id
+`)
+
+		args = []any{
+			string(enc_e),
+		}
+
+	} else {
+
+		sb.WriteString(`
 		SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies
 		FROM tokens_fts f
 		JOIN tokens t ON t.row_id = f.rowid
 		JOIN records r ON r.id = t.id
         `)
+
+	}
 
 	if len(req.Placetype) > 0 {
 		sb.WriteString(" LEFT JOIN placetypes_alt p ON r.id = p.id")
@@ -72,29 +105,17 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(" JOIN bounds b ON r.id = b.wofid")
 	}
 
-	if req.UseEmbeddings {
+	// Query stuff
 
-		emb_req := &embeddings.EmbeddingsRequest{
-			Id:    query_str,
-			Model: req.UseEmbeddingsModel,
-			Body:  []byte(query_str),
-		}
-
-		emb_rsp, err := g.embedder.TextEmbeddings(ctx, emb_req)
-
-		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to derive text embeddings for query, %w", err)
-		}
-
-		slog.Info("GOT EMBEDDINGS", "rsp", emb_rsp)
-		return nil, nil, fmt.Errorf("Not implemented")
+	if len(req.QueryEmbeddings) > 0 {
+		//
 
 	} else {
 		sb.WriteString(" WHERE f.token MATCH ?")
-	}
 
-	args := []any{
-		query_str,
+		args = []any{
+			query_str,
+		}
 	}
 
 	// Dates
@@ -200,6 +221,19 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 	sb.WriteString(" GROUP BY r.id")
 
+	/*
+
+	                MIN(CASE t.tag
+					WHEN 'concordance' THEN 0.5
+					WHEN 'preferred'    THEN 1.0
+					WHEN 'colloquial' THEN 2.0
+					WHEN 'variant'    THEN 4.0
+					WHEN 'historical'    THEN 5.0
+					WHEN 'unknown'   THEN 6.0
+					ELSE 10.0
+				END) ASC,
+	*/
+
 	sb.WriteString(`
 		ORDER BY (
 			CASE r.is_current
@@ -208,15 +242,6 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 				ELSE 2.0
                         END
 		) ASC,
-                MIN(CASE t.tag
-				WHEN 'concordance' THEN 0.5
-				WHEN 'preferred'    THEN 1.0
-				WHEN 'colloquial' THEN 2.0
-				WHEN 'variant'    THEN 4.0
-				WHEN 'historical'    THEN 5.0
-				WHEN 'unknown'   THEN 6.0
-				ELSE 10.0
-			END) ASC,
 		 r.population_rank DESC,
 			(CASE r.placetype
 				WHEN 'microhood' THEN 1.0
@@ -230,8 +255,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 				WHEN 'region' THEN 4.0
 				WHEN 'country' THEN 5.0	
 				ELSE 10.0
-                        END) ASC,
-                 MIN(f.rank) ASC
+                        END) ASC
 	`)
 
 	page := countable.PageFromOptions(pg_opts)
@@ -245,7 +269,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	}
 
 	q := sb.String()
-	//slog.Info(q, "args", args)
+	slog.Info(q, "args", args)
 
 	rows, err := g.db.QueryContext(ctx, q, args...)
 
