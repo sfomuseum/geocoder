@@ -251,7 +251,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	}
 
 	q := sb.String()
-	slog.Info(q, "args", args)
+	// slog.Info(q, "args", args)
 
 	rows, err := g.db.QueryContext(ctx, q, args...)
 

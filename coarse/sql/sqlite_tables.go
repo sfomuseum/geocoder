@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	sfom_sql "github.com/sfomuseum/go-database/sql"
+	"github.com/sfomuseum/geocoder/x/vec"
 )
 
 var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {
@@ -54,8 +55,8 @@ var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {
 		return nil, fmt.Errorf("Failed to create embeddings table options, %w", err)
 	}
 
-	// To do... pull this in from... wut?
-	emb_opts.Dimensions = 384
+	// To do... pull this in dynamically from... wut?
+	emb_opts.Dimensions = vec.DEFAULT_EMBEDDINGS_DIMENSIONS
 
 	embeddings_table, err := NewEmbeddingsTableWithOptions(ctx, emb_opts)
 

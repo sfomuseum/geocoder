@@ -277,7 +277,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			if rec.VectorEmbeddings != nil && len(rec.VectorEmbeddings) > 0 {
 
-				slog.Info("Add vector embeddings", "id", rec.Id, "count", len(rec.VectorEmbeddings))
+				slog.Debug("Add vector embeddings", "id", rec.Id, "count", len(rec.VectorEmbeddings))
 
 				emb_table := g.tableName("embeddings")
 

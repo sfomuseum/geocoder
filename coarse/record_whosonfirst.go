@@ -313,7 +313,7 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 		}
 
 		wg.Wait()
-		logger.Info("Processed names", "vectors", len(vectors), "time", time.Since(t1))
+		logger.Debug("Processed names", "vectors", len(vectors), "time", time.Since(t1))
 	}
 
 	// Add concordances as eng_x_concordance

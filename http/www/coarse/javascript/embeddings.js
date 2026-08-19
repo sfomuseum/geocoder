@@ -1,30 +1,39 @@
-import { Wllama } from '/javascript/wllama.js';
+const js_u = new URL(location);
+js_u.pathname = js_u.pathname + 'javascript/wllama.js';
+
+const wasm_u = new URL(location);
+wasm_u.pathname = wasm_u.pathname + 'wasm/wllama.wasm';
+
+const model_u = new URL(location);
+model_u.pathname = model_u.pathname + 'models/bert-bge-small/ggml-model-f16.gguf';
+
+const { Wllama } = await import(js_u.toString());
 
 const CONFIG_PATHS = {
-    default: '/wasm/wllama.wasm',
+    default: wasm_u.toString(),
 };
 
-const MODEL_URL = '/models/bert-bge-small/ggml-model-f16.gguf';
-
 const wllama = new Wllama(CONFIG_PATHS);
-let isModelLoaded = false;
+let model_loaded = false;
 
 export async function initModel() {
-    if (isModelLoaded) return;
     
-    await wllama.loadModelFromUrl(MODEL_URL, {
-        // 💡 Ensure embeddings is plural 'embeddings: true'
+    if (model_loaded) {
+	return;
+    }
+	
+    await wllama.loadModelFromUrl(model_u.toString(), {
         embeddings: true,
         pooling_type: 'LLAMA_POOLING_TYPE_MEAN',
         n_ctx: 512,
-        useCache: false, // Prevents OPFS filesystem permission errors
     });
     
-    isModelLoaded = true;
+    model_loaded = true;
 }
 
 export async function getEmbedding(text) {
-    if (!isModelLoaded) {
+    
+    if (!model_loaded) {
         throw new Error("Model not initialized. Call initModel() first.");
     }
 
@@ -32,9 +41,6 @@ export async function getEmbedding(text) {
         throw new TypeError(`Invalid input: Expected non-empty string, got "${typeof text}"`);
     }
     
-    const safeText = text.trim();
-    
-    // 💡 Pass the clean string primitive directly. 
-    // It returns the flat array of floating-point numbers automatically.
-    return await wllama.createEmbedding({input: safeText});
+    const input = text.trim();    
+    return await wllama.createEmbedding({input: input});
 }

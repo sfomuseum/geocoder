@@ -536,26 +536,48 @@ window.addEventListener("load", function load(event){
 	console.error("Failed to retrieve map config", map_u.toString(), err);
     });
 
-    // Load embeddings stuff
+    // Load embeddings stuff (but only if wllama.js is present)
 
-    (async () => {
-        try {
-            const modulePath = '/javascript/embeddings.js'; 
-            const { initModel, getEmbedding } = await import(modulePath);
+    fetch_args = {
+	method: "HEAD",
+    };
 
-            console.debug("Starting model download/initialization...");
-            await initModel();
-	    
-            console.debug("Model successfully loaded into memory!");
+    const js_u = new URL(location);
+    js_u.pathname = js_u.pathname + 'javascript/wllama.js';
 
-	    window.getEmbedding = getEmbedding;
+    fetch(js_u.toString(), fetch_args).then(rsp => {
 
-	    const wrapper = document.querySelector("#advanced-query-embeddings-wrapper");
-	    wrapper.style.display = "block";
-	    
-        } catch (error) {
-            console.error("Failed to load query embedding scaffolding", error);
-        }
-    })();
+	if (! rsp.ok){
+	    throw new Error("wwlama.js not found");
+	}
+	
+    }).then(() => {
+	
+	(async () => {
+            try {
+		
+		const module_u = new URL(location);
+		module_u.pathname = module_u.pathname + 'javascript/embeddings.js';
+		
+		const { initModel, getEmbedding } = await import(module_u.toString());
+		
+		console.debug("Starting model download/initialization...");
+		await initModel();
+		
+		console.debug("Model successfully loaded into memory!");
+		
+		window.getEmbedding = getEmbedding;
+		
+		const wrapper = document.querySelector("#advanced-query-embeddings-wrapper");
+		wrapper.style.display = "block";
+		
+            } catch (error) {
+		throw error
+            }
+	})();
+	
+    }).catch((err) => {
+	console.error("Failed to load query embedding scaffolding", error);	
+    });
     
 });

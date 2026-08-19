@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/sfomuseum/go-flags/flagset"
+	"github.com/sfomuseum/geocoder/x/vec"
 )
 
 var iterator_uri string
@@ -38,13 +39,13 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.BoolVar(&index_juggling, "index-juggling", true, "Perform indexing speed optiomizations. This will include dropping existing indices and the FTS table prior to indexing and (re)adding them at the end.")
 
 	fs.BoolVar(&exclude_deprecated, "exclude-deprecated", true, "Do not index records which have been deprecated.")
-	fs.BoolVar(&exclude_superseded, "exclude-superseded", true, "Do not index records which have been superseded.")
+	fs.BoolVar(&exclude_superseded, "exclude-superseded", false, "Do not index records which have been superseded.")
 	fs.BoolVar(&exclude_funky, "exclude-funky", true, "Do not index records which have been flagged as \"funky\".")
 	fs.BoolVar(&exclude_nullisland, "exclude-nullisland", true, "Do not index records that are \"visiting\" Null Island (have 0,0 coordinate data).")
 
-	fs.BoolVar(&embeddings_index, "embeddings-index", false, "...")
-	fs.StringVar(&embedder_uri, "embedder-uri", "ollama://", "...")
-	fs.StringVar(&embeddings_model, "embeddings-model", "hf.co/unsloth/bge-small-en-v1.5-GGUF:F16", "...")
+	fs.BoolVar(&embeddings_index, "embeddings-index", false, "Generate and store vector embeddings for place names.")
+	fs.StringVar(&embedder_uri, "embedder-uri", vec.DEFAULT_EMBEDDER_URI, "A registered sfomuseum/go-embeddings.Embedder URI.")
+	fs.StringVar(&embeddings_model, "embeddings-model", vec.DEFAULT_EMBEDDINGS_MODEL, "The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384.")
 
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 

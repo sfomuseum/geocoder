@@ -215,7 +215,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 		// Embeddings
 
 		str_embeddings, err := sanitize.PostString(req, "query-embeddings")
-		
+
 		if err != nil {
 			logger.Error("Failed to derive ?query-embeddings= parameter", "error", err)
 			http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
@@ -228,7 +228,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 				http.Error(rsp, "Query embeddings are not supported", http.StatusBadRequest)
 				return
 			}
-			
+
 			var query_embeddings []float32
 
 			err = json.Unmarshal([]byte(str_embeddings), &query_embeddings)

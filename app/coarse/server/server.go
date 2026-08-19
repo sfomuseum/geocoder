@@ -86,9 +86,9 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 	}
 
 	api_opts := &api.CoarseGeocoderHandlerOptions{
-		Geocoder:          opts.Geocoder,
-		PaginationPerPage: opts.PaginationPerPage,
-		QueryTimeout:      opts.QueryTimeout,
+		Geocoder:             opts.Geocoder,
+		PaginationPerPage:    opts.PaginationPerPage,
+		QueryTimeout:         opts.QueryTimeout,
 		AllowQueryEmbeddings: true,
 	}
 

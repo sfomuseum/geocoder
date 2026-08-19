@@ -1,3 +1,6 @@
+# https://github.ngxson.com/wllama/examples/basic/
+# https://github.com/ngxson/wllama
+
 wllama:
 	curl -o javascript/wllama.js https://github.ngxson.com/wllama/esm/index.js
 	curl -o wasm/wllama.wasm https://github.ngxson.com/wllama/esm/wasm/wllama.wasm
