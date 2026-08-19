@@ -7,6 +7,7 @@ window.addEventListener("load", function load(event){
     var results_layer;
     var feature_cache = {};
 
+    var current_form;
     var current_params;	// API query parameters
     
     const map_el = document.querySelector("#map");    
@@ -127,8 +128,8 @@ window.addEventListener("load", function load(event){
 		const geocode_with_page = function(e){
 		    const el = e.target;
 		    const page = parseInt(el.getAttribute("data-page"));
-		    current_params.set("page", page);
-		    geocode(current_params);
+		    current_form.set("page", page);
+		    geocode(current_form);
 		    return false;
 		};
 		
@@ -337,13 +338,12 @@ window.addEventListener("load", function load(event){
 	results_el.style.display = "block";
     };
     
-    const geocode = function(params){
+    const geocode = function(form_data){
 
-	current_params = params;
+	current_form = form_data;
 	
 	const u = new URL(location);
 	u.pathname = u.pathname + "api/query/";
-	u.search = params;
 
 	const uri = u.toString();
 	console.debug("Query API", uri);
@@ -359,8 +359,13 @@ window.addEventListener("load", function load(event){
 	results_el.innerHTML = "";
 
 	results_el.style.display = "none";
+
+	const fetch_args = {
+	    method: 'POST',
+	    body: form_data,
+	};
 	
-	fetch(uri).then(rsp => {
+	fetch(uri, fetch_args).then(rsp => {
 
 	    if (! rsp.ok){
 		throw new Error(`HTTP error ${rsp.status}`);
@@ -391,10 +396,10 @@ window.addEventListener("load", function load(event){
 	    return false;
 	}
 
-	const params = new URLSearchParams();
-	params.set("query", q);
+	const form_data = new FormData();
+	form_data.set("query", q);
 
-	geocode(params);
+	geocode(form_data);
 
 	results_el.innerHTML = "";
 	feedback_el.innerHTML = "";
@@ -404,7 +409,7 @@ window.addEventListener("load", function load(event){
 
     adv_submit_el.onclick = function(){
 
-	const params = new URLSearchParams();
+	const form_data = new FormData();
 	
 	const q = adv_query_el.value;
 
@@ -413,41 +418,41 @@ window.addEventListener("load", function load(event){
 	    return false;
 	}
 
-	params.set("query", q);
+	form_data.set("query", q);
 	
 	const lang = adv_lang_el.value;
 
 	if (lang != ""){
-	    params.set("lang", lang);
+	    form_data.set("lang", lang);
 	}
 	
 	const tag = adv_tag_el.value;
 
 	if (tag != ""){
-	    params.set("tag", tag);
+	    form_data.set("tag", tag);
 	}
 	
 	const pt = adv_placetype_el.value;
 
 	if (pt != ""){
-	    params.set("placetype", pt.split(","));
+	    form_data.set("placetype", pt.split(","));
 	}
 	
 	const co = adv_country_el.value;
 
 	if (co != ""){
-	    params.set("country", co.split(","));
+	    form_data.set("country", co.split(","));
 	}
 	
 	const bt = adv_belongsto_el.value;
 
 	if (bt != ""){
-	    params.set("belongsto", bt.split(","));
+	    form_data.set("belongsto", bt.split(","));
 	}
 	
 	// const lang = adv_lang_el.value;	
 
-	geocode(params);
+	geocode(form_data);
 
 	results_el.innerHTML = "";
 	feedback_el.innerHTML = "";

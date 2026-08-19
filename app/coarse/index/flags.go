@@ -44,7 +44,7 @@ func DefaultFlagSet() *flag.FlagSet {
 
 	fs.BoolVar(&embeddings_index, "embeddings-index", false, "...")
 	fs.StringVar(&embedder_uri, "embedder-uri", "ollama://", "...")
-	fs.StringVar(&embeddings_model, "embeddings-model", "embeddinggemma", "...")
+	fs.StringVar(&embeddings_model, "embeddings-model", "hf.co/unsloth/bge-small-en-v1.5-GGUF:F16", "...")
 
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 

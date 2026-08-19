@@ -25,7 +25,7 @@ type EmbeddingsTableSchemaVars struct {
 func DefaultEmbeddingsTableOptions() (*EmbeddingsTableOptions, error) {
 
 	opts := EmbeddingsTableOptions{
-		Dimensions:  768,
+		Dimensions:  384,
 		Compression: SQLiteVecDefaultCompression,
 	}
 

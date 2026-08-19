@@ -48,7 +48,16 @@ var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {
 		return nil, fmt.Errorf("Failed to instantiate bounds table, %w", err)
 	}
 
-	embeddings_table, err := NewEmbeddingsTable(ctx)
+	emb_opts, err := DefaultEmbeddingsTableOptions()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create embeddings table options, %w", err)
+	}
+
+	// To do... pull this in from... wut?
+	emb_opts.Dimensions = 384
+
+	embeddings_table, err := NewEmbeddingsTableWithOptions(ctx, emb_opts)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to instantiate embeddings table, %w", err)

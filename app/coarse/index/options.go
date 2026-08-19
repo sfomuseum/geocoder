@@ -21,7 +21,7 @@ type Options struct {
 	IteratorSources   []string
 	Fresh             bool
 	Prune             bool
-	Offset int64
+	Offset            int64
 	IndexJuggling     bool
 	ExcludeDeprecated bool
 	ExcludeSuperseded bool
