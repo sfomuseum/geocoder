@@ -26,7 +26,6 @@ import (
 	"github.com/sfomuseum/geocoder/placeholder"
 	x_vfs "github.com/sfomuseum/geocoder/x/vfs"
 	"github.com/sfomuseum/go-database/sql"
-	"github.com/sfomuseum/go-embeddings"
 	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
 	"modernc.org/sqlite/vfs"
 )
@@ -55,8 +54,6 @@ type SQLGeocoder struct {
 	db                 *db_sql.DB
 	tables             map[string]sql.Table
 	vfs                *vfs.FS
-	embedder           embeddings.Embedder[float32]
-	embedder_models    []string
 	vector_compression string
 	mu                 *sync.RWMutex
 	min_query_length   int
