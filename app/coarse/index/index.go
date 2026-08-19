@@ -5,20 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"net/url"
-	"slices"
 	"sync/atomic"
 	"time"
 
 	_ "github.com/whosonfirst/go-whosonfirst/v4/iterate/git"
 	_ "github.com/whosonfirst/go-whosonfirst/v4/iterate/parquet"
 
-	"github.com/aaronland/go-json-query"
 	"github.com/sfomuseum/geocoder/coarse"
-	"github.com/sfomuseum/go-embeddings"
-	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/alt"
-	"github.com/whosonfirst/go-whosonfirst/v4/iterate"
 	"github.com/whosonfirst/go-whosonfirst/v4/uri"
 )
 
@@ -40,7 +34,7 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 }
 
 func RunWithOptions(ctx context.Context, opts *Options) error {
-	
+
 	if opts.Verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Verbose logging enabled")
@@ -54,60 +48,11 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 	defer opts.Geocoder.Close()
 
-	if exclude_deprecated || exclude_superseded || exclude_funky {
-
-		exclude_deprecated_path := "properties.edtf:deprecated=.*"
-		exclude_superseded_path := "properties.wof:superseded_by=.*"
-		exclude_funky_path := "propertiees.mz:is_funky=1"
-
-		u, err := url.Parse(iterator_uri)
-
-		if err != nil {
-			return fmt.Errorf("Failed to parse iterator URI, %w", err)
-		}
-
-		q := u.Query()
-
-		to_exclude := make([]string, 0)
-
-		if exclude_deprecated {
-			to_exclude = append(to_exclude, exclude_deprecated_path)
-		}
-
-		if exclude_superseded {
-			to_exclude = append(to_exclude, exclude_superseded_path)
-		}
-
-		if exclude_funky {
-			to_exclude = append(to_exclude, exclude_funky_path)
-		}
-
-		_, ok := q["exclude"]
-
-		if ok {
-
-			for _, v := range q["exclude"] {
-
-				if !slices.Contains(to_exclude, v) {
-					to_exclude = append(to_exclude, v)
-				}
-			}
-		}
-
-		q["exclude"] = to_exclude
-
-		q.Set("exclude_mode", query.QUERYSET_MODE_ANY)
-		u.RawQuery = q.Encode()
-		iterator_uri = u.String()
-
-		logger.Info("Rewrote iterator URI", "uri", iterator_uri)
-	}
-
 	t1 := time.Now()
 
-	if index_juggling {
+	if opts.IndexJuggling {
 
-		err = opts.Geocoder.PreIndex(ctx)
+		err := opts.Geocoder.PreIndex(ctx)
 
 		if err != nil {
 			return fmt.Errorf("Pre-indexing failed, %w", err)
@@ -146,9 +91,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		}
 	}()
 
-	iterator_uris := fs.Args()
-
-	for rec, err := range opts.Iterator.Iterate(ctx, iterator_uris...) {
+	for rec, err := range opts.Iterator.Iterate(ctx, opts.IteratorSources...) {
 
 		if err != nil {
 			return fmt.Errorf("Iterator yielded an error, %w", err)
@@ -156,7 +99,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 		new_count := atomic.AddInt64(&count, 1)
 
-		if offset > 0 && new_count < offset {
+		if opts.Offset > 0 && new_count < opts.Offset {
 			rec.Body.Close()
 			continue
 		}
@@ -182,7 +125,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			continue
 		}
 
-		opts := &coarse.NewWhosOnFirstRecordOptions{
+		wof_opts := &coarse.NewWhosOnFirstRecordOptions{
 			Body:     body,
 			Embedder: opts.Embedder,
 			EmbedderModels: []string{
@@ -190,13 +133,13 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			},
 		}
 
-		rec, err := coarse.NewWhosOnFirstRecord(ctx, opts)
+		rec, err := coarse.NewWhosOnFirstRecord(ctx, wof_opts)
 
 		if err != nil {
 			return fmt.Errorf("Failed to create new record, %w", err)
 		}
 
-		if exclude_nullisland {
+		if opts.ExcludeNullIsland {
 
 			if rec.Centroid.Lon() == 0 && rec.Centroid.Lat() == 0 {
 				continue
@@ -207,7 +150,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 		if fresh {
 
-			exists, has_changed, err := gc.HasRecordHashChanged(ctx, rec)
+			exists, has_changed, err := opts.Geocoder.HasRecordHashChanged(ctx, rec)
 
 			if err != nil {
 				return fmt.Errorf("Failed to determine if record hash has changed, %w", err)
@@ -221,7 +164,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 			if exists && prune {
 
-				err := gc.RemoveRecord(ctx, rec.Id)
+				err := opts.Geocoder.RemoveRecord(ctx, rec.Id)
 
 				if err != nil {
 					return fmt.Errorf("Failed to remove record, %w", err)
@@ -229,7 +172,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			}
 		}
 
-		err = gc.AddRecord(ctx, rec)
+		err = opts.Geocoder.AddRecord(ctx, rec)
 
 		if err != nil {
 			return fmt.Errorf("Failed to index records, %w", err)
@@ -238,19 +181,19 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		go atomic.AddInt64(&tti, time.Since(t1).Milliseconds())
 	}
 
-	err = gc.Flush(ctx)
+	err := opts.Geocoder.Flush(ctx)
 
 	if err != nil {
 		return fmt.Errorf("Failed to flush database, %w", err)
 	}
 
-	logger.Info("Indexing complete", "seen", iter.Seen(), "time", time.Since(t1), "average (ms)", avg_tti())
+	logger.Info("Indexing complete", "seen", opts.Iterator.Seen(), "time", time.Since(t1), "average (ms)", avg_tti())
 
-	if index_juggling {
+	if opts.IndexJuggling {
 
 		t2 := time.Now()
 
-		err = gc.PostIndex(ctx)
+		err = opts.Geocoder.PostIndex(ctx)
 
 		if err != nil {
 			return fmt.Errorf("Post-indexing failed, %w", err)
