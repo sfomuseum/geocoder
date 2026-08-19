@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	sfom_sql "github.com/sfomuseum/go-database/sql"
 	"github.com/sfomuseum/geocoder/x/vec"
+	sfom_sql "github.com/sfomuseum/go-database/sql"
 )
 
 var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {

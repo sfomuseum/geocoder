@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/paulmach/orb"
 	"github.com/sfomuseum/geocoder/placeholder"
 	"github.com/sfomuseum/go-embeddings"
@@ -25,6 +26,7 @@ type NewWhosOnFirstRecordOptions struct {
 	Body           []byte
 	Embedder       embeddings.Embedder[float32]
 	EmbedderModels []string
+	Cache          *ristretto.Cache[string, *VectorEmbeddings]
 }
 
 func ParseLangTag(lang_str string) (string, string, error) {
@@ -72,16 +74,12 @@ func ParseLangTag(lang_str string) (string, string, error) {
 	return lang, tag, nil
 }
 
-// NewWhosOnFirstRecord converts a raw Who's On First GeoJSON document
-// into a Record struct.  The function parses all required fields,
-// normalises text, tokenises names, collects concordances and
+// NewWhosOnFirstRecord converts a raw Who's On First GeoJSON document into a Record struct.
+// The function parses all required fields, normalises text, tokenises names, collects concordances and
 // returns a fully populated Record ready for indexing.
 func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions) (*Record, error) {
 
 	logger := slog.Default()
-
-	// Important: Note all the sorting of strings. This is important
-	// when generating record hashes.
 
 	id, err := properties.Id(opts.Body)
 
@@ -211,13 +209,18 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 			tokens[lang] = make(map[string][]string)
 		}
 
+		// Important: Note all the sorting of strings. This is important
+		// when generating record hashes.
+
 		sort.Strings(lang_tokens)
 		tokens[lang][tag] = lang_tokens
 	}
 
 	if opts.Embedder != nil {
 
-		workers := 50
+		// Set this too high and the cache doesn't really have
+		// any effect because everything is happening too fast
+		workers := 5
 
 		throttle := make(chan bool, workers)
 
@@ -276,37 +279,58 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 				for _, m := range opts.EmbedderModels {
 
 					emb_id := fmt.Sprintf("%d-%s-%s", id, lang, tag)
+					emb_key := fmt.Sprintf("%s#%s", m, strings.Replace(str_names, " ", "-", -1))
 
-					// Cache the hell out of model + str_names...
+					var v_emb *VectorEmbeddings
 
-					emb_req := &embeddings.EmbeddingsRequest{
-						Id:    emb_id,
-						Model: m,
-						Body:  []byte(str_names),
+					if opts.Cache != nil {
+
+						v, exists := opts.Cache.Get(emb_key)
+
+						if exists {
+							// logger.Info("CACHE HIT", "key", emb_key)
+							v_emb = v
+						} else {
+							// logger.Info("CACHE MISS", "key", emb_key)
+						}
 					}
 
-					emb_rsp, err := opts.Embedder.TextEmbeddings(ctx, emb_req)
+					if v_emb == nil {
 
-					if err != nil {
-						logger.Warn("Failed to generate embeddings", "model", m, "id", emb_id, "error", err)
-						continue
-					}
+						emb_req := &embeddings.EmbeddingsRequest{
+							Id:    emb_id,
+							Model: m,
+							Body:  []byte(str_names),
+						}
 
-					// logger.Info("Add embeddings", "id", emb_id, "names", str_names)
+						emb_rsp, err := opts.Embedder.TextEmbeddings(ctx, emb_req)
 
-					e := &Embeddings{
-						Language:   lang,
-						Tag:        tag,
-						Embeddings: emb_rsp.Embeddings(),
-					}
+						if err != nil {
+							logger.Warn("Failed to generate embeddings", "model", m, "id", emb_id, "error", err)
+							continue
+						}
 
-					v := &VectorEmbeddings{
-						Model:      m,
-						Embeddings: []*Embeddings{e},
+						// logger.Info("Add embeddings", "id", emb_id, "names", str_names)
+
+						e := &Embeddings{
+							Language:   lang,
+							Tag:        tag,
+							Embeddings: emb_rsp.Embeddings(),
+						}
+
+						v_emb = &VectorEmbeddings{
+							Model:      m,
+							Embeddings: []*Embeddings{e},
+						}
+
+						if opts.Cache != nil {
+							// logger.Info("CACHE SET", "key", emb_key)
+							opts.Cache.Set(emb_key, v_emb, 1)
+						}
 					}
 
 					vectors_mu.Lock()
-					vectors = append(vectors, v)
+					vectors = append(vectors, v_emb)
 					vectors_mu.Unlock()
 				}
 			})

@@ -48,6 +48,10 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 	defer opts.Geocoder.Close()
 
+	if opts.VectorCache != nil {
+		defer opts.VectorCache.Close()
+	}
+
 	t1 := time.Now()
 
 	if opts.IndexJuggling {
@@ -131,6 +135,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			EmbedderModels: []string{
 				opts.EmbeddingsModel,
 			},
+			Cache: opts.VectorCache,
 		}
 
 		rec, err := coarse.NewWhosOnFirstRecord(ctx, wof_opts)

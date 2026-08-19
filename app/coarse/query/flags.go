@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sfomuseum/geocoder/x/vec"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
-	"github.com/sfomuseum/geocoder/x/vec"	
 )
 
 var geocoder_uri string

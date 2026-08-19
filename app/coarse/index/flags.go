@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/geocoder/x/vec"
+	"github.com/sfomuseum/go-flags/flagset"
 )
 
 var iterator_uri string
@@ -22,6 +22,7 @@ var exclude_funky bool
 var exclude_nullisland bool
 
 var embeddings_index bool
+var embeddings_cache bool
 var embeddings_model string
 var embedder_uri string
 
@@ -44,6 +45,7 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.BoolVar(&exclude_nullisland, "exclude-nullisland", true, "Do not index records that are \"visiting\" Null Island (have 0,0 coordinate data).")
 
 	fs.BoolVar(&embeddings_index, "embeddings-index", false, "Generate and store vector embeddings for place names.")
+	fs.BoolVar(&embeddings_cache, "embeddings-cache", true, "Cache embeddings lookups for strings. Cache keys are derived from: the current model + record id + language + language tag.")
 	fs.StringVar(&embedder_uri, "embedder-uri", vec.DEFAULT_EMBEDDER_URI, "A registered sfomuseum/go-embeddings.Embedder URI.")
 	fs.StringVar(&embeddings_model, "embeddings-model", vec.DEFAULT_EMBEDDINGS_MODEL, "The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384.")
 

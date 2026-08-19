@@ -247,6 +247,11 @@ github.com/cloudflare/circl/sign/ed448
 ## explicit; go 1.18
 github.com/cyphar/filepath-securejoin
 github.com/cyphar/filepath-securejoin/internal/consts
+# github.com/dgraph-io/ristretto/v2 v2.4.2
+## explicit; go 1.24.0
+github.com/dgraph-io/ristretto/v2
+github.com/dgraph-io/ristretto/v2/z
+github.com/dgraph-io/ristretto/v2/z/simd
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize

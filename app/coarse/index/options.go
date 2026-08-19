@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/go-embeddings"
 	"github.com/sfomuseum/go-flags/flagset"
@@ -19,6 +20,7 @@ type Options struct {
 	Geocoder          coarse.Geocoder
 	Iterator          iterate.Iterator
 	IteratorSources   []string
+	VectorCache       *ristretto.Cache[string, *coarse.VectorEmbeddings]
 	Fresh             bool
 	Prune             bool
 	Offset            int64
@@ -121,6 +123,23 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 
 		opts.Embedder = embedder
 		opts.EmbeddingsModel = embeddings_model
+	}
+
+	if embeddings_cache {
+
+		cfg := &ristretto.Config[string, *coarse.VectorEmbeddings]{
+			NumCounters: 1e7,
+			MaxCost:     1 << 30,
+			BufferItems: 64,
+		}
+
+		cache, err := ristretto.NewCache(cfg)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create vector cache, %w", err)
+		}
+
+		opts.VectorCache = cache
 	}
 
 	opts.EmbeddingsIndex = embeddings_index
