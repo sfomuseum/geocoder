@@ -19,6 +19,10 @@ footer {
 	margin-bottom: .5rem;
 }
 
+#advanced-query-embeddings-wrapper {
+	display: none;
+}
+
 #results {
 	max-height: 40vh;
 	overflow-y: scroll;

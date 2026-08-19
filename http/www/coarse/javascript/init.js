@@ -365,9 +365,13 @@ window.addEventListener("load", function load(event){
 	    method: 'POST',
 	    body: form_data,
 	};
+
+	// To do: Start spinner
 	
 	fetch(uri, fetch_args).then(rsp => {
 
+	    // To do: Stop spinner
+	    
 	    if (! rsp.ok){
 		throw new Error(`HTTP error ${rsp.status}`);
 	    }
@@ -408,8 +412,10 @@ window.addEventListener("load", function load(event){
 	return false;
     };
 
-    adv_submit_el.onclick = function(){
+    adv_submit_el.onclick = async function(e){
 
+	e.preventDefault();
+	
 	const form_data = new FormData();
 	
 	const q = adv_query_el.value;
@@ -455,15 +461,39 @@ window.addEventListener("load", function load(event){
 
 	if (with_embeddings){
 
+	    feedback_el.innerHTML = "";
+	    feedback_el.innerText = "Deriving vector embeddings for query text";
+
+	    try {
+
+		// To do: Start spinner
+		
+		const rsp = await window.getEmbedding(q);
+		const data = rsp.data[0].embedding;
+
+		if (! data){
+		    console.debug("Embedding response missing data", rsp);
+		    throw new Error("No embedding data");
+		}
+
+		form_data.set("query-embeddings", JSON.stringify(data));
+		// To do: Stop spinner			    		
+	    } catch(err) {
+		console.error("Failed to generate embeddings", err);		
+		feedback_el.innerText = "Failed to derive vector embeddings, " + err;
+		// To do: Stop spinner			    				
+		return false;
+	    }
 
 	}
-	
-	// const lang = adv_lang_el.value;	
-
-	geocode(form_data);
 
 	results_el.innerHTML = "";
 	feedback_el.innerHTML = "";
+	
+	// const lang = adv_lang_el.value;	
+
+	console.debug("Geocode", form_data);
+	geocode(form_data);
 	
 	adv_details_el.open = false;
 	return false;
@@ -504,7 +534,28 @@ window.addEventListener("load", function load(event){
 
 	feedback_el.innerText = "Failed to retrieve map config:" + err;	
 	console.error("Failed to retrieve map config", map_u.toString(), err);
-    });;
-    
+    });
+
+    // Load embeddings stuff
+
+    (async () => {
+        try {
+            const modulePath = '/javascript/embeddings.js'; 
+            const { initModel, getEmbedding } = await import(modulePath);
+
+            console.debug("Starting model download/initialization...");
+            await initModel();
+	    
+            console.debug("Model successfully loaded into memory!");
+
+	    window.getEmbedding = getEmbedding;
+
+	    const wrapper = document.querySelector("#advanced-query-embeddings-wrapper");
+	    wrapper.style.display = "block";
+	    
+        } catch (error) {
+            console.error("Failed to load query embedding scaffolding", error);
+        }
+    })();
     
 });

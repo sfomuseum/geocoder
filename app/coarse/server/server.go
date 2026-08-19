@@ -89,6 +89,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		Geocoder:          opts.Geocoder,
 		PaginationPerPage: opts.PaginationPerPage,
 		QueryTimeout:      opts.QueryTimeout,
+		AllowQueryEmbeddings: true,
 	}
 
 	api_handler, err := api.CoarseGeocoderHandler(api_opts)
@@ -98,7 +99,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 	}
 
 	if opts.Prefix == "" {
-		mux.Handle("/api/query/", api_handler)
+		mux.Handle("POST /api/query/", api_handler)
 	} else {
 
 		api_uri, err := url.JoinPath(opts.Prefix, "/api/query/")
@@ -107,6 +108,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			return fmt.Errorf("Failed to apply prefix to API (query) URL, %w", err)
 		}
 
+		api_uri = fmt.Sprintf("POST %s", api_uri)
 		mux.Handle(api_uri, api_handler)
 	}
 

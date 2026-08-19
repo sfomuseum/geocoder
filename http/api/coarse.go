@@ -35,8 +35,8 @@ type CoarseGeocoderHandlerOptions struct {
 	PaginationPerPage int64
 	// The maximum allowable time in seconds for a query to complete.
 	QueryTimeout int
-	// AllowEmbeddings ...
-	AllowEmbeddings bool
+	// AllowQueryEmbeddings ...
+	AllowQueryEmbeddings bool
 }
 
 // CoarseGeocoderHandler creates an HTTP handler that exposes the geocoder as a REST API.
@@ -214,16 +214,21 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Embeddings
 
-		if opts.AllowEmbeddings {
+		str_embeddings, err := sanitize.PostString(req, "query-embeddings")
+		
+		if err != nil {
+			logger.Error("Failed to derive ?query-embeddings= parameter", "error", err)
+			http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
+			return
+		}
 
-			str_embeddings, err := sanitize.PostString(req, "query-embeddings")
+		if str_embeddings != "" {
 
-			if err != nil {
-				logger.Error("Failed to derive ?query-embeddings= parameter", "error", err)
-				http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
+			if !opts.AllowQueryEmbeddings {
+				http.Error(rsp, "Query embeddings are not supported", http.StatusBadRequest)
 				return
 			}
-
+			
 			var query_embeddings []float32
 
 			err = json.Unmarshal([]byte(str_embeddings), &query_embeddings)
