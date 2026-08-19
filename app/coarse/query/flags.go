@@ -21,6 +21,8 @@ var str_bounds string
 var date_starts string
 var date_ends string
 
+var vector_search bool
+
 var page int64
 var per_page int64
 
@@ -44,6 +46,7 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.StringVar(&date_starts, "date-starts", "", "Optional ETDF starting date string to filter results by.")
 	fs.StringVar(&date_ends, "date-ends", "", "Optional ETDF ending date string to filter results by.")
 
+	fs.BoolVar(&vector_search, "vector-search", false, "...")
 	fs.IntVar(&query_timeout, "query-timeout", 5, "The maximum allowable time in seconds for a query to complete.")
 
 	fs.Int64Var(&page, "page", 1, "The specific page number to query for paginated result sets.")

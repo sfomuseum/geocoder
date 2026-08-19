@@ -58,15 +58,13 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(" SELECT vm.distance AS distance, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
 		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.id = vm.rowid JOIN records r ON r.id = er.record_id")
 
-		args = []any{
-			string(enc_e),
-		}
+		args = append(args, enc_e)
 
 	} else {
 
 		sb.WriteString("SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
 		sb.WriteString(" FROM tokens_fts f JOIN tokens t ON t.row_id = f.rowid JOIN records r ON r.id = t.id")
-		
+
 	}
 
 	if len(req.Placetype) > 0 {
@@ -203,10 +201,6 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 	sb.WriteString(" GROUP BY r.id")
 
-	/*
-
-	*/
-
 	sb.WriteString(` ORDER BY (
 			CASE r.is_current
 				WHEN 1 THEN 0.0
@@ -219,7 +213,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(`, vm.distance ASC`)
 	} else {
 
-		sb.WriteString(`, MIN(CASE t.tag
+		sb.WriteString(`, f.rank ASC, MIN(CASE t.tag
 					WHEN 'concordance' THEN 0.5
 					WHEN 'preferred'    THEN 1.0
 					WHEN 'colloquial' THEN 2.0
@@ -230,7 +224,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 				END) ASC`)
 
 	}
-	
+
 	sb.WriteString(` ,r.population_rank DESC,
 			(CASE r.placetype
 				WHEN 'microhood' THEN 1.0

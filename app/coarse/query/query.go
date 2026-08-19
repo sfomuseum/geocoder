@@ -121,25 +121,28 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 	// START OF...
 
-	embedder, err := embeddings.NewEmbedder32(ctx, "ollama://")
+	if opts.VectorSearch {
 
-	if err != nil {
-		return fmt.Errorf("Failed to create embedder, %w", err)
+		embedder, err := embeddings.NewEmbedder32(ctx, "ollama://")
+
+		if err != nil {
+			return fmt.Errorf("Failed to create embedder, %w", err)
+		}
+
+		emb_req := &embeddings.EmbeddingsRequest{
+			Id:    req.Query,
+			Model: "embeddinggemma",
+			Body:  []byte(req.Query),
+		}
+
+		emb_rsp, err := embedder.TextEmbeddings(ctx, emb_req)
+
+		if err != nil {
+			return fmt.Errorf("Failed to derive text embeddings for query, %w", err)
+		}
+
+		req.QueryEmbeddings = emb_rsp.Embeddings()
 	}
-
-	emb_req := &embeddings.EmbeddingsRequest{
-		Id:    req.Query,
-		Model: "embeddinggemma",
-		Body:  []byte(req.Query),
-	}
-
-	emb_rsp, err := embedder.TextEmbeddings(ctx, emb_req)
-
-	if err != nil {
-		return fmt.Errorf("Failed to derive text embeddings for query, %w", err)
-	}
-
-	req.QueryEmbeddings = emb_rsp.Embeddings()
 
 	// END OF...
 

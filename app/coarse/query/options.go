@@ -12,6 +12,7 @@ import (
 type Options struct {
 	Geocoder     coarse.Geocoder
 	Query        string
+	VectorSearch bool
 	Lang         string
 	LangTag      string
 	Placetypes   []string
@@ -47,6 +48,7 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 
 	opts.Geocoder = gc
 
+	opts.VectorSearch = vector_search
 	opts.Placetypes = placetypes
 	opts.Query = query
 	opts.Countries = countries
