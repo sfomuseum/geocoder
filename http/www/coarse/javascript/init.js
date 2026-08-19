@@ -18,6 +18,7 @@ window.addEventListener("load", function load(event){
 
     const adv_details_el = document.querySelector("#advanced-details");    
     const adv_query_el = document.querySelector("#advanced-query");
+    const adv_query_embeddings_el = document.querySelector("#advanced-query-embeddings");    
     const adv_lang_el = document.querySelector("#advanced-lang");
     const adv_tag_el = document.querySelector("#advanced-tag");
     const adv_placetype_el = document.querySelector("#advanced-placetype");
@@ -448,6 +449,13 @@ window.addEventListener("load", function load(event){
 
 	if (bt != ""){
 	    form_data.set("belongsto", bt.split(","));
+	}
+
+	const with_embeddings = adv_query_embeddings_el.checked;
+
+	if (with_embeddings){
+
+
 	}
 	
 	// const lang = adv_lang_el.value;	
