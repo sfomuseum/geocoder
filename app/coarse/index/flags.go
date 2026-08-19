@@ -20,6 +20,10 @@ var exclude_superseded bool
 var exclude_funky bool
 var exclude_nullisland bool
 
+var embeddings_index bool
+var embeddings_model string
+var embedder_uri string
+
 var verbose bool
 
 func DefaultFlagSet() *flag.FlagSet {
@@ -37,6 +41,10 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.BoolVar(&exclude_superseded, "exclude-superseded", true, "Do not index records which have been superseded.")
 	fs.BoolVar(&exclude_funky, "exclude-funky", true, "Do not index records which have been flagged as \"funky\".")
 	fs.BoolVar(&exclude_nullisland, "exclude-nullisland", true, "Do not index records that are \"visiting\" Null Island (have 0,0 coordinate data).")
+
+	fs.BoolVar(&embeddings_index, "embeddings-index", false, "...")
+	fs.StringVar(&embedder_uri, "embedder-uri", "ollama://", "...")
+	fs.StringVar(&embeddings_model, "embeddings-model", "embeddinggemma", "...")
 
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
