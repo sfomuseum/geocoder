@@ -30,22 +30,29 @@ func Run(ctx context.Context) error {
 
 func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
-	flagset.Parse(fs)
+	opts, err := OptionsFromFlagSet(ctx, fs)
 
-	if verbose {
+	if err != nil {
+		return err
+	}
+
+	return RunWithOptions(ctx, opts)
+}
+
+func RunWithOptions(ctx context.Context, opts *Options) error {
+	
+	if opts.Verbose {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 		slog.Debug("Verbose logging enabled")
 	}
 
 	logger := slog.Default()
 
-	gc, err := coarse.NewSQLGeocoder(ctx, geocoder_uri)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create geocoder, %w", err)
+	if opts.Geocoder == nil {
+		return fmt.Errorf("Missing geocoder")
 	}
 
-	defer gc.Close()
+	defer opts.Geocoder.Close()
 
 	if exclude_deprecated || exclude_superseded || exclude_funky {
 
@@ -96,17 +103,11 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		logger.Info("Rewrote iterator URI", "uri", iterator_uri)
 	}
 
-	iter, err := iterate.NewIterator(ctx, iterator_uri)
-
-	if err != nil {
-		return fmt.Errorf("Failed to create new iteratr, %w", err)
-	}
-
 	t1 := time.Now()
 
 	if index_juggling {
 
-		err = gc.PreIndex(ctx)
+		err = opts.Geocoder.PreIndex(ctx)
 
 		if err != nil {
 			return fmt.Errorf("Pre-indexing failed, %w", err)
@@ -145,15 +146,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 		}
 	}()
 
-	embedder, err := embeddings.NewEmbedder32(ctx, "ollama://")
-
-	if err != nil {
-		return fmt.Errorf("Failed to create embedder, %w", err)
-	}
-
 	iterator_uris := fs.Args()
 
-	for rec, err := range iter.Iterate(ctx, iterator_uris...) {
+	for rec, err := range opts.Iterator.Iterate(ctx, iterator_uris...) {
 
 		if err != nil {
 			return fmt.Errorf("Iterator yielded an error, %w", err)
@@ -189,9 +184,9 @@ func RunWithFlagSet(ctx context.Context, fs *flag.FlagSet) error {
 
 		opts := &coarse.NewWhosOnFirstRecordOptions{
 			Body:     body,
-			Embedder: embedder,
+			Embedder: opts.Embedder,
 			EmbedderModels: []string{
-				"embeddinggemma",
+				opts.EmbeddingsModel,
 			},
 		}
 
