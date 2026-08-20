@@ -503,9 +503,15 @@ Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1
 
 There is experimental support for storing and querying vector embeddings for place names. This is enabled by passing the `-embeddings-index` flag to the [wof-coarse-geocoder-index](#) tool and/or the `-embeddings-search` flag to the [wof-coarse-geocoder-query](#) tool.
 
-In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (to create or query). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a number of sources. Practically speaking this means you will need to run a separate service (like [Ollama](#) or [llama.cpp](https://github.com/ggerganov/llama.cpp)) with its own API endpoint to create embeddings.
+In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (to create or query). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a number of sources. Practically speaking this means you will need to run a separate service (like [Ollama](https://ollama.com) or [llama.cpp](https://llama.app)) with its own API endpoint to create embeddings.
 
 An important consideration, as of this writing, is that the underlying `geocoder` code does NOT support vector embeddings with multiple dimensions and the default dimensionality is 384. This value is hard-coded pending further consideration about how to make these things dynamic. The choice of 384-dimension embeddings is because that's what the `bert-bge-small/ggml-model-f16.gguf` model produces and that model is used to generate client-side embeddings in the "demo" web application (described further below).
+
+#### Embeddings for what?
+
+As of this writing a single embedding is generated for the unique set of names for each (language + language tag) pair for each record. Is this the best way? I don't know. Because it takes a while to generate and store a lot of embeddings, and because Who's On First records often have a lot of different names (and languages), it seemed like a reasonable compromise just to prove that storing and querying vector embeddings was feasible.
+
+[Feedback or alternative approaches are welcome and encouraged.](https://github.com/sfomuseum/geocoder/issues)
 
 #### Indexing
 
