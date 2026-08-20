@@ -499,6 +499,80 @@ Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1
 
 ## Experimental
 
+### Vector embeddings
+
+There is experimental support for storing and querying vector embeddings for place names. This is enabled by passing the `-embeddings-index` flag to the [wof-coarse-geocoder-index](#) tool and/or the `-embeddings-search` flag to the [wof-coarse-geocoder-query](#) tool.
+
+In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (to create or query). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a number of sources. Practically speaking this means you will need to run a separate service (like [Ollama](#) or [llama.cpp](https://github.com/ggerganov/llama.cpp)) with its own API endpoint to create embeddings.
+
+An important consideration, as of this writing, is that the underlying `geocoder` code does NOT support vector embeddings with multiple dimensions and the default dimensionality is 384. This value is hard-coded pending further consideration about how to make these things dynamic. The choice of 384-dimension embeddings is because that's what the `bert-bge-small/ggml-model-f16.gguf` model produces and that model is used to generate client-side embeddings in the "demo" web application (described further below).
+
+#### Indexing
+
+For example:
+
+```
+$> bin/wof-coarse-geocoder-index/main.go \
+	-embeddings-index \
+	-embedder-uri ollama:// \
+	-fresh \
+	-geocoder-uri 'sql://sqlite?dsn=us-vec384.db' \
+	-iterator-uri parquet:// \
+	/usr/local/data/whosonfirst-parquet/whosonfirst-data-admin-us.parquet
+```
+
+Note that indexing with vector embeddings, even when embeddings for the same place names are cached, takes significantly longer than indexing data without vector embeddings.
+
+#### Querying
+
+For example:
+
+```
+
+```
+
+#### Querying vector embeddings in the API
+
+Querying vector embeddings in the API is enabled by default in the [wof-coarse-geocoder-server](#) tool. You can disable it necessary using the `-allow-query-embeddings=false` flag. For example:
+
+```
+$> make server GEOCODER_URI='sql://sqlite?dsn=vec384.db'
+go run -mod vendor cmd/wof-coarse-geocoder-server/main.go \
+		-demo \
+		-verbose \
+		-allow-query-embeddings \
+		-server-uri http://localhost:8080 \
+		-geocoder-uri sql://sqlite?dsn=vec384.db
+2026/08/19 18:21:20 DEBUG Verbose logging enabled
+2026/08/19 18:21:20 INFO Listening for requests address=http://localhost:8080
+2026/08/19 18:22:14 DEBUG Time to query query="mont AND royal*" "query embeddings"=true total=8 time=128.005042ms
+```
+
+The API endpoint does NOT create vector embeddings itself. This is assumed to be handled by an external process. Once you've created those embeddings you can pass them along to the API, as a JSON-encoded string, in the `query-embeddings` parameter. For example:
+
+```
+$> curl -X POST -F 'query=boston' -F 'query-embeddings=[...]' http://localhost:8080/api/query/
+```
+
+#### Querying vector embeddings in the "demo" server
+
+Querying vector embeddings in the "demo" server is NOT enabled by default. This functionality depends on the presence of the [ngxson/wllama](#) Javascript library and the WebAssembly binary in addition to the `bert-bge-small/ggml-model-f16.gguf` (large language) model. All of these assets _could_ be loaded remotely but one of the design criteria for the API/demo server is that all its assets are bundled locally.
+
+The `wllama` and `bert-bge-small` assets are not bundled with this repository to prevent unnecessary bloat. (These files are also explicitly excluded from version control.) You can download these assets using the handy `embeddings` Makefile target in the [http/www/coarse](http/www/coarse) folder. For example:
+
+```
+$> cd http/www/coarse
+$> make embeddings
+curl -sL -o javascript/wllama.js https://github.ngxson.com/wllama/esm/index.js
+curl -sL -o wasm/wllama.wasm https://github.ngxson.com/wllama/esm/wasm/wllama.wasm
+curl -sL -o models/bert-bge-small/ggml-model-f16.gguf https://huggingface.co/ggml-org/models/resolve/main/bert-bge-small/ggml-model-f16.gguf
+```
+
+The [ngxson/wllama](https://github.com/ngxson/wllama) package provides WebAssembly bindings for the [llama.cpp](https://github.com/ggerganov/llama.cpp) library which, in turn, enables the ability to create vector embeddings client-side in a web browser. Which is pretty bonkers amazing when you think about it. The WebAssembly binary still depends on a third-party model to derive embeddings. The `ngxson/wllama` uses the `bert-bge-small/ggml-model-f16.gguf` model in its examples and is only 69MB (rather than, say, 10 or 20GB) so that's what this package uses too. At least for the time being.
+
+Now start the `wof-coarse-geocoder-server` tool as usual (see above). The application code for the "demo" server will check to see whether the `wllama` assets are available and if they are will enable an addition "Query with vector embeddings" checkbox in the "Advanced" query menu. For example:
+
+
 ### Virtual File System (VFS) support
 
 #### Bundled filesystems

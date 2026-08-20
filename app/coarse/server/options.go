@@ -10,13 +10,14 @@ import (
 )
 
 type Options struct {
-	Geocoder          coarse.Geocoder
-	ServerURI         string
-	Prefix            string
-	QueryTimeout      int
-	PaginationPerPage int64
-	Demo              bool
-	Verbose           bool
+	Geocoder             coarse.Geocoder
+	ServerURI            string
+	Prefix               string
+	QueryTimeout         int
+	AllowQueryEmbeddings bool
+	PaginationPerPage    int64
+	Demo                 bool
+	Verbose              bool
 }
 
 func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error) {
@@ -44,6 +45,7 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 	opts.QueryTimeout = query_timeout
 	opts.PaginationPerPage = per_page
 	opts.Demo = demo
+	opts.AllowQueryEmbeddings = allow_query_embeddings
 
 	opts.Verbose = verbose
 

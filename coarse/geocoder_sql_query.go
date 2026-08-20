@@ -48,6 +48,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 	if len(req.QueryEmbeddings) > 0 {
 
+		logger = logger.With("query embeddings", true)
 		enc_e, err := json.Marshal(req.QueryEmbeddings)
 
 		if err != nil {

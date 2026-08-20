@@ -112,15 +112,30 @@ window.addEventListener("load", function load(event){
 	const page = pg.page;
 	const pages = pg.pages;
 
+	const query_el = document.createElement("span");
+	
+	const quote_el = document.createElement("q");
+	quote_el.appendChild(document.createTextNode(current_form.get("query")));
+
+	query_el.appendChild(quote_el);
+	
+	if (current_form.get("query-embeddings") != ""){
+	    query_el.appendChild(document.createTextNode(" (with vector embeddings)"));
+	}
+	
 	switch (total) {
 	    case 0:
 		feedback_el.innerText = "There are no results for that query.";
 		return;
 	    case 1:
-		pagination.appendChild(document.createTextNode("There is one result"));
+		pagination.appendChild(document.createTextNode("There is one result for"));
+		pagination.appendChild(query_el);
+		pagination.appendChild(document.createTextNode("."));
 		break;
 	    default:
-		pagination.appendChild(document.createTextNode("There are " + total + " results."));
+		pagination.appendChild(document.createTextNode("There are " + total + " results for"));
+		pagination.appendChild(query_el);
+		pagination.appendChild(document.createTextNode("."));
 
 		if (pages > 1) {
 		    pagination.appendChild(document.createTextNode("This is page " + page + " of " + pages + "."));

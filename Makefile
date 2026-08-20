@@ -33,5 +33,6 @@ server:
 	go run -mod $(GOMOD) cmd/wof-coarse-geocoder-server/main.go \
 		-demo \
 		-verbose \
+		-allow-query-embeddings \
 		-server-uri http://localhost:8080 \
 		-geocoder-uri $(GEOCODER_URI)
