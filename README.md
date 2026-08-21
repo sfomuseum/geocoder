@@ -256,7 +256,7 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:25:22 INFO Query results total=7 page=1 pages=1
 
-rank				id			label												placetype	latitude	longitude	is current	inception	cessation
+rank				id			label													placetype	latitude	longitude	is current	inception	cessation
 -17.33661134210852	1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1	2024-11-05	..
 -17.33661134210852	1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2017~		2019-07-23
 -17.33661134210852	1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2019-07-23	2020-~05
@@ -689,6 +689,14 @@ curl -sL -o models/bert-bge-small/ggml-model-f16.gguf https://huggingface.co/ggm
 The [ngxson/wllama](https://github.com/ngxson/wllama) package provides WebAssembly bindings for the [llama.cpp](https://github.com/ggerganov/llama.cpp) library which, in turn, enables the ability to create vector embeddings client-side in a web browser. Which is pretty bonkers amazing when you think about it. The WebAssembly binary still depends on a third-party model to derive embeddings. The `ngxson/wllama` uses the `bert-bge-small/ggml-model-f16.gguf` model in its examples and is only 69MB (rather than, say, 10 or 20GB) so that's what this package uses too. At least for the time being.
 
 Now start the `wof-coarse-geocoder-server` tool as usual (see above). The application code for the "demo" server will check to see whether the `wllama` assets are available and if they are will enable an addition "Query with vector embeddings" checkbox in the "Advanced" query menu. For example:
+
+![](docs/images/geocoder-demo-vector.png)
+
+Querying for "mont royal" returns Montreal:
+
+![](docs/images/geocoder-demo-vector-mont-royal.png)
+
+Querying for "khmer rouge" returns Cambodia and	Hồ Chí Minh city, in Vietnam, which is not incorrect:
 
 ![](docs/images/geocoder-demo-vector.png)
 
