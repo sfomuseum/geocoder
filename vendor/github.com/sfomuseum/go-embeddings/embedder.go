@@ -1,0 +1,135 @@
+package embeddings
+
+import (
+	"context"
+	"fmt"
+	"net/url"
+	"sort"
+	"strings"
+
+	"github.com/aaronland/go-roster"
+)
+
+// Embedder defines an interface for generating (vector) embeddings
+type Embedder[T Float] interface {
+	TextEmbeddings(context.Context, *EmbeddingsRequest) (EmbeddingsResponse[T], error)
+	ImageEmbeddings(context.Context, *EmbeddingsRequest) (EmbeddingsResponse[T], error)
+}
+
+// EmbedderInitializationFunc is a function defined by individual embedder package and used to create
+// an instance of that embedder
+type EmbedderInitializationFunc[T Float] func(ctx context.Context, uri string) (Embedder[T], error)
+
+var embedder_roster roster.Roster
+
+// RegisterEmbedder registers 'scheme' as a key pointing to 'init_func' in an internal lookup table
+// used to create new `Embedder` instances by the `NewEmbedder` method.
+func RegisterEmbedder[T Float](ctx context.Context, scheme string, init_func EmbedderInitializationFunc[T]) error {
+
+	err := ensureEmbedderRoster()
+
+	if err != nil {
+		return err
+	}
+
+	return embedder_roster.Register(ctx, scheme, init_func)
+}
+
+func ensureEmbedderRoster() error {
+
+	if embedder_roster == nil {
+
+		r, err := roster.NewDefaultRoster()
+
+		if err != nil {
+			return err
+		}
+
+		embedder_roster = r
+	}
+
+	return nil
+}
+
+func NewEmbedder64(ctx context.Context, uri string) (Embedder[float64], error) {
+
+	uri, err := ensureSuffix(uri, "64")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewEmbedder[float64](ctx, uri)
+}
+
+func NewEmbedder32(ctx context.Context, uri string) (Embedder[float32], error) {
+
+	uri, err := ensureSuffix(uri, "32")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewEmbedder[float32](ctx, uri)
+}
+
+func ensureSuffix(uri string, suffix string) (string, error) {
+
+	u, err := url.Parse(uri)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !strings.HasSuffix(u.Scheme, suffix) {
+		u.Scheme = fmt.Sprintf("%s%s", u.Scheme, suffix)
+		uri = u.String()
+	}
+
+	return uri, nil
+}
+
+// newEmbedder returns a new `Embedder` instance configured by 'uri'. The value of 'uri' is parsed
+// as a `url.URL` and its scheme is used as the key for a corresponding `EmbedderInitializationFunc`
+// function used to instantiate the new `Embedder`. It is assumed that the scheme (and initialization
+// function) have been registered by the `RegisterEmbedder` method.
+func NewEmbedder[T Float](ctx context.Context, uri string) (Embedder[T], error) {
+
+	u, err := url.Parse(uri)
+
+	if err != nil {
+		return nil, err
+	}
+
+	scheme := u.Scheme
+
+	i, err := embedder_roster.Driver(ctx, scheme)
+
+	if err != nil {
+		return nil, err
+	}
+
+	init_func := i.(EmbedderInitializationFunc[T])
+	return init_func(ctx, uri)
+}
+
+// Schemes returns the list of schemes that have been registered.
+func EmbedderSchemes() []string {
+
+	ctx := context.Background()
+	schemes := []string{}
+
+	err := ensureEmbedderRoster()
+
+	if err != nil {
+		return schemes
+	}
+
+	for _, dr := range embedder_roster.Drivers(ctx) {
+		scheme := fmt.Sprintf("%s://", strings.ToLower(dr))
+		schemes = append(schemes, scheme)
+	}
+
+	sort.Strings(schemes)
+	return schemes
+}

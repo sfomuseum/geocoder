@@ -28,6 +28,8 @@ CREATE INDEX idx_tokens_covering ON tokens (row_id, id, lang, tag);
 CREATE INDEX idx_bounds_covering ON bounds (wofid, minx, maxx, miny, maxy);
 CREATE INDEX idx_records_sorting ON records(id, is_current, population_rank, placetype, country);
 
+CREATE UNIQUE INDEX vec_record_model ON embeddings_records (record_id, model, language, tag);
+
 -- Set up FTS
 CREATE VIRTUAL TABLE tokens_fts USING fts5 (
     token,

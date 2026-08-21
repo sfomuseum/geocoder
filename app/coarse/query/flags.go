@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sfomuseum/geocoder/x/vec"
 	"github.com/sfomuseum/go-flags/flagset"
 	"github.com/sfomuseum/go-flags/multi"
 )
@@ -20,6 +21,10 @@ var belongsto multi.MultiInt64
 var str_bounds string
 var date_starts string
 var date_ends string
+
+var embeddings_search bool
+var embeddings_model string
+var embedder_uri string
 
 var page int64
 var per_page int64
@@ -43,6 +48,10 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.StringVar(&str_bounds, "bounds", "", "Optional bounding box (in the form of 'minx,miny,maxx,mayx') to filter results by.")
 	fs.StringVar(&date_starts, "date-starts", "", "Optional ETDF starting date string to filter results by.")
 	fs.StringVar(&date_ends, "date-ends", "", "Optional ETDF ending date string to filter results by.")
+
+	fs.BoolVar(&embeddings_search, "embeddings-search", false, "Generate and use vector embeddings for search terms to query records. This feature is still considered experimental.")
+	fs.StringVar(&embedder_uri, "embedder-uri", vec.DEFAULT_EMBEDDER_URI, "A registered sfomuseum/go-embeddings.Embedder URI.")
+	fs.StringVar(&embeddings_model, "embeddings-model", vec.DEFAULT_EMBEDDINGS_MODEL, "The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384.")
 
 	fs.IntVar(&query_timeout, "query-timeout", 5, "The maximum allowable time in seconds for a query to complete.")
 

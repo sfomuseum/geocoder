@@ -223,6 +223,9 @@ github.com/aws/smithy-go/traits
 github.com/aws/smithy-go/transport/http
 github.com/aws/smithy-go/transport/http/internal/io
 github.com/aws/smithy-go/waiter
+# github.com/bwmarrin/snowflake v0.3.0
+## explicit
+github.com/bwmarrin/snowflake
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
@@ -244,6 +247,11 @@ github.com/cloudflare/circl/sign/ed448
 ## explicit; go 1.18
 github.com/cyphar/filepath-securejoin
 github.com/cyphar/filepath-securejoin/internal/consts
+# github.com/dgraph-io/ristretto/v2 v2.4.2
+## explicit; go 1.24.0
+github.com/dgraph-io/ristretto/v2
+github.com/dgraph-io/ristretto/v2/z
+github.com/dgraph-io/ristretto/v2/z/simd
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
@@ -452,7 +460,7 @@ github.com/remyoudompheng/bigfft
 # github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 ## explicit; go 1.13
 github.com/sergi/go-diff/diffmatchpatch
-# github.com/sfomuseum/go-database v0.0.20
+# github.com/sfomuseum/go-database v0.0.21
 ## explicit; go 1.26.5
 github.com/sfomuseum/go-database/sql
 # github.com/sfomuseum/go-edtf v1.3.0
@@ -467,10 +475,21 @@ github.com/sfomuseum/go-edtf/parser
 github.com/sfomuseum/go-edtf/re
 github.com/sfomuseum/go-edtf/tests
 github.com/sfomuseum/go-edtf/unix
+# github.com/sfomuseum/go-embeddings v0.5.2
+## explicit; go 1.26.6
+github.com/sfomuseum/go-embeddings
+# github.com/sfomuseum/go-encoderfile v0.0.1
+## explicit; go 1.25.0
+github.com/sfomuseum/go-encoderfile/client
+github.com/sfomuseum/go-encoderfile/embeddings
 # github.com/sfomuseum/go-flags v0.12.1
 ## explicit; go 1.22
 github.com/sfomuseum/go-flags/flagset
 github.com/sfomuseum/go-flags/multi
+# github.com/sfomuseum/go-mobileclip v0.1.3
+## explicit; go 1.25.0
+github.com/sfomuseum/go-mobileclip
+github.com/sfomuseum/go-mobileclip/grpc
 # github.com/skeema/knownhosts v1.3.1
 ## explicit; go 1.22
 github.com/skeema/knownhosts
@@ -798,5 +817,6 @@ modernc.org/memory
 ## explicit; go 1.25.0
 modernc.org/sqlite
 modernc.org/sqlite/lib
+modernc.org/sqlite/vec
 modernc.org/sqlite/vfs
 modernc.org/sqlite/vtab

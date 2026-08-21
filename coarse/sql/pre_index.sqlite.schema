@@ -14,3 +14,4 @@ DROP INDEX IF EXISTS bounds_by_wofid;
 DROP INDEX IF EXISTS idx_tokens_covering;
 DROP INDEX IF EXISTS idx_bounds_covering;
 DROP INDEX IF EXISTS idx_records_sorting;
+DROP INDEX IF EXISTS vec_record_model;

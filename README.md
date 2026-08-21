@@ -89,6 +89,14 @@ Index one or more Who's On First data sources in a (coarse) geocoding database.
 Usage:
 	./bin/wof-coarse-geocoder-index [options] uri(N) uri(N) uri(N)
 Valid options are:
+  -embedder-uri string
+    	A registered sfomuseum/go-embeddings.Embedder URI. (default "ollama://")
+  -embeddings-cache
+    	Cache embeddings lookups for strings. Cache keys are derived from: the current model + record id + language + language tag. (default true)
+  -embeddings-index
+    	Generate and store vector embeddings for place names. This feature is still considered experimental.
+  -embeddings-model string
+    	The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384. (default "hf.co/unsloth/bge-small-en-v1.5-GGUF:F16")
   -exclude-deprecated
     	Do not index records which have been deprecated. (default true)
   -exclude-funky
@@ -96,11 +104,11 @@ Valid options are:
   -exclude-nullisland
     	Do not index records that are "visiting" Null Island (have 0,0 coordinate data). (default true)
   -exclude-superseded
-    	Do not index records which have been superseded. (default true)
+    	Do not index records which have been superseded.
   -fresh
     	This flags signals that a fresh database is being indexed disabling checks for existing or updated records.
   -geocoder-uri string
-    	A registered whosonfirst/geocoder/coarse.Geocoder URI. (default "sql://sqlite?dsn=:memory:")
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "sql://sqlite?dsn=:memory:")
   -index-juggling
     	Perform indexing speed optiomizations. This will include dropping existing indices and the FTS table prior to indexing and (re)adding them at the end. (default true)
   -iterator-uri string
@@ -111,7 +119,7 @@ Valid options are:
     	Prune existing records before (re)adding them to the database.
   -verbose
     	Enable verbose (debug) logging.
-```
+```	
 
 For example:
 
@@ -211,8 +219,14 @@ Valid options are:
     	Optional ETDF ending date string to filter results by.
   -date-starts string
     	Optional ETDF starting date string to filter results by.
+  -embedder-uri string
+    	A registered sfomuseum/go-embeddings.Embedder URI. (default "ollama://")
+  -embeddings-model string
+    	The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384. (default "hf.co/unsloth/bge-small-en-v1.5-GGUF:F16")
+  -embeddings-search
+    	Generate and use vector embeddings for search terms to query records. This feature is still considered experimental.
   -geocoder-uri string
-    	A registered whosonfirst/geocoder/coarse.Geocoder URI.
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "null://")
   -lang string
     	An optional (3-letter) language code to filter results by,
   -mode string
@@ -226,12 +240,12 @@ Valid options are:
   -query string
     	The term to query for. Required.
   -query-timeout int
-    	The maximum allowable time in seconds for a query to complete. (default 5)	
+    	The maximum allowable time in seconds for a query to complete. (default 5)
   -tag string
     	An option WOF language tag to filter results by.
   -verbose
     	Enable verbose (debug) logging.
-```
+```	
 
 For example:
 
@@ -242,14 +256,14 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:25:22 INFO Query results total=7 page=1 pages=1
 
-id		name		placetype	is current	inception	cessation	label
-1947304447	Terminal 3	wing		1		2024-11-05	..		Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1159157307	Terminal 3	wing		0		2017~		2019-07-23	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1477855699	Terminal 3	wing		0		2019-07-23	2020-~05	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1729792487	Terminal 3	wing		0		2020-~05	2021-05-25	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1745882233	Terminal 3	wing		0		2021-05-25	2021-11-09	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1763588269	Terminal 3	wing		0		2021-11-09	2024-06-17	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1914600841	Terminal 3	wing		0		2024-06-17	2024-11-05	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
+rank				id			label																						placetype		latitude	longitude	is current	inception	cessation
+-17.33661134210852	1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1			2024-11-05	..
+-17.33661134210852	1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2017~		2019-07-23
+-17.33661134210852	1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2019-07-23	2020-~05
+-17.33661134210852	1729792487	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2020-~05	2021-05-25
+-17.33661134210852	1745882233	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2021-05-25	2021-11-09
+-17.33661134210852	1763588269	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2021-11-09	2024-06-17
+-17.33661134210852	1914600841	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2024-06-17	2024-11-05
 ```
 
 Or to query with a custom placetype (stored in the `wof:placetype_alt` property):
@@ -262,8 +276,8 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:27:37 INFO Query results total=1 page=1 pages=1
 
-id		name					placetype	is current	inception	cessation	label
-102527513	San Francisco International Airport	campus		1		1948~		..		San Francisco International Airport, San Francisco, California, US
+rank				id			label																placetype		latitude	longitude	is current	inception	cessation
+-13.013866678659102	102527513	San Francisco International Airport, San Francisco, California, US	campus; airport	37.61799	-122.370943	1			1948~		..
 ```
 
 You can also query for records using a known concordances, for example an IATA airport code:
@@ -275,8 +289,8 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:06:39 INFO Query results total=1 page=1 pages=1
 
-id		name							placetype	is current	inception	cessation	label
-102554351	Montreal-Pierre Elliott Trudeau International Airport	campus		1		1941-09-01			Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA
+rank				id			label																		placetype	latitude	longitude	is current	inception	cessation
+-7.027890456522998	102554351	Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA	campus		45.462004	-73.744749	1			1941-09-01
 ```
 
 Or a GeoPlanet identifier:
@@ -288,9 +302,9 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:09:26 INFO Query results total=2 page=1 pages=1
 
-id		name		placetype	is current	inception	cessation	label
-101750367	London		locality	1		0043~				London, Greater London, GB
-1880762729	Greater London	region		1						Greater London, GB
+rank				id			label						placetype						latitude	longitude	is current	inception	cessation
+-6.48038846479113	101750367	London, Greater London, GB	locality; county; localadmin	51.509648	-0.099076	1			0043~		
+-6.122169631962154	1880762729	Greater London, GB			region							51.49254	-0.109335	1			
 ```
 
 The geocoder will pass the so-called "Brooklyn test" in English:
@@ -303,17 +317,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:20:13 INFO Query results total=135 page=1 pages=14
 
-id		name			placetype	is current	inception	cessation	label
-421205765	Brooklyn		borough		1						Brooklyn, New York, New York, US
-85969229	Brooklyn Park		locality	1						Brooklyn Park, Minnesota, US
-404511829	Brooklyn Park		localadmin	1						Brooklyn Park, Minnesota, US
-85807925	Brooklyn Heights	neighbourhood	1						Brooklyn Heights, New York, New York, US
-85871819	Old Brooklyn		neighbourhood	1						Old Brooklyn, Cleveland, Cleveland, Ohio, US
-85969235	Brooklyn Center		locality	1						Brooklyn Center, Minnesota, US
-404511827	Brooklyn Center		localadmin	1						Brooklyn Center, Minnesota, US
-101712549	Brooklyn		locality	1						Brooklyn, Ohio, US
-85949701	Brooklyn Park		locality	1						Brooklyn Park, Maryland, US
-404525053	Brooklyn		localadmin	1						Brooklyn, Ohio, US
+rank				id			label								placetype		latitude	longitude	is current	inception	cessation
+-10.619758199476777	421205765	Brooklyn, New York, New York, US	borough			40.652256	-73.956582	1				
+-10.619758199476777	101712549	Brooklyn, Ohio, US					locality		41.433531	-81.751846	1				
+-10.619758199476777	404525053	Brooklyn, Ohio, US					localadmin		41.433531	-81.751846	1				
+-10.619758199476777	404495913	Brooklyn, Connecticut, US			localadmin		41.787597	-71.953053	1				
+-10.619758199476777	85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
+-10.619758199476777	85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
+-10.619758199476777	85942463	Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
+-10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality		-41.31667	174.75		1				
+-10.619758199476777	85943755	Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
+-10.619758199476777	85951193	Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
 ```
 
 And in other languages, like Farsi:
@@ -326,17 +340,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:22:22 INFO Query results total=72 page=1 pages=8
 
-id		name			placetype	is current	inception	cessation	label
-421205765	Brooklyn		borough		1						Brooklyn, New York, New York, US
-85969229	Brooklyn Park		locality	1						Brooklyn Park, Minnesota, US
-85807925	Brooklyn Heights	neighbourhood	1						Brooklyn Heights, New York, New York, US
-85871819	Old Brooklyn		neighbourhood	1						Old Brooklyn, Cleveland, Cleveland, Ohio, US
-85969235	Brooklyn Center		locality	1						Brooklyn Center, Minnesota, US
-101712549	Brooklyn		locality	1						Brooklyn, Ohio, US
-85949701	Brooklyn Park		locality	1						Brooklyn Park, Maryland, US
-404525053	Brooklyn		localadmin	1						Brooklyn, Ohio, US
-404495913	Brooklyn		localadmin	1						Brooklyn, Connecticut, US
-85807887	Brooklyn		neighbourhood	1						Brooklyn, Jacksonville, Florida, US
+rank				id			label								placetype		latitude	longitude	is current	inception	cessation
+-10.619758199476777	421205765	Brooklyn, New York, New York, US	borough			40.652256	-73.956582	1				
+-10.619758199476777	101712549	Brooklyn, Ohio, US					locality		41.433531	-81.751846	1				
+-10.619758199476777	404525053	Brooklyn, Ohio, US					localadmin		41.433531	-81.751846	1				
+-10.619758199476777	404495913	Brooklyn, Connecticut, US			localadmin		41.787597	-71.953053	1				
+-10.619758199476777	85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
+-10.619758199476777	85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
+-10.619758199476777	85942463	Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
+-10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality		-41.31667	174.75		1				
+-10.619758199476777	85943755	Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
+-10.619758199476777	85951193	Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
 ```
 
 ### wof-coarse-geocoder-server
@@ -349,16 +363,18 @@ HTTP server for handling requests against a Who's On First (coarse) geocoding da
 Usage:
 	./bin/wof-coarse-geocoder-server [options]
 Valid options are:
+  -allow-query-embeddings
+    	Enable vector embedding queries in the /api/query endpoint. Query embeddings are still considered experimental. (default true)
   -demo
     	Start a web-based demo on the root URL of the server.
   -geocoder-uri string
-    	A registered whosonfirst/geocoder/coarse.Geocoder URI.
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "null://")
   -pagination-per-page int
     	The maximum number of results to include per API request. (default 50)
   -prefix string
     	An optional URL prefix to listen for requests on.
   -query-timeout int
-    	The maximum allowable time in seconds for a query to complete. (default 5)	
+    	The maximum allowable time in seconds for a query to complete. (default 5)
   -server-uri string
     	A registered aaronland/go-http/v4/server.Server URI. (default "http://localhost:8080")
   -verbose
@@ -450,6 +466,102 @@ $> curl -s 'http://localhost:8080/api/query/?query=SFO&placetype=airport' | jq
 }
 ```
 
+#### API
+
+##### /api/query/
+
+
+This API method accepts form data (either `application/x-www-form-urlencoded` or `multipart/form-data`) and returns a JSON payload containing a GeoJSON `FeatureCollection` together with pagination metadata.
+
+###### Basic Request
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | yes | The search term (e.g. "Paris”, “Dallas", etc). |
+
+For example:
+
+```
+$> curl -X POST \
+	-F "query=Paris" \
+	http://localhost:8080/api/query
+```
+
+###### Optional Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `country` | string (multi‑value) | Two‑letter ISO country code(s). Limits results to places that belong to the specified country/ies. Example: `country=US` or `country=US&country=CA`. |
+| `belongs-to` | integer (multi‑value) | Ancestor WOF IDs that the results must belong to. Example: `belongs-to=12345678`. |
+| `placetype` | string (multi‑value) | One or more place‑type identifiers (e.g. `city`, `river`). Example: `placetype=location&placetype=region`. |
+| `lang` | string | Three‑letter language code that restricts the search to tokens in that language. |
+| `tag` | string | WOF language tag (e.g. `preferred`, `variant`). |
+| `bounds` | string | Geographic bounding box in the form `"minx,miny,maxx,maxy"`. Example: `bounds=-10.0,35.0,10.0,45.0`. |
+| `date-starts` | string | An [EDTF](https://www.loc.gov/standards/edtf/) expression that defines a start‑date range. The server will expand it into a set of ranges. |
+| `date-ends` | string | Same as `date-starts` but for the end date. |
+| `query-embeddings` | string | JSON‑encoded array of `float32` values (e.g. `"[0.12,0.34,0.56]"`). Only accepted if the server was configured with `AllowQueryEmbeddings=true`. |
+| `page` | integer | Page number for pagination (default is 1). |
+
+
+###### Pagination
+
+The server paginates results automatically. To request a particular page:
+
+```
+$> curl -X POST \
+	-F "query=London" \
+	-F "page=2" \
+	http://localhost:8080/api/query
+```
+
+The JSON response will include a `pagination` object that contains:
+
+* `total` – total number of matching results
+* `page` – current page number
+* `per_page` – number of results per page
+* `pages` – total number of pages
+
+###### Date Filters
+
+Both `date-starts` and `date-ends` accept EDTF strings. The server uses the [sfomuseum/go-edtf/unix](https://pkg.go.dev/github.com/sfomuseum/go-edtf/unix) package to convert these into Unix‑timestamp ranges. For example:
+
+```
+$> curl -X POST \
+	-F "query=Berlin" \
+	-F "date-starts=2000" \
+	http://localhost:8080/api/query
+
+$> curl -X POST \
+	-F "query=Berlin" \
+	-F "date-starts=1900/1950" \
+	http://localhost:8080/api/query
+```
+
+If the EDTF expression is invalid, the server will return a 400 Bad Request.
+
+###### Bounds
+
+The `bounds` parameter limits results to places whose bounding boxes intersect the supplied rectangle in the form of `minx,miny,maxx,maxy`.
+
+```
+$> curl -X POST \
+	-F "query=springfield" \
+	-F "bounds=-120.0,30.0,-110.0,40.0" \
+	http://localhost:8080/api/query
+```
+
+###### Vector embeddings
+
+If the server was started with `AllowQueryEmbeddings=true`, you can supply a vector that the geocoder will use to weigh semantic similarity.
+
+```
+$> curl -X POST \
+	-F 'query-embeddings=[0.12,0.34,0.56,0.78, ...]' \
+	http://localhost:8080/api/query
+```
+
+_Caution – If embeddings are not enabled, the server will respond with `400 Bad Request` and the message “Query embeddings are not supported”. Query embeddings are still considered experimental. [See details below.](#vector-embeddings)_
+
 #### Demo mode
 
 When started with the `-demo` flag the server will host a simple web application at its root URL. When you open your web browser to `http://localhost:8080` (or whatever you've configured the `-server-uri` flag to be) you'll see something like this:
@@ -499,6 +611,132 @@ Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1
 
 ## Experimental
 
+### Vector embeddings
+
+There is experimental support for storing and querying vector embeddings for place names. This is enabled by passing the `-embeddings-index` flag to the [wof-coarse-geocoder-index](#wof-coarse-geocoder-index) tool and/or the `-embeddings-search` flag to the [wof-coarse-geocoder-query](#wof-coarse-geocoder-query) tool.
+
+In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (for indexing or querying). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a variety of sources. Practically speaking this means you will need to run a separate service (like [Ollama](https://ollama.com) or [llama.cpp](https://llama.app)) with its own API endpoint to create embeddings for use with the geocoder.
+
+An important consideration, as of this writing, is that the underlying `geocoder` database does NOT support vector embeddings of varying dimensions and the default dimensionality is 384. This value is hard-coded pending further consideration about how to make these things dynamic. The choice of 384-dimension embeddings is because that's what the `bert-bge-small/ggml-model-f16.gguf` model produces and that model is used to generate client-side embeddings in the "demo" web application. This is [described further below](#querying-vector-embeddings-in-the-demo-server).
+
+#### Embeddings for what?
+
+As of this writing a single embedding is generated for the unique set of names for each (language + language tag) pair for each record. Is this the best way? I don't know. Because it takes a while to generate and store a lot of embeddings, and because Who's On First records often have a lot of different names (and languages), it seemed like a reasonable compromise just to prove that storing and querying vector embeddings was feasible. There is more work, and more investigating, to do.
+
+[Feedback or alternative approaches are welcome and encouraged.](https://github.com/sfomuseum/geocoder/issues)
+
+#### Indexing
+
+For example:
+
+```
+$> bin/wof-coarse-geocoder-index/main.go \
+	-embeddings-index \
+	-embedder-uri ollama:// \
+	-fresh \
+	-geocoder-uri 'sql://sqlite?dsn=us-vec384.db' \
+	-iterator-uri parquet:// \
+	/usr/local/data/whosonfirst-parquet/whosonfirst-data-admin-us.parquet
+```
+
+Note that indexing with vector embeddings, even when embeddings for the same place names are cached, takes _significantly_ longer than indexing data without vector embeddings and yields much larger data files. For example, a vector embeddings-enabled database containing [only records for the United States](https://github.com/whosonfirst-data/whosonfirst-data-admin-us/) is 2.5GB (as opposed to 6.5 for the entire planet without embeddings) and takes over 24 hours to produce:
+
+```
+...
+2026/08/21 11:04:48 INFO Indexing stats elapsed=38h35m0.000262167s seen=422371 "average (ms)"=315.72563220486256
+2026/08/21 11:05:01 INFO Iterator stats elapsed=38h35m13.975906209s seen=422402 allocated="3.3 GB" "total allocated"="238 GB" sys="5.6 GB" numgc=1169
+2026/08/21 11:05:01 INFO Indexing complete seen=422402 time=38h35m13.977195833s "average (ms)"=315.7718997542625
+2026/08/21 11:05:25 INFO Post-indexing complete time=23.125312375s "time (total)"=38h35m37.102541458s
+```
+
+Some of this time can probably be accounted for by a slow hard drive and some as-yet implemented optimizations but the point is still the same: Databases with embeddings take longer to produce and are substantially larger in size.
+
+#### Querying
+
+Query for records the same as you normally would but pass in the `-embeddings-search` flag. For example:
+
+```
+$> ./bin/wof-coarse-geocoder-query \
+	-embeddings-search \
+	-embedder-uri 'ollama://' \
+	-geocoder-uri 'sql://sqlite?dsn=us-vec384.db' \
+	-query 'airport sfba' \
+	-per-page 10
+
+2026/08/21 10:16:40 INFO Query results total=29 page=1 pages=3
+
+rank				id			label																placetype		latitude	longitude	is current	inception	cessation
+0.5294566750526428	102527513	San Francisco International Airport, San Francisco, California, US	campus			37.61799	-122.370943	1			1948~		..
+0.5966955423355103	102530873	Yuba County Airport, Olivehurst, California, US						campus			39.097801	-121.57		1				
+0.606959342956543	102528839	San Carlos Airport, San Carlos, California, US						campus			37.511902	-122.25		1				
+0.6179097890853882	102527337	Santa Barbara Municipal Airport, Santa Barbara, California, US		campus			34.427974	-119.837133	1				
+0.6228018999099731	102527529	Norman Y Mineta San Jose International Airport, California, US		campus			37.363728	-121.928755	1			2001-11		..
+0.641245424747467	404517201	Airport Township, Missouri, US										localadmin		38.741639	-90.359883	1				
+0.641245424747467	85926473	Airport, California, US												locality		37.632083	-120.979923	1				
+0.641245424747467	420539489	Airport, Philadelphia, Philadelphia, Pennsylvania, US				neighbourhood	39.885787	-75.213489	1				
+0.641245424747467	1729434409	Airport, Missouri, US												locality		38.750377	-90.363144	1				
+0.6423512697219849	102528473	Flabob Airport, Jurupa Valley, California, US						campus			33.9894		-117.40997	1
+```
+
+Remember: This is not doing full text search. It is searching for the closest vector embeddings created by, and stored in, a large language model whose internals are probably opaque and poorly understood. This stuff can be amazing when it works but few people understand what's _actually_ happening under the hood or, more importantly, _why_. As often as not it's just plain weird.
+
+#### Querying vector embeddings in the API
+
+Querying vector embeddings in the API is enabled by default in the [wof-coarse-geocoder-server](#wof-coarse-geocoder-server) tool. You can disable it, if necessary, by passing in the `-allow-query-embeddings=false` flag. For example:
+
+```
+$> make server GEOCODER_URI='sql://sqlite?dsn=vec384.db'
+go run -mod vendor cmd/wof-coarse-geocoder-server/main.go \
+		-demo \
+		-verbose \
+		-allow-query-embeddings \
+		-server-uri http://localhost:8080 \
+		-geocoder-uri sql://sqlite?dsn=vec384.db
+2026/08/19 18:21:20 DEBUG Verbose logging enabled
+2026/08/19 18:21:20 INFO Listening for requests address=http://localhost:8080
+2026/08/19 18:22:14 DEBUG Time to query query="mont AND royal*" "query embeddings"=true total=8 time=128.005042ms
+```
+
+The API endpoint does NOT create vector embeddings itself. This is assumed to be handled by an external process. Once you've created those embeddings you can pass them along to the API, as a JSON-encoded string, in the `query-embeddings` parameter. For example:
+
+```
+$> curl -X POST \
+	-F 'query-embeddings=[...]' \
+	http://localhost:8080/api/query/
+```
+
+#### Querying vector embeddings in the "demo" server
+
+Querying vector embeddings in the "demo" server is NOT enabled by default. This functionality depends on the presence of the [ngxson/wllama](https://github.com/ngxson/wllama) Javascript library and the WebAssembly binary in addition to the `bert-bge-small/ggml-model-f16.gguf` (large language) model. All of these assets _could_ be loaded remotely but one of the design criteria for the API/demo server is that all its assets are bundled locally.
+
+The `wllama` and `bert-bge-small` assets are not bundled with this repository to prevent unnecessary bloat; these files are also explicitly excluded from version control. You can download these assets using the handy `embeddings` Makefile target in the [http/www/coarse](http/www/coarse) folder. For example:
+
+```
+$> cd http/www/coarse
+$> make embeddings
+curl -sL -o javascript/wllama.js https://github.ngxson.com/wllama/esm/index.js
+curl -sL -o wasm/wllama.wasm https://github.ngxson.com/wllama/esm/wasm/wllama.wasm
+curl -sL -o models/bert-bge-small/ggml-model-f16.gguf https://huggingface.co/ggml-org/models/resolve/main/bert-bge-small/ggml-model-f16.gguf
+```
+
+The [ngxson/wllama](https://github.com/ngxson/wllama) package provides WebAssembly bindings for the [llama.cpp](https://github.com/ggerganov/llama.cpp) library which, in turn, enables the ability to create vector embeddings client-side in a web browser which is kind of _bonkers amazing_ when you think about it. The WebAssembly binary still depends on a third-party model to derive embeddings. The `ngxson/wllama` package uses the `bert-bge-small/ggml-model-f16.gguf` model in its examples and is only 69MB (rather than, say, 10 or 20GB) so that's what this package uses too. At least for the time being.
+
+Now start the `wof-coarse-geocoder-server` tool as usual (see above). The application code for the "demo" server will check to see whether the `wllama` assets are available and if they are, will enable an addition "Query with vector embeddings" checkbox in the "Advanced" query menu. For example:
+
+![](docs/images/geocoder-demo-vector.png)
+
+Querying for "mont royal" returns Montreal:
+
+![](docs/images/geocoder-demo-vector-mont-royal.png)
+
+Querying for "khmer rouge" returns Cambodia and	Hồ Chí Minh city, in Vietnam, which is not _incorrect_ historically:
+
+![](docs/images/geocoder-demo-vector-khmer-rouge.png)
+
+Anything else may get weird. Large language models are weird. For example, searching for "ham and cheese" and getting back results for towns called "Sandwich" which is... kind of not-wrong?
+
+![](docs/images/geocoder-demo-vector-ham-cheese.png)
+
 ### Virtual File System (VFS) support
 
 #### Bundled filesystems
@@ -527,9 +765,9 @@ $> bin/wof-coarse-geocoder-query \
 2026/08/12 12:51:39 INFO Rewrite geocoder URI to enable VFS uri="sql://sqlite?dsn=file%3Awof-sfom.db%3Fvfs%3Dvfs1%26mode%3Dro"
 2026/08/12 12:51:43 INFO Query results total=2 page=1 pages=1
 
-id		name		placetype	is current	inception	cessation	label
-85865587	Gowanus		neighbourhood	1						Gowanus, New York, New York, US
-102061079	Gowanus Heights	neighbourhood	-1		2012				Gowanus Heights, New York, New York, US
+rank				id			label									placetype		latitude	longitude	is current	inception	cessation
+-17.49931058334353	85865587	Gowanus, New York, New York, US			neighbourhood	40.678529	-73.987462	1				
+-15.032719333750485	102061079	Gowanus Heights, New York, New York, US	neighbourhood	40.682373	-73.987939	-1			2012	
 ```
 
 Note the use of the `-query-timeout` flag. The default query timeout is 5 seconds which may not be enough depending on the specifics of your remote database (VFS) configuration. For example, initial testing using a VFS layer in an Amazon AWS Lambda + AWS S3 setup required timeouts in excess of 30 seconds which largely makes it impractical for most applications.
@@ -617,22 +855,22 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/12 09:36:29 INFO Query results total=15 page=1 pages=1
 
-id	name				placetype	is current	inception	cessation	label
-1015480	Lavaltrie			locality	-1						Lavaltrie, Québec, CA
-7013063	Laval				locality	-1						Laval, Québec, CA
-9218033	Laval				locality	-1						Laval, Québec, CA
-9220988	Laval				locality	-1						Laval, Québec, CA
-9220991	Lavaltrie			locality	-1						Lavaltrie, Québec, CA
-1004951	Laval-Oest			locality	-1						Laval-Oest, Québec, CA
-4002106	Calixa-Lavallée			locality	-1						Calixa-Lavallée, Québec, CA
-9220990	Laval-Ouest			locality	-1						Laval-Ouest, Québec, CA
-9225833	Calixa-Lavallée			locality	-1						Calixa-Lavallée, Québec, CA
-1004952	Laval-des-Rapides		locality	-1						Laval-des-Rapides, Québec, CA
-9220989	Laval-des-Rapides		locality	-1						Laval-des-Rapides, Québec, CA
-1005506	Saint-François-de-Laval		locality	-1						Saint-François-de-Laval, Québec, CA
-9222959	Sainte-Angèle-de-Laval		locality	-1						Sainte-Angèle-de-Laval, Québec, CA
-9225598	Sainte-Brigitte-de-Laval	locality	-1						Sainte-Brigitte-de-Laval, Québec, CA
-9222992	Saint-Elzéar			county		-1						Saint-Elzéar, Québec, CA
+rank				id		label									placetype								latitude	longitude	is current	inception	cessation
+-11.689057370580107	1015480	Lavaltrie, Québec, CA					locality; 83002; inhabited place		45.8833		-73.2833	-1				
+-11.689057370580107	7013063	Laval, Québec, CA						locality; 83002; inhabited place		45.5667		-73.6667	-1				
+-11.689057370580107	9218033	Laval, Québec, CA						locality; 83002; inhabited place		45.6167		-73.75		-1				
+-11.689057370580107	9220988	Laval, Québec, CA						locality; 83002; inhabited place		45.6		-73.7333	-1				
+-11.689057370580107	9220991	Lavaltrie, Québec, CA					locality; 83002; inhabited place		45.882		-73.284		-1				
+-9.982415653685324	1004951	Laval-Oest, Québec, CA					locality; 83002; inhabited place		45.55		-73.8667	-1				
+-9.982415653685324	4002106	Calixa-Lavallée, Québec, CA				locality; 83002; inhabited place		0			0			-1				
+-9.982415653685324	9220990	Laval-Ouest, Québec, CA					locality; 83002; inhabited place		45.55		-73.8667	-1				
+-9.982415653685324	9225833	Calixa-Lavallée, Québec, CA				locality; 83002; inhabited place		45.7498		-73.2811	-1				
+-8.710633802009356	1004952	Laval-des-Rapides, Québec, CA			locality; 83002; inhabited place		45.55		-73.7167	-1				
+-8.710633802009356	9220989	Laval-des-Rapides, Québec, CA			locality; 83002; inhabited place		45.55		-73.7		-1				
+-7.726287651987254	1005506	Saint-François-de-Laval, Québec, CA		locality; 83002; inhabited place		45.6667		-73.5667	-1				
+-7.726287651987254	9222959	Sainte-Angèle-de-Laval, Québec, CA		locality; 83002; inhabited place		46.3167		-72.5167	-1				
+-7.726287651987254	9225598	Sainte-Brigitte-de-Laval, Québec, CA	locality; 83002; inhabited place		47.007		-71.1935	-1				
+-7.726287651987254	9222992	Saint-Elzéar, Québec, CA				county; 81300; second level subdivision	45.6		-73.7333	-1
 ```
 
 ### WebAssembly (WASM)

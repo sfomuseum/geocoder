@@ -6,25 +6,29 @@ import (
 	"fmt"
 
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/go-embeddings"
 	"github.com/sfomuseum/go-flags/flagset"
 )
 
 type Options struct {
-	Geocoder     coarse.Geocoder
-	Query        string
-	Lang         string
-	LangTag      string
-	Placetypes   []string
-	Countries    []string
-	BelongsTo    []int64
-	Bounds       string
-	DateStarts   string
-	DateEnds     string
-	Page         int64
-	PerPage      int64
-	QueryTimeout int
-	Mode         string
-	Verbose      bool
+	Geocoder         coarse.Geocoder
+	Embedder         embeddings.Embedder[float32]
+	Query            string
+	EmbeddingsSearch bool
+	EmbeddingsModel  string
+	Lang             string
+	LangTag          string
+	Placetypes       []string
+	Countries        []string
+	BelongsTo        []int64
+	Bounds           string
+	DateStarts       string
+	DateEnds         string
+	Page             int64
+	PerPage          int64
+	QueryTimeout     int
+	Mode             string
+	Verbose          bool
 }
 
 func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error) {
@@ -47,6 +51,19 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 
 	opts.Geocoder = gc
 
+	if embeddings_search {
+
+		embedder, err := embeddings.NewEmbedder32(ctx, embedder_uri)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create embedder, %w", err)
+		}
+
+		opts.Embedder = embedder
+		opts.EmbeddingsModel = embeddings_model
+	}
+
+	opts.EmbeddingsSearch = embeddings_search
 	opts.Placetypes = placetypes
 	opts.Query = query
 	opts.Countries = countries

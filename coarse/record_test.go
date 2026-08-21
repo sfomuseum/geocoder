@@ -18,7 +18,11 @@ func TestNewRecord(t *testing.T) {
 		t.Fatalf("Failed to read data, %v", err)
 	}
 
-	r, err := NewWhosOnFirstRecord(ctx, body)
+	opts := &NewWhosOnFirstRecordOptions{
+		Body: body,
+	}
+
+	r, err := NewWhosOnFirstRecord(ctx, opts)
 
 	if err != nil {
 		t.Fatalf("Failed to create new record, %v", err)
@@ -42,7 +46,11 @@ func TestRecordHash(t *testing.T) {
 		t.Fatalf("Failed to read data, %v", err)
 	}
 
-	r, err := NewWhosOnFirstRecord(ctx, body)
+	opts := &NewWhosOnFirstRecordOptions{
+		Body: body,
+	}
+
+	r, err := NewWhosOnFirstRecord(ctx, opts)
 
 	if err != nil {
 		t.Fatalf("Failed to create new record, %v", err)
