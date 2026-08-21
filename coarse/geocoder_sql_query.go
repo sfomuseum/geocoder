@@ -27,26 +27,33 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		logger.Debug("Time to query", "time", time.Since(t1))
 	}()
 
-	if len(req.Query) < g.min_query_length {
-		return nil, nil, fmt.Errorf("Query below min query length")
-	}
-
-	query_str := g.prepareQuery(req.Query)
-
-	if query_str == "" {
-		return nil, nil, fmt.Errorf("empty or invalid search term")
-	}
-
-	if len(query_str) < g.min_query_length {
-		return nil, nil, fmt.Errorf("Query below min query length")
-	}
-
-	logger = logger.With("query", query_str)
-
 	args := make([]any, 0)
 	sb := strings.Builder{}
 
-	if len(req.QueryEmbeddings) > 0 {
+	var query_str string
+
+	if len(req.QueryEmbeddings) == 0 {
+
+		if len(req.Query) < g.min_query_length {
+			return nil, nil, fmt.Errorf("Query below min query length")
+		}
+
+		query_str = g.prepareQuery(req.Query)
+
+		if query_str == "" {
+			return nil, nil, fmt.Errorf("empty or invalid search term")
+		}
+
+		if len(query_str) < g.min_query_length {
+			return nil, nil, fmt.Errorf("Query below min query length")
+		}
+
+		logger = logger.With("query", query_str)
+
+		sb.WriteString("SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
+		sb.WriteString(" FROM tokens_fts f JOIN tokens t ON t.row_id = f.rowid JOIN records r ON r.id = t.id")
+
+	} else {
 
 		logger = logger.With("query embeddings", true)
 		enc_e, err := json.Marshal(req.QueryEmbeddings)
@@ -61,11 +68,6 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 		args = append(args, string(enc_e))
 		args = append(args, g.vector_query_k)
-
-	} else {
-
-		sb.WriteString("SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
-		sb.WriteString(" FROM tokens_fts f JOIN tokens t ON t.row_id = f.rowid JOIN records r ON r.id = t.id")
 
 	}
 

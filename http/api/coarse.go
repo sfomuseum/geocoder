@@ -13,6 +13,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/geocoder"
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/geocoder/x/vec"
 	"github.com/sfomuseum/go-edtf/unix"
 )
 
@@ -53,6 +54,8 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			return
 		}
 
+		query_req := &coarse.QueryRequest{}
+
 		query, err := sanitize.PostString(req, "query")
 
 		if err != nil {
@@ -61,14 +64,52 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			return
 		}
 
-		if query == "" {
-			logger.Debug("Query string is empty")
-			http.Error(rsp, "Missing query", http.StatusBadRequest)
+		// Embeddings
+
+		str_embeddings, err := sanitize.PostString(req, "query-embeddings")
+
+		if err != nil {
+			logger.Error("Failed to derive ?query-embeddings= parameter", "error", err)
+			http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
 			return
 		}
 
-		query_req := &coarse.QueryRequest{
-			Query: query,
+		if str_embeddings != "" {
+
+			if !opts.AllowQueryEmbeddings {
+				http.Error(rsp, "Query embeddings are not supported", http.StatusBadRequest)
+				return
+			}
+
+			var query_embeddings []float32
+
+			err = json.Unmarshal([]byte(str_embeddings), &query_embeddings)
+
+			if err != nil {
+				logger.Error("Failed to unmarshal ?query-embeddings= parameter", "error", err)
+				http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
+				return
+			}
+
+			// To do: determine validity using opts.Database.SomethingOrOther...
+
+			if len(query_embeddings) != vec.DEFAULT_EMBEDDINGS_DIMENSIONS {
+				logger.Error("Invalid query embeddings dimensions", "dimensions", len(query_embeddings))
+				http.Error(rsp, "Invalid ?query-embeddings= dimensions", http.StatusBadRequest)
+				return
+			}
+
+			query_req.QueryEmbeddings = query_embeddings
+
+		} else {
+
+			if query == "" {
+				logger.Debug("Query string is empty")
+				http.Error(rsp, "Missing query", http.StatusBadRequest)
+				return
+			}
+
+			query_req.Query = query
 		}
 
 		// Countries
@@ -215,36 +256,6 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			}
 
 			query_req.DateEnds = ranges
-		}
-
-		// Embeddings
-
-		str_embeddings, err := sanitize.PostString(req, "query-embeddings")
-
-		if err != nil {
-			logger.Error("Failed to derive ?query-embeddings= parameter", "error", err)
-			http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
-			return
-		}
-
-		if str_embeddings != "" {
-
-			if !opts.AllowQueryEmbeddings {
-				http.Error(rsp, "Query embeddings are not supported", http.StatusBadRequest)
-				return
-			}
-
-			var query_embeddings []float32
-
-			err = json.Unmarshal([]byte(str_embeddings), &query_embeddings)
-
-			if err != nil {
-				logger.Error("Failed to unmarshal ?query-embeddings= parameter", "error", err)
-				http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
-				return
-			}
-
-			query_req.QueryEmbeddings = query_embeddings
 		}
 
 		//
