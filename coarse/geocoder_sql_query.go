@@ -55,11 +55,12 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			return nil, nil, fmt.Errorf("Failed to encode embeddings, %w", err)
 		}
 
-		sb.WriteString("WITH vector_matches AS (SELECT rowid, distance FROM embeddings WHERE embedding MATCH ? LIMIT 100)")
+		sb.WriteString("WITH vector_matches AS (SELECT rowid, distance FROM embeddings WHERE embedding MATCH ? AND k = ?)")
 		sb.WriteString(" SELECT vm.distance AS distance, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
 		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.id = vm.rowid JOIN records r ON r.id = er.record_id")
 
 		args = append(args, string(enc_e))
+		args = append(args, g.vector_query_k)
 
 	} else {
 

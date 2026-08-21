@@ -187,11 +187,9 @@ window.addEventListener("load", function load(event){
 
 	const header_row = document.createElement("tr");
 
-	/*
 	const rank_header = document.createElement("th");
 	rank_header.appendChild(document.createTextNode("Rank"));
 	header_row.appendChild(rank_header);
-	 */
 	
 	const id_header = document.createElement("th");
 	id_header.setAttribute("scope", "col");
@@ -230,7 +228,7 @@ window.addEventListener("load", function load(event){
 	
 	const is_current_header = document.createElement("th");
 	is_current_header.setAttribute("scope", "col");		
-	is_current_header.appendChild(document.createTextNode("Is current"));
+	is_current_header.appendChild(document.createTextNode("Current"));
 	header_row.appendChild(is_current_header);
 
 	const inception_header = document.createElement("th");
@@ -258,11 +256,9 @@ window.addEventListener("load", function load(event){
 	    const feature_row = document.createElement("tr");
 	    feature_row.setAttribute("id", "results-" + id);
 	    
-	    /*
 	    const rank_feature = document.createElement("td");
 	    rank_feature.appendChild(document.createTextNode(props["geocoder:rank"]));
 	    feature_row.appendChild(rank_feature);
-	     */
 
 	    const id_link = document.createElement("span");
 	    id_link.setAttribute("class", "id-link");

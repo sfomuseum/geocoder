@@ -578,6 +578,7 @@ The [ngxson/wllama](https://github.com/ngxson/wllama) package provides WebAssemb
 
 Now start the `wof-coarse-geocoder-server` tool as usual (see above). The application code for the "demo" server will check to see whether the `wllama` assets are available and if they are will enable an addition "Query with vector embeddings" checkbox in the "Advanced" query menu. For example:
 
+![](docs/images/geocoder-demo-vector.png)
 
 ### Virtual File System (VFS) support
 

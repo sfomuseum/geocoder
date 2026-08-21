@@ -55,6 +55,7 @@ type SQLGeocoder struct {
 	tables             map[string]sql.Table
 	vfs                *vfs.FS
 	vector_compression string
+	vector_query_k int
 	mu                 *sync.RWMutex
 	min_query_length   int
 	records            []*Record
@@ -253,6 +254,7 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		vfs:                opts.VFS,
 		mu:                 mu,
 		vector_compression: geocoder_sql.SQLiteVecDefaultCompression,
+		vector_query_k: 50,
 		min_query_length:   2,
 		records:            make([]*Record, 0),
 		batch_size:         10,

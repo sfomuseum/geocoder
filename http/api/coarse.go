@@ -35,7 +35,7 @@ type CoarseGeocoderHandlerOptions struct {
 	PaginationPerPage int64
 	// The maximum allowable time in seconds for a query to complete.
 	QueryTimeout int
-	// AllowQueryEmbeddings ...
+	// AllowQueryEmbeddings in API requests.
 	AllowQueryEmbeddings bool
 }
 
@@ -48,6 +48,11 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		logger := slog.LoggerWithRequest(req, nil)
 
+		if req.Method != http.MethodPost {
+			http.Error(rsp, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		
 		query, err := sanitize.PostString(req, "query")
 
 		if err != nil {
