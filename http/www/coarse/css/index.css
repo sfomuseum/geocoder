@@ -1,3 +1,16 @@
+/* Animations */
+
+@keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-ccw {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(-360deg); }
+}
+
+
 footer {
 	padding-top: 2rem;
 	padding-bottom: 2rem;
@@ -12,6 +25,7 @@ footer {
 
 #advanced {
 	margin-bottom: .5rem;
+	padding-bottom: 1.5rem;
 }
 
 #advanced-details summary {
@@ -21,6 +35,26 @@ footer {
 
 #advanced-query-embeddings-wrapper {
 	display: none;
+}
+
+#geocode-spinner {
+        animation: rotate 5s linear infinite;
+        transform-origin: center;
+}
+
+#geocode-spinner-svg {
+	display:none;
+	margin-right:.5rem;
+}
+
+#advanced-geocode-spinner {
+        animation: rotate 5s linear infinite;
+        transform-origin: center;
+}
+
+#advanced-geocode-spinner-svg {
+	display:none;
+	margin-left:.5rem;
 }
 
 #results {

@@ -639,7 +639,17 @@ $> bin/wof-coarse-geocoder-index/main.go \
 	/usr/local/data/whosonfirst-parquet/whosonfirst-data-admin-us.parquet
 ```
 
-Note that indexing with vector embeddings, even when embeddings for the same place names are cached, takes significantly longer than indexing data without vector embeddings.
+Note that indexing with vector embeddings, even when embeddings for the same place names are cached, takes _significantly_ longer than indexing data without vector embeddings and yields much larger data files. For example, a vector embeddings-enabled database containing [only records for the United States](https://github.com/whosonfirst-data/whosonfirst-data-admin-us/) is 2.5GB (as opposed to 6.5 for the entire planet without embeddings) and takes over 24 hours to produce:
+
+```
+...
+2026/08/21 11:04:48 INFO Indexing stats elapsed=38h35m0.000262167s seen=422371 "average (ms)"=315.72563220486256
+2026/08/21 11:05:01 INFO Iterator stats elapsed=38h35m13.975906209s seen=422402 allocated="3.3 GB" "total allocated"="238 GB" sys="5.6 GB" numgc=1169
+2026/08/21 11:05:01 INFO Indexing complete seen=422402 time=38h35m13.977195833s "average (ms)"=315.7718997542625
+2026/08/21 11:05:25 INFO Post-indexing complete time=23.125312375s "time (total)"=38h35m37.102541458s
+```
+
+Some of this time can probably be accounted for by a slow hard drive and some as-yet implemented optimizations but the point is still the same: Databases with embeddings take longer to produce and are substantially larger in size.
 
 #### Querying
 

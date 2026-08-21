@@ -25,7 +25,10 @@ window.addEventListener("load", function load(event){
     const adv_country_el = document.querySelector("#advanced-country");
     const adv_belongsto_el = document.querySelector("#advanced-belongsto");
     const adv_submit_el = document.querySelector("#advanced-submit");                    
-   
+
+    var geocode_spinner = document.getElementById("geocode-spinner-svg");    
+    var adv_geocode_spinner = document.getElementById("advanced-geocode-spinner-svg");
+    
     const select_row = function(id){
 
 	unselect_row();
@@ -377,11 +380,13 @@ window.addEventListener("load", function load(event){
 	    body: form_data,
 	};
 
-	// To do: Start spinner
+	geocode_spinner.style.display = "inline-block";
+	adv_geocode_spinner.style.display = "inline-block";	
 	
 	fetch(uri, fetch_args).then(rsp => {
 
-	    // To do: Stop spinner
+	    geocode_spinner.style.display = "none";
+	    adv_geocode_spinner.style.display = "none";	    
 	    
 	    if (! rsp.ok){
 		throw new Error(`HTTP error ${rsp.status}`);
@@ -468,16 +473,19 @@ window.addEventListener("load", function load(event){
 	    form_data.set("belongsto", bt.split(","));
 	}
 
+	results_el.style.display = "none";	
+	results_el.innerHTML = "";
+	feedback_el.innerHTML = "";
+	
 	const with_embeddings = adv_query_embeddings_el.checked;
 
 	if (with_embeddings){
 
-	    feedback_el.innerHTML = "";
 	    feedback_el.innerText = "Deriving vector embeddings for query text";
 
+	    adv_geocode_spinner.style.display = "inline-block";
+	    
 	    try {
-
-		// To do: Start spinner
 		
 		const rsp = await window.getEmbedding(q);
 		const data = rsp.data[0].embedding;
@@ -488,18 +496,18 @@ window.addEventListener("load", function load(event){
 		}
 
 		form_data.set("query-embeddings", JSON.stringify(data));
-		// To do: Stop spinner			    		
-	    } catch(err) {
-		console.error("Failed to generate embeddings", err);		
+
+		feedback_el.innerText = "";
+		adv_geocode_spinner.style.display = "none";		
+		
+	    } catch(err) {		
+		console.error("Failed to generate embeddings", err);
+		adv_geocode_spinner.style.display = "none";
 		feedback_el.innerText = "Failed to derive vector embeddings, " + err;
-		// To do: Stop spinner			    				
 		return false;
 	    }
 
 	}
-
-	results_el.innerHTML = "";
-	feedback_el.innerHTML = "";
 	
 	// const lang = adv_lang_el.value;	
 
