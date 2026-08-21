@@ -22,6 +22,10 @@ wasmjs:
 lambda:
 	@make lambda-server-fs
 
+# Remember: This is building wof-coarse-geocoder-server-fs and not wof-coarse-geocoder-server.
+# The former will bundle any .db files placed in the x/fs folder with the Lambda function.
+# Also remember that these .db files are explicitly disallowed from version control.
+
 lambda-server-fs:
 	if test -f bootstrap; then rm -f bootstrap; fi
 	if test -f geocoder-server.zip; then rm -f geocoder-server.zip; fi
