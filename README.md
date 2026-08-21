@@ -89,6 +89,14 @@ Index one or more Who's On First data sources in a (coarse) geocoding database.
 Usage:
 	./bin/wof-coarse-geocoder-index [options] uri(N) uri(N) uri(N)
 Valid options are:
+  -embedder-uri string
+    	A registered sfomuseum/go-embeddings.Embedder URI. (default "ollama://")
+  -embeddings-cache
+    	Cache embeddings lookups for strings. Cache keys are derived from: the current model + record id + language + language tag. (default true)
+  -embeddings-index
+    	Generate and store vector embeddings for place names. This feature is still considered experimental.
+  -embeddings-model string
+    	The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384. (default "hf.co/unsloth/bge-small-en-v1.5-GGUF:F16")
   -exclude-deprecated
     	Do not index records which have been deprecated. (default true)
   -exclude-funky
@@ -96,11 +104,11 @@ Valid options are:
   -exclude-nullisland
     	Do not index records that are "visiting" Null Island (have 0,0 coordinate data). (default true)
   -exclude-superseded
-    	Do not index records which have been superseded. (default true)
+    	Do not index records which have been superseded.
   -fresh
     	This flags signals that a fresh database is being indexed disabling checks for existing or updated records.
   -geocoder-uri string
-    	A registered whosonfirst/geocoder/coarse.Geocoder URI. (default "sql://sqlite?dsn=:memory:")
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "sql://sqlite?dsn=:memory:")
   -index-juggling
     	Perform indexing speed optiomizations. This will include dropping existing indices and the FTS table prior to indexing and (re)adding them at the end. (default true)
   -iterator-uri string
@@ -111,7 +119,7 @@ Valid options are:
     	Prune existing records before (re)adding them to the database.
   -verbose
     	Enable verbose (debug) logging.
-```
+```	
 
 For example:
 
@@ -211,8 +219,14 @@ Valid options are:
     	Optional ETDF ending date string to filter results by.
   -date-starts string
     	Optional ETDF starting date string to filter results by.
+  -embedder-uri string
+    	A registered sfomuseum/go-embeddings.Embedder URI. (default "ollama://")
+  -embeddings-model string
+    	The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384. (default "hf.co/unsloth/bge-small-en-v1.5-GGUF:F16")
+  -embeddings-search
+    	Generate and use vector embeddings for search terms to query records. This feature is still considered experimental.
   -geocoder-uri string
-    	A registered whosonfirst/geocoder/coarse.Geocoder URI.
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "null://")
   -lang string
     	An optional (3-letter) language code to filter results by,
   -mode string
@@ -226,12 +240,12 @@ Valid options are:
   -query string
     	The term to query for. Required.
   -query-timeout int
-    	The maximum allowable time in seconds for a query to complete. (default 5)	
+    	The maximum allowable time in seconds for a query to complete. (default 5)
   -tag string
     	An option WOF language tag to filter results by.
   -verbose
     	Enable verbose (debug) logging.
-```
+```	
 
 For example:
 
@@ -349,16 +363,18 @@ HTTP server for handling requests against a Who's On First (coarse) geocoding da
 Usage:
 	./bin/wof-coarse-geocoder-server [options]
 Valid options are:
+  -allow-query-embeddings
+    	Enable vector embedding queries in the /api/query endpoint. Query embeddings are still considered experimental. (default true)
   -demo
     	Start a web-based demo on the root URL of the server.
   -geocoder-uri string
-    	A registered whosonfirst/geocoder/coarse.Geocoder URI.
+    	A registered sfomuseum/geocoder/coarse.Geocoder URI. (default "null://")
   -pagination-per-page int
     	The maximum number of results to include per API request. (default 50)
   -prefix string
     	An optional URL prefix to listen for requests on.
   -query-timeout int
-    	The maximum allowable time in seconds for a query to complete. (default 5)	
+    	The maximum allowable time in seconds for a query to complete. (default 5)
   -server-uri string
     	A registered aaronland/go-http/v4/server.Server URI. (default "http://localhost:8080")
   -verbose
@@ -608,9 +624,9 @@ $> bin/wof-coarse-geocoder-query \
 2026/08/12 12:51:39 INFO Rewrite geocoder URI to enable VFS uri="sql://sqlite?dsn=file%3Awof-sfom.db%3Fvfs%3Dvfs1%26mode%3Dro"
 2026/08/12 12:51:43 INFO Query results total=2 page=1 pages=1
 
-id		name		placetype	is current	inception	cessation	label
-85865587	Gowanus		neighbourhood	1						Gowanus, New York, New York, US
-102061079	Gowanus Heights	neighbourhood	-1		2012				Gowanus Heights, New York, New York, US
+rank			id		label					placetype	latitude	longitude	is current	inception	cessation
+-17.49931058334353	85865587	Gowanus, New York, New York, US		neighbourhood	40.678529	-73.987462	1				
+-15.032719333750485	102061079	Gowanus Heights, New York, New York, US	neighbourhood	40.682373	-73.987939	-1		2012	
 ```
 
 Note the use of the `-query-timeout` flag. The default query timeout is 5 seconds which may not be enough depending on the specifics of your remote database (VFS) configuration. For example, initial testing using a VFS layer in an Amazon AWS Lambda + AWS S3 setup required timeouts in excess of 30 seconds which largely makes it impractical for most applications.
@@ -698,22 +714,22 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/12 09:36:29 INFO Query results total=15 page=1 pages=1
 
-id	name				placetype	is current	inception	cessation	label
-1015480	Lavaltrie			locality	-1						Lavaltrie, Québec, CA
-7013063	Laval				locality	-1						Laval, Québec, CA
-9218033	Laval				locality	-1						Laval, Québec, CA
-9220988	Laval				locality	-1						Laval, Québec, CA
-9220991	Lavaltrie			locality	-1						Lavaltrie, Québec, CA
-1004951	Laval-Oest			locality	-1						Laval-Oest, Québec, CA
-4002106	Calixa-Lavallée			locality	-1						Calixa-Lavallée, Québec, CA
-9220990	Laval-Ouest			locality	-1						Laval-Ouest, Québec, CA
-9225833	Calixa-Lavallée			locality	-1						Calixa-Lavallée, Québec, CA
-1004952	Laval-des-Rapides		locality	-1						Laval-des-Rapides, Québec, CA
-9220989	Laval-des-Rapides		locality	-1						Laval-des-Rapides, Québec, CA
-1005506	Saint-François-de-Laval		locality	-1						Saint-François-de-Laval, Québec, CA
-9222959	Sainte-Angèle-de-Laval		locality	-1						Sainte-Angèle-de-Laval, Québec, CA
-9225598	Sainte-Brigitte-de-Laval	locality	-1						Sainte-Brigitte-de-Laval, Québec, CA
-9222992	Saint-Elzéar			county		-1						Saint-Elzéar, Québec, CA
+rank			id	label					placetype				latitude	longitude	is current	inception	cessation
+-11.689057370580107	1015480	Lavaltrie, Québec, CA			locality; 83002; inhabited place	45.8833		-73.2833	-1				
+-11.689057370580107	7013063	Laval, Québec, CA			locality; 83002; inhabited place	45.5667		-73.6667	-1				
+-11.689057370580107	9218033	Laval, Québec, CA			locality; 83002; inhabited place	45.6167		-73.75		-1				
+-11.689057370580107	9220988	Laval, Québec, CA			locality; 83002; inhabited place	45.6		-73.7333	-1				
+-11.689057370580107	9220991	Lavaltrie, Québec, CA			locality; 83002; inhabited place	45.882		-73.284		-1				
+-9.982415653685324	1004951	Laval-Oest, Québec, CA			locality; 83002; inhabited place	45.55		-73.8667	-1				
+-9.982415653685324	4002106	Calixa-Lavallée, Québec, CA		locality; 83002; inhabited place	0		0		-1				
+-9.982415653685324	9220990	Laval-Ouest, Québec, CA			locality; 83002; inhabited place	45.55		-73.8667	-1				
+-9.982415653685324	9225833	Calixa-Lavallée, Québec, CA		locality; 83002; inhabited place	45.7498		-73.2811	-1				
+-8.710633802009356	1004952	Laval-des-Rapides, Québec, CA		locality; 83002; inhabited place	45.55		-73.7167	-1				
+-8.710633802009356	9220989	Laval-des-Rapides, Québec, CA		locality; 83002; inhabited place	45.55		-73.7		-1				
+-7.726287651987254	1005506	Saint-François-de-Laval, Québec, CA	locality; 83002; inhabited place	45.6667		-73.5667	-1				
+-7.726287651987254	9222959	Sainte-Angèle-de-Laval, Québec, CA	locality; 83002; inhabited place	46.3167		-72.5167	-1				
+-7.726287651987254	9225598	Sainte-Brigitte-de-Laval, Québec, CA	locality; 83002; inhabited place	47.007		-71.1935	-1				
+-7.726287651987254	9222992	Saint-Elzéar, Québec, CA		county; 81300; second level subdivision	45.6		-73.7333	-1
 ```
 
 ### WebAssembly (WASM)

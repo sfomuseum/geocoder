@@ -49,7 +49,7 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.StringVar(&date_starts, "date-starts", "", "Optional ETDF starting date string to filter results by.")
 	fs.StringVar(&date_ends, "date-ends", "", "Optional ETDF ending date string to filter results by.")
 
-	fs.BoolVar(&embeddings_search, "embeddings-search", false, "Generate and use vector embeddings for query terms.")
+	fs.BoolVar(&embeddings_search, "embeddings-search", false, "Generate and use vector embeddings for search terms to query records. This feature is still considered experimental.")
 	fs.StringVar(&embedder_uri, "embedder-uri", vec.DEFAULT_EMBEDDER_URI, "A registered sfomuseum/go-embeddings.Embedder URI.")
 	fs.StringVar(&embeddings_model, "embeddings-model", vec.DEFAULT_EMBEDDINGS_MODEL, "The URI for the model to use to generate embeddings. For the time being, do NOT change this unless you are using an alternate model with a dimensionality of 384.")
 

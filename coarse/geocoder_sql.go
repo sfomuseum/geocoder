@@ -76,12 +76,12 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
+	vfs_enable := false
+
 	switch u.Host {
 	case "sqlite":
 
 		q := u.Query()
-
-		vfs_enable := false
 
 		if q.Has("vfs-enable") {
 
@@ -176,6 +176,12 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 			to_create = append(to_create, t)
 		}
 
+		create_tables := true
+
+		if vfs_enable {
+			create_tables = false
+		}
+
 		db_opts := &sql.ConfigureDatabaseOptions{
 			// https://github.com/pelias/placeholder/blob/master/lib/Database.js
 			Pragma: []string{
@@ -187,7 +193,7 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 				"PRAGMA JOURNAL_MODE=MEMORY",
 				"PRAGMA TEMP_STORE=MEMORY",
 			},
-			CreateTablesIfNecessary: true,
+			CreateTablesIfNecessary: create_tables,
 			Tables:                  to_create,
 		}
 
