@@ -1,0 +1,1 @@
+CREATE VIRTUAL TABLE {{ .Name }} USING vec0(embedding float[ {{ .Dimensions }} ]);

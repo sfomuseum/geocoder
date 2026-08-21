@@ -32,7 +32,11 @@ func testCreateDatabase(ctx context.Context, to_index ...string) (Geocoder, erro
 			return nil, err
 		}
 
-		rec, err := NewWhosOnFirstRecord(ctx, body)
+		opts := &NewWhosOnFirstRecordOptions{
+			Body: body,
+		}
+
+		rec, err := NewWhosOnFirstRecord(ctx, opts)
 
 		if err != nil {
 			return nil, err

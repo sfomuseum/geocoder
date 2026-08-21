@@ -18,6 +18,7 @@ import (
 	"github.com/sfomuseum/geocoder"
 	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/go-edtf/unix"
+	"github.com/sfomuseum/go-embeddings"
 )
 
 func Run(ctx context.Context) error {
@@ -118,6 +119,34 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		req.DateEnds = ranges
 	}
 
+	// START OF...
+
+	if opts.EmbeddingsSearch {
+
+		if opts.Embedder == nil {
+			return fmt.Errorf("Missing embedder")
+		}
+
+		emb_req := &embeddings.EmbeddingsRequest{
+			Id:   req.Query,
+			Body: []byte(req.Query),
+		}
+
+		if opts.EmbeddingsModel != "" {
+			emb_req.Model = opts.EmbeddingsModel
+		}
+
+		emb_rsp, err := opts.Embedder.TextEmbeddings(ctx, emb_req)
+
+		if err != nil {
+			return fmt.Errorf("Failed to derive text embeddings for query, %w", err)
+		}
+
+		req.QueryEmbeddings = emb_rsp.Embeddings()
+	}
+
+	// END OF...
+
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.QueryTimeout)*time.Second)
 	defer cancel()
 
@@ -158,15 +187,16 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		tw.Init(os.Stdout, 1, 8, 1, '\t', 0)
 
 		cols := []string{
+			"rank",
 			"id",
-			"name",
+			//"name",
+			"label",
 			"placetype",
 			"latitude",
 			"longitude",
 			"is current",
 			"inception",
 			"cessation",
-			"label",
 		}
 
 		fmt.Println("")
@@ -205,15 +235,16 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			}
 
 			vals := []string{
+				fmt.Sprintf("%v", f.Properties["geocoder:rank"]),
 				fmt.Sprintf("%d", f.ID),
-				f.Properties["wof:name"].(string),
+				// f.Properties["wof:name"].(string),
+				f.Properties["wof:label"].(string),
 				strings.Join(all_pt, "; "),
 				strconv.FormatFloat(lat, 'g', -1, 64),
 				strconv.FormatFloat(lon, 'g', -1, 64),
 				fmt.Sprintf("%v", f.Properties["mz:is_current"]),
 				f.Properties["edtf:inception"].(string),
 				f.Properties["edtf:cessation"].(string),
-				f.Properties["wof:label"].(string),
 			}
 
 			fmt.Fprintln(tw, strings.Join(vals, "\t"))

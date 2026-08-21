@@ -13,6 +13,7 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/geocoder"
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/geocoder/x/vec"
 	"github.com/sfomuseum/go-edtf/unix"
 )
 
@@ -35,6 +36,8 @@ type CoarseGeocoderHandlerOptions struct {
 	PaginationPerPage int64
 	// The maximum allowable time in seconds for a query to complete.
 	QueryTimeout int
+	// AllowQueryEmbeddings in API requests.
+	AllowQueryEmbeddings bool
 }
 
 // CoarseGeocoderHandler creates an HTTP handler that exposes the geocoder as a REST API.
@@ -46,7 +49,14 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		logger := slog.LoggerWithRequest(req, nil)
 
-		query, err := sanitize.GetString(req, "query")
+		if req.Method != http.MethodPost {
+			http.Error(rsp, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		query_req := &coarse.QueryRequest{}
+
+		query, err := sanitize.PostString(req, "query")
 
 		if err != nil {
 			logger.Error("Failed to derive query parameter", "error", err)
@@ -54,19 +64,57 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			return
 		}
 
-		if query == "" {
-			logger.Debug("Query string is empty")
-			http.Error(rsp, "Missing query", http.StatusBadRequest)
+		// Embeddings
+
+		str_embeddings, err := sanitize.PostString(req, "query-embeddings")
+
+		if err != nil {
+			logger.Error("Failed to derive ?query-embeddings= parameter", "error", err)
+			http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
 			return
 		}
 
-		query_req := &coarse.QueryRequest{
-			Query: query,
+		if str_embeddings != "" {
+
+			if !opts.AllowQueryEmbeddings {
+				http.Error(rsp, "Query embeddings are not supported", http.StatusBadRequest)
+				return
+			}
+
+			var query_embeddings []float32
+
+			err = json.Unmarshal([]byte(str_embeddings), &query_embeddings)
+
+			if err != nil {
+				logger.Error("Failed to unmarshal ?query-embeddings= parameter", "error", err)
+				http.Error(rsp, "Invalid ?query-embeddings= parameter", http.StatusBadRequest)
+				return
+			}
+
+			// To do: determine validity using opts.Database.SomethingOrOther...
+
+			if len(query_embeddings) != vec.DEFAULT_EMBEDDINGS_DIMENSIONS {
+				logger.Error("Invalid query embeddings dimensions", "dimensions", len(query_embeddings))
+				http.Error(rsp, "Invalid ?query-embeddings= dimensions", http.StatusBadRequest)
+				return
+			}
+
+			query_req.QueryEmbeddings = query_embeddings
+
+		} else {
+
+			if query == "" {
+				logger.Debug("Query string is empty")
+				http.Error(rsp, "Missing query", http.StatusBadRequest)
+				return
+			}
+
+			query_req.Query = query
 		}
 
 		// Countries
 
-		countries, err := sanitize.GetStringMulti(req, "country")
+		countries, err := sanitize.PostStringMulti(req, "country")
 
 		if err != nil {
 			logger.Error("Failed to derive country parameter(s)", "error", err)
@@ -80,7 +128,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Belongs to
 
-		belongsto, err := sanitize.GetInt64Multi(req, "belongs-to")
+		belongsto, err := sanitize.PostInt64Multi(req, "belongs-to")
 
 		if err != nil {
 			logger.Error("Failed to derive belongs-to parameter(s)", "error", err)
@@ -94,7 +142,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Placetypes
 
-		placetypes, err := sanitize.GetStringMulti(req, "placetype")
+		placetypes, err := sanitize.PostStringMulti(req, "placetype")
 
 		if err != nil {
 			logger.Error("Failed to derive placetype parameter(s)", "error", err)
@@ -108,7 +156,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Language and tag
 
-		lang, err := sanitize.GetString(req, "lang")
+		lang, err := sanitize.PostString(req, "lang")
 
 		if err != nil {
 			logger.Error("Failed to derive lang parameter", "error", err)
@@ -120,7 +168,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			query_req.Lang = lang
 		}
 
-		tag, err := sanitize.GetString(req, "tag")
+		tag, err := sanitize.PostString(req, "tag")
 
 		if err != nil {
 			logger.Error("Failed to derive tag parameter", "error", err)
@@ -134,7 +182,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Bounds
 
-		str_bounds, err := sanitize.GetString(req, "bounds")
+		str_bounds, err := sanitize.PostString(req, "bounds")
 
 		if err != nil {
 			logger.Error("Failed to derive bounds parameter", "error", err)
@@ -156,7 +204,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Dates
 
-		date_starts, err := sanitize.GetString(req, "date-starts")
+		date_starts, err := sanitize.PostString(req, "date-starts")
 
 		if err != nil {
 			logger.Error("Failed to derive ?date-starts= parameter", "error", err)
@@ -183,7 +231,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			query_req.DateStarts = ranges
 		}
 
-		date_ends, err := sanitize.GetString(req, "date-ends")
+		date_ends, err := sanitize.PostString(req, "date-ends")
 
 		if err != nil {
 			logger.Error("Failed to derive ?date-ends= parameter", "error", err)
@@ -226,7 +274,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		//
 
-		page, err := sanitize.GetInt64(req, "page")
+		page, err := sanitize.PostInt64(req, "page")
 
 		if err != nil {
 			logger.Error("Failed to derive page number", "error", err)

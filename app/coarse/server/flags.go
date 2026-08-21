@@ -12,10 +12,12 @@ var geocoder_uri string
 var server_uri string
 var prefix string
 
+var allow_query_embeddings bool
+
 var query_timeout int
 var per_page int64
 
-var demo bool
+var with_demo bool
 var verbose bool
 
 func DefaultFlagSet() *flag.FlagSet {
@@ -27,8 +29,10 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.StringVar(&prefix, "prefix", "", "An optional URL prefix to listen for requests on.")
 
 	fs.IntVar(&query_timeout, "query-timeout", 5, "The maximum allowable time in seconds for a query to complete.")
-	fs.BoolVar(&demo, "demo", false, "Start a web-based demo on the root URL of the server.")
+	fs.BoolVar(&with_demo, "demo", false, "Start a web-based demo on the root URL of the server.")
 	fs.Int64Var(&per_page, "pagination-per-page", 50, "The maximum number of results to include per API request.")
+	fs.BoolVar(&allow_query_embeddings, "allow-query-embeddings", true, "Enable vector embedding queries in the /api/query endpoint. Query embeddings are still considered experimental.")
+
 	fs.BoolVar(&verbose, "verbose", false, "Enable verbose (debug) logging.")
 
 	fs.Usage = func() {
