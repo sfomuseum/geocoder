@@ -615,13 +615,13 @@ Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1
 
 There is experimental support for storing and querying vector embeddings for place names. This is enabled by passing the `-embeddings-index` flag to the [wof-coarse-geocoder-index](#wof-coarse-geocoder-index) tool and/or the `-embeddings-search` flag to the [wof-coarse-geocoder-query](#wof-coarse-geocoder-query) tool.
 
-In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (to create or query). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a number of sources. Practically speaking this means you will need to run a separate service (like [Ollama](https://ollama.com) or [llama.cpp](https://llama.app)) with its own API endpoint to create embeddings.
+In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (for indexing or querying). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a variety of sources. Practically speaking this means you will need to run a separate service (like [Ollama](https://ollama.com) or [llama.cpp](https://llama.app)) with its own API endpoint to create embeddings for use with the geocoder.
 
-An important consideration, as of this writing, is that the underlying `geocoder` code does NOT support vector embeddings with multiple dimensions and the default dimensionality is 384. This value is hard-coded pending further consideration about how to make these things dynamic. The choice of 384-dimension embeddings is because that's what the `bert-bge-small/ggml-model-f16.gguf` model produces and that model is used to generate client-side embeddings in the "demo" web application (described further below).
+An important consideration, as of this writing, is that the underlying `geocoder` database does NOT support vector embeddings of varying dimensions and the default dimensionality is 384. This value is hard-coded pending further consideration about how to make these things dynamic. The choice of 384-dimension embeddings is because that's what the `bert-bge-small/ggml-model-f16.gguf` model produces and that model is used to generate client-side embeddings in the "demo" web application. This is [described further below](#querying-vector-embeddings-in-the-demo-server).
 
 #### Embeddings for what?
 
-As of this writing a single embedding is generated for the unique set of names for each (language + language tag) pair for each record. Is this the best way? I don't know. Because it takes a while to generate and store a lot of embeddings, and because Who's On First records often have a lot of different names (and languages), it seemed like a reasonable compromise just to prove that storing and querying vector embeddings was feasible.
+As of this writing a single embedding is generated for the unique set of names for each (language + language tag) pair for each record. Is this the best way? I don't know. Because it takes a while to generate and store a lot of embeddings, and because Who's On First records often have a lot of different names (and languages), it seemed like a reasonable compromise just to prove that storing and querying vector embeddings was feasible. There is more work, and more investigating, to do.
 
 [Feedback or alternative approaches are welcome and encouraged.](https://github.com/sfomuseum/geocoder/issues)
 
@@ -651,7 +651,7 @@ For example:
 
 #### Querying vector embeddings in the API
 
-Querying vector embeddings in the API is enabled by default in the [wof-coarse-geocoder-server](#wof-coarse-geocoder-server) tool. You can disable it necessary using the `-allow-query-embeddings=false` flag. For example:
+Querying vector embeddings in the API is enabled by default in the [wof-coarse-geocoder-server](#wof-coarse-geocoder-server) tool. You can disable it, if necessary, by passing in the `-allow-query-embeddings=false` flag. For example:
 
 ```
 $> make server GEOCODER_URI='sql://sqlite?dsn=vec384.db'
@@ -669,14 +669,16 @@ go run -mod vendor cmd/wof-coarse-geocoder-server/main.go \
 The API endpoint does NOT create vector embeddings itself. This is assumed to be handled by an external process. Once you've created those embeddings you can pass them along to the API, as a JSON-encoded string, in the `query-embeddings` parameter. For example:
 
 ```
-$> curl -X POST -F 'query=boston' -F 'query-embeddings=[...]' http://localhost:8080/api/query/
+$> curl -X POST \
+	-F 'query-embeddings=[...]' \
+	http://localhost:8080/api/query/
 ```
 
 #### Querying vector embeddings in the "demo" server
 
 Querying vector embeddings in the "demo" server is NOT enabled by default. This functionality depends on the presence of the [ngxson/wllama](https://github.com/ngxson/wllama) Javascript library and the WebAssembly binary in addition to the `bert-bge-small/ggml-model-f16.gguf` (large language) model. All of these assets _could_ be loaded remotely but one of the design criteria for the API/demo server is that all its assets are bundled locally.
 
-The `wllama` and `bert-bge-small` assets are not bundled with this repository to prevent unnecessary bloat. (These files are also explicitly excluded from version control.) You can download these assets using the handy `embeddings` Makefile target in the [http/www/coarse](http/www/coarse) folder. For example:
+The `wllama` and `bert-bge-small` assets are not bundled with this repository to prevent unnecessary bloat; these files are also explicitly excluded from version control. You can download these assets using the handy `embeddings` Makefile target in the [http/www/coarse](http/www/coarse) folder. For example:
 
 ```
 $> cd http/www/coarse
@@ -686,9 +688,9 @@ curl -sL -o wasm/wllama.wasm https://github.ngxson.com/wllama/esm/wasm/wllama.wa
 curl -sL -o models/bert-bge-small/ggml-model-f16.gguf https://huggingface.co/ggml-org/models/resolve/main/bert-bge-small/ggml-model-f16.gguf
 ```
 
-The [ngxson/wllama](https://github.com/ngxson/wllama) package provides WebAssembly bindings for the [llama.cpp](https://github.com/ggerganov/llama.cpp) library which, in turn, enables the ability to create vector embeddings client-side in a web browser. Which is pretty bonkers amazing when you think about it. The WebAssembly binary still depends on a third-party model to derive embeddings. The `ngxson/wllama` uses the `bert-bge-small/ggml-model-f16.gguf` model in its examples and is only 69MB (rather than, say, 10 or 20GB) so that's what this package uses too. At least for the time being.
+The [ngxson/wllama](https://github.com/ngxson/wllama) package provides WebAssembly bindings for the [llama.cpp](https://github.com/ggerganov/llama.cpp) library which, in turn, enables the ability to create vector embeddings client-side in a web browser which is kind of _bonkers amazing_ when you think about it. The WebAssembly binary still depends on a third-party model to derive embeddings. The `ngxson/wllama` package uses the `bert-bge-small/ggml-model-f16.gguf` model in its examples and is only 69MB (rather than, say, 10 or 20GB) so that's what this package uses too. At least for the time being.
 
-Now start the `wof-coarse-geocoder-server` tool as usual (see above). The application code for the "demo" server will check to see whether the `wllama` assets are available and if they are will enable an addition "Query with vector embeddings" checkbox in the "Advanced" query menu. For example:
+Now start the `wof-coarse-geocoder-server` tool as usual (see above). The application code for the "demo" server will check to see whether the `wllama` assets are available and if they are, will enable an addition "Query with vector embeddings" checkbox in the "Advanced" query menu. For example:
 
 ![](docs/images/geocoder-demo-vector.png)
 
@@ -699,6 +701,8 @@ Querying for "mont royal" returns Montreal:
 Querying for "khmer rouge" returns Cambodia and	Hồ Chí Minh city, in Vietnam, which is not _incorrect_ historically:
 
 ![](docs/images/geocoder-demo-vector-khmer-rouge.png)
+
+Anything else may get weird. Large language models are weird.
 
 ### Virtual File System (VFS) support
 
