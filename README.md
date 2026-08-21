@@ -256,14 +256,14 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:25:22 INFO Query results total=7 page=1 pages=1
 
-id		name		placetype	is current	inception	cessation	label
-1947304447	Terminal 3	wing		1		2024-11-05	..		Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1159157307	Terminal 3	wing		0		2017~		2019-07-23	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1477855699	Terminal 3	wing		0		2019-07-23	2020-~05	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1729792487	Terminal 3	wing		0		2020-~05	2021-05-25	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1745882233	Terminal 3	wing		0		2021-05-25	2021-11-09	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1763588269	Terminal 3	wing		0		2021-11-09	2024-06-17	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
-1914600841	Terminal 3	wing		0		2024-06-17	2024-11-05	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US
+rank			id		label												placetype	latitude	longitude	is current	inception	cessation
+-17.33661134210852	1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1	2024-11-05	..
+-17.33661134210852	1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2017~		2019-07-23
+-17.33661134210852	1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2019-07-23	2020-~05
+-17.33661134210852	1729792487	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2020-~05	2021-05-25
+-17.33661134210852	1745882233	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2021-05-25	2021-11-09
+-17.33661134210852	1763588269	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2021-11-09	2024-06-17
+-17.33661134210852	1914600841	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2024-06-17	2024-11-05
 ```
 
 Or to query with a custom placetype (stored in the `wof:placetype_alt` property):
@@ -276,8 +276,8 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:27:37 INFO Query results total=1 page=1 pages=1
 
-id		name					placetype	is current	inception	cessation	label
-102527513	San Francisco International Airport	campus		1		1948~		..		San Francisco International Airport, San Francisco, California, US
+rank			id		label									placetype	latitude	longitude	is current	inception	cessation
+-13.013866678659102	102527513	San Francisco International Airport, San Francisco, California, US	campus; airport	37.61799	-122.370943	1		1948~		..
 ```
 
 You can also query for records using a known concordances, for example an IATA airport code:
@@ -289,8 +289,8 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:06:39 INFO Query results total=1 page=1 pages=1
 
-id		name							placetype	is current	inception	cessation	label
-102554351	Montreal-Pierre Elliott Trudeau International Airport	campus		1		1941-09-01			Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA
+rank			id		label										placetype	latitude	longitude	is current	inception	cessation
+-7.027890456522998	102554351	Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA	campus		45.462004	-73.744749	1		1941-09-01
 ```
 
 Or a GeoPlanet identifier:
@@ -302,9 +302,9 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:09:26 INFO Query results total=2 page=1 pages=1
 
-id		name		placetype	is current	inception	cessation	label
-101750367	London		locality	1		0043~				London, Greater London, GB
-1880762729	Greater London	region		1						Greater London, GB
+rank			id		label				placetype			latitude	longitude	is current	inception	cessation
+-6.48038846479113	101750367	London, Greater London, GB	locality; county; localadmin	51.509648	-0.099076	1		0043~		
+-6.122169631962154	1880762729	Greater London, GB		region				51.49254	-0.109335	1			
 ```
 
 The geocoder will pass the so-called "Brooklyn test" in English:
@@ -317,17 +317,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:20:13 INFO Query results total=135 page=1 pages=14
 
-id		name			placetype	is current	inception	cessation	label
-421205765	Brooklyn		borough		1						Brooklyn, New York, New York, US
-85969229	Brooklyn Park		locality	1						Brooklyn Park, Minnesota, US
-404511829	Brooklyn Park		localadmin	1						Brooklyn Park, Minnesota, US
-85807925	Brooklyn Heights	neighbourhood	1						Brooklyn Heights, New York, New York, US
-85871819	Old Brooklyn		neighbourhood	1						Old Brooklyn, Cleveland, Cleveland, Ohio, US
-85969235	Brooklyn Center		locality	1						Brooklyn Center, Minnesota, US
-404511827	Brooklyn Center		localadmin	1						Brooklyn Center, Minnesota, US
-101712549	Brooklyn		locality	1						Brooklyn, Ohio, US
-85949701	Brooklyn Park		locality	1						Brooklyn Park, Maryland, US
-404525053	Brooklyn		localadmin	1						Brooklyn, Ohio, US
+rank			id		label					placetype	latitude	longitude	is current	inception	cessation
+-10.619758199476777	421205765	Brooklyn, New York, New York, US	borough		40.652256	-73.956582	1				
+-10.619758199476777	101712549	Brooklyn, Ohio, US			locality	41.433531	-81.751846	1				
+-10.619758199476777	404525053	Brooklyn, Ohio, US			localadmin	41.433531	-81.751846	1				
+-10.619758199476777	404495913	Brooklyn, Connecticut, US		localadmin	41.787597	-71.953053	1				
+-10.619758199476777	85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
+-10.619758199476777	85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
+-10.619758199476777	85942463	Brooklyn, Indiana, US			locality	39.54363	-86.369575	1				
+-10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality	-41.31667	174.75		1				
+-10.619758199476777	85943755	Brooklyn, Iowa, US			locality	41.729445	-92.446958	1				
+-10.619758199476777	85951193	Brooklyn, Michigan, US			locality	42.105725	-84.248831	1
 ```
 
 And in other languages, like Farsi:
@@ -340,17 +340,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:22:22 INFO Query results total=72 page=1 pages=8
 
-id		name			placetype	is current	inception	cessation	label
-421205765	Brooklyn		borough		1						Brooklyn, New York, New York, US
-85969229	Brooklyn Park		locality	1						Brooklyn Park, Minnesota, US
-85807925	Brooklyn Heights	neighbourhood	1						Brooklyn Heights, New York, New York, US
-85871819	Old Brooklyn		neighbourhood	1						Old Brooklyn, Cleveland, Cleveland, Ohio, US
-85969235	Brooklyn Center		locality	1						Brooklyn Center, Minnesota, US
-101712549	Brooklyn		locality	1						Brooklyn, Ohio, US
-85949701	Brooklyn Park		locality	1						Brooklyn Park, Maryland, US
-404525053	Brooklyn		localadmin	1						Brooklyn, Ohio, US
-404495913	Brooklyn		localadmin	1						Brooklyn, Connecticut, US
-85807887	Brooklyn		neighbourhood	1						Brooklyn, Jacksonville, Florida, US
+rank			id		label					placetype	latitude	longitude	is current	inception	cessation
+-10.619758199476777	421205765	Brooklyn, New York, New York, US	borough		40.652256	-73.956582	1				
+-10.619758199476777	101712549	Brooklyn, Ohio, US			locality	41.433531	-81.751846	1				
+-10.619758199476777	404525053	Brooklyn, Ohio, US			localadmin	41.433531	-81.751846	1				
+-10.619758199476777	404495913	Brooklyn, Connecticut, US		localadmin	41.787597	-71.953053	1				
+-10.619758199476777	85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
+-10.619758199476777	85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
+-10.619758199476777	85942463	Brooklyn, Indiana, US			locality	39.54363	-86.369575	1				
+-10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality	-41.31667	174.75		1				
+-10.619758199476777	85943755	Brooklyn, Iowa, US			locality	41.729445	-92.446958	1				
+-10.619758199476777	85951193	Brooklyn, Michigan, US			locality	42.105725	-84.248831	1
 ```
 
 ### wof-coarse-geocoder-server
@@ -466,6 +466,105 @@ $> curl -s 'http://localhost:8080/api/query/?query=SFO&placetype=airport' | jq
 }
 ```
 
+#### API
+
+##### /api/query/
+
+
+This API method accepts form data (either `application/x-www-form-urlencoded` or `multipart/form-data`) and returns a JSON payload containing a GeoJSON `FeatureCollection` together with pagination metadata.
+
+###### Basic Request
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | yes | The search term (e.g. "Paris”, “Dallas", etc). |
+
+For example:
+
+$> curl -X POST \
+	-F "query=Paris" \
+	http://localhost:8080/api/query
+```
+
+###### Optional Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `country` | string (multi‑value) | Two‑letter ISO country code(s). Limits results to places that belong to the specified country/ies. Example: `country=US` or `country=US&country=CA`. |
+| `belongs-to` | integer (multi‑value) | Ancestor WOF IDs that the results must belong to. Example: `belongs-to=12345678`. |
+| `placetype` | string (multi‑value) | One or more place‑type identifiers (e.g. `city`, `river`). Example: `placetype=location&placetype=region`. |
+| `lang` | string | Three‑letter language code that restricts the search to tokens in that language. |
+| `tag` | string | WOF language tag (e.g. `preferred`, `variant`). |
+| `bounds` | string | Geographic bounding box in the form `"minx,miny,maxx,maxy"`. Example: `bounds=-10.0,35.0,10.0,45.0`. |
+| `date-starts` | string | An [EDTF](https://www.loc.gov/standards/edtf/) expression that defines a start‑date range. The server will expand it into a set of ranges. |
+| `date-ends` | string | Same as `date-starts` but for the end date. |
+| `query-embeddings` | string | JSON‑encoded array of `float32` values (e.g. `"[0.12,0.34,0.56]"`). Only accepted if the server was configured with `AllowQueryEmbeddings=true`. |
+| `page` | integer | Page number for pagination (default is 1). |
+
+
+###### Pagination
+
+The server paginates results automatically. To request a particular page:
+
+```
+$> curl -X POST \
+	-F "query=London" \
+	-F "page=2" \
+	http://localhost:8080/api/query
+```
+
+The JSON response will include a `pagination` object that contains:
+
+* `total` – total number of matching results
+* `page` – current page number
+* `per_page` – number of results per page
+* `pages` – total number of pages
+
+###### Date Filters
+
+Both `date-starts` and `date-ends` accept EDTF strings. The server uses the [sfomuseum/go-edtf/unix](#) package to convert these into Unix‑timestamp ranges.
+
+Examples:
+
+```
+# Places that began any time during the year 2000
+$> curl -X POST \
+	-F "query=Berlin" \
+	-F "date-starts=2000" \
+	http://localhost:8080/api/query
+
+# Places that began between 1900 and 1950
+$> curl -X POST \
+	-F "query=Berlin" \
+	-F "date-starts=1900/1950" \
+	http://localhost:8080/api/query
+```
+
+If the EDTF expression is invalid, the server will return a 400 Bad Request.
+
+###### Bounds
+
+The `bounds` parameter limits results to places whose bounding boxes intersect the supplied rectangle in the form of `minx,miny,maxx,maxy`.
+
+```
+$> curl -X POST \
+	-F "query=springfield" \
+	-F "bounds=-120.0,30.0,-110.0,40.0" \
+	http://localhost:8080/api/query
+```
+
+###### Vector embeddings
+
+If the server was started with `AllowQueryEmbeddings=true`, you can supply a vector that the geocoder will use to weigh semantic similarity.
+
+```
+$> curl -X POST \
+	-F 'query-embeddings=[0.12,0.34,0.56,0.78]' \
+	http://localhost:8080/api/query
+```
+
+_Caution – If embeddings are not enabled, the server will respond with `400 Bad Request` and the message “Query embeddings are not supported”. Query embeddings are still considered experimental. [See details below.](#)_
+
 #### Demo mode
 
 When started with the `-demo` flag the server will host a simple web application at its root URL. When you open your web browser to `http://localhost:8080` (or whatever you've configured the `-server-uri` flag to be) you'll see something like this:
@@ -517,7 +616,7 @@ Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1
 
 ### Vector embeddings
 
-There is experimental support for storing and querying vector embeddings for place names. This is enabled by passing the `-embeddings-index` flag to the [wof-coarse-geocoder-index](#) tool and/or the `-embeddings-search` flag to the [wof-coarse-geocoder-query](#) tool.
+There is experimental support for storing and querying vector embeddings for place names. This is enabled by passing the `-embeddings-index` flag to the [wof-coarse-geocoder-index](#wof-coarse-geocoder-index) tool and/or the `-embeddings-search` flag to the [wof-coarse-geocoder-query](#wof-coarse-geocoder-query) tool.
 
 In both cases you will need to provide additional command-line arguments to define the process to _create_ vector embeddings (to create or query). Under the hood this package uses the [sfomuseum/go-embeddings](https://github.com/sfomuseum/go-embeddings) package which defines a common interface to creating vector embeddings from a number of sources. Practically speaking this means you will need to run a separate service (like [Ollama](https://ollama.com) or [llama.cpp](https://llama.app)) with its own API endpoint to create embeddings.
 
@@ -555,7 +654,7 @@ For example:
 
 #### Querying vector embeddings in the API
 
-Querying vector embeddings in the API is enabled by default in the [wof-coarse-geocoder-server](#) tool. You can disable it necessary using the `-allow-query-embeddings=false` flag. For example:
+Querying vector embeddings in the API is enabled by default in the [wof-coarse-geocoder-server](#wof-coarse-geocoder-server) tool. You can disable it necessary using the `-allow-query-embeddings=false` flag. For example:
 
 ```
 $> make server GEOCODER_URI='sql://sqlite?dsn=vec384.db'
