@@ -256,7 +256,7 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:25:22 INFO Query results total=7 page=1 pages=1
 
-rank				id			label						placetype	latitude	longitude	is current	inception	cessation
+rank				id			label										placetype	latitude	longitude	is current	inception	cessation
 -17.33661134210852	1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1	2024-11-05	..
 -17.33661134210852	1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2017~		2019-07-23
 -17.33661134210852	1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2019-07-23	2020-~05
