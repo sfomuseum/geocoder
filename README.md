@@ -256,14 +256,14 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:25:22 INFO Query results total=7 page=1 pages=1
 
-rank				id			label																placetype	latitude	longitude	is current	inception	cessation
--17.33661134210852	1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1	2024-11-05	..
--17.33661134210852	1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2017~		2019-07-23
--17.33661134210852	1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2019-07-23	2020-~05
--17.33661134210852	1729792487	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2020-~05	2021-05-25
--17.33661134210852	1745882233	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2021-05-25	2021-11-09
--17.33661134210852	1763588269	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2021-11-09	2024-06-17
--17.33661134210852	1914600841	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0	2024-06-17	2024-11-05
+rank				id			label																						placetype		latitude	longitude	is current	inception	cessation
+-17.33661134210852	1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1			2024-11-05	..
+-17.33661134210852	1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2017~		2019-07-23
+-17.33661134210852	1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2019-07-23	2020-~05
+-17.33661134210852	1729792487	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2020-~05	2021-05-25
+-17.33661134210852	1745882233	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2021-05-25	2021-11-09
+-17.33661134210852	1763588269	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2021-11-09	2024-06-17
+-17.33661134210852	1914600841	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2024-06-17	2024-11-05
 ```
 
 Or to query with a custom placetype (stored in the `wof:placetype_alt` property):
@@ -276,8 +276,8 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:27:37 INFO Query results total=1 page=1 pages=1
 
-rank				id			label									placetype	latitude	longitude	is current	inception	cessation
--13.013866678659102	102527513	San Francisco International Airport, San Francisco, California, US	campus; airport	37.61799	-122.370943	1		1948~		..
+rank				id			label																placetype		latitude	longitude	is current	inception	cessation
+-13.013866678659102	102527513	San Francisco International Airport, San Francisco, California, US	campus; airport	37.61799	-122.370943	1			1948~		..
 ```
 
 You can also query for records using a known concordances, for example an IATA airport code:
@@ -289,8 +289,8 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:06:39 INFO Query results total=1 page=1 pages=1
 
-rank				id			label										placetype	latitude	longitude	is current	inception	cessation
--7.027890456522998	102554351	Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA	campus		45.462004	-73.744749	1		1941-09-01
+rank				id			label																		placetype	latitude	longitude	is current	inception	cessation
+-7.027890456522998	102554351	Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA	campus		45.462004	-73.744749	1			1941-09-01
 ```
 
 Or a GeoPlanet identifier:
@@ -302,9 +302,9 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:09:26 INFO Query results total=2 page=1 pages=1
 
-rank				id			label				placetype			latitude	longitude	is current	inception	cessation
--6.48038846479113	101750367	London, Greater London, GB	locality; county; localadmin	51.509648	-0.099076	1		0043~		
--6.122169631962154	1880762729	Greater London, GB		region				51.49254	-0.109335	1			
+rank				id			label						placetype						latitude	longitude	is current	inception	cessation
+-6.48038846479113	101750367	London, Greater London, GB	locality; county; localadmin	51.509648	-0.099076	1			0043~		
+-6.122169631962154	1880762729	Greater London, GB			region							51.49254	-0.109335	1			
 ```
 
 The geocoder will pass the so-called "Brooklyn test" in English:
@@ -317,17 +317,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:20:13 INFO Query results total=135 page=1 pages=14
 
-rank				id			label					placetype	latitude	longitude	is current	inception	cessation
--10.619758199476777	421205765	Brooklyn, New York, New York, US	borough		40.652256	-73.956582	1				
--10.619758199476777	101712549	Brooklyn, Ohio, US			locality	41.433531	-81.751846	1				
--10.619758199476777	404525053	Brooklyn, Ohio, US			localadmin	41.433531	-81.751846	1				
--10.619758199476777	404495913	Brooklyn, Connecticut, US		localadmin	41.787597	-71.953053	1				
+rank				id			label								placetype		latitude	longitude	is current	inception	cessation
+-10.619758199476777	421205765	Brooklyn, New York, New York, US	borough			40.652256	-73.956582	1				
+-10.619758199476777	101712549	Brooklyn, Ohio, US					locality		41.433531	-81.751846	1				
+-10.619758199476777	404525053	Brooklyn, Ohio, US					localadmin		41.433531	-81.751846	1				
+-10.619758199476777	404495913	Brooklyn, Connecticut, US			localadmin		41.787597	-71.953053	1				
 -10.619758199476777	85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
 -10.619758199476777	85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
--10.619758199476777	85942463	Brooklyn, Indiana, US			locality	39.54363	-86.369575	1				
--10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality	-41.31667	174.75		1				
--10.619758199476777	85943755	Brooklyn, Iowa, US			locality	41.729445	-92.446958	1				
--10.619758199476777	85951193	Brooklyn, Michigan, US			locality	42.105725	-84.248831	1
+-10.619758199476777	85942463	Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
+-10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality		-41.31667	174.75		1				
+-10.619758199476777	85943755	Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
+-10.619758199476777	85951193	Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
 ```
 
 And in other languages, like Farsi:
@@ -340,17 +340,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:22:22 INFO Query results total=72 page=1 pages=8
 
-rank				id			label					placetype	latitude	longitude	is current	inception	cessation
--10.619758199476777	421205765	Brooklyn, New York, New York, US	borough		40.652256	-73.956582	1				
--10.619758199476777	101712549	Brooklyn, Ohio, US			locality	41.433531	-81.751846	1				
--10.619758199476777	404525053	Brooklyn, Ohio, US			localadmin	41.433531	-81.751846	1				
--10.619758199476777	404495913	Brooklyn, Connecticut, US		localadmin	41.787597	-71.953053	1				
+rank				id			label								placetype		latitude	longitude	is current	inception	cessation
+-10.619758199476777	421205765	Brooklyn, New York, New York, US	borough			40.652256	-73.956582	1				
+-10.619758199476777	101712549	Brooklyn, Ohio, US					locality		41.433531	-81.751846	1				
+-10.619758199476777	404525053	Brooklyn, Ohio, US					localadmin		41.433531	-81.751846	1				
+-10.619758199476777	404495913	Brooklyn, Connecticut, US			localadmin		41.787597	-71.953053	1				
 -10.619758199476777	85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
 -10.619758199476777	85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
--10.619758199476777	85942463	Brooklyn, Indiana, US			locality	39.54363	-86.369575	1				
--10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality	-41.31667	174.75		1				
--10.619758199476777	85943755	Brooklyn, Iowa, US			locality	41.729445	-92.446958	1				
--10.619758199476777	85951193	Brooklyn, Michigan, US			locality	42.105725	-84.248831	1
+-10.619758199476777	85942463	Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
+-10.619758199476777	1126026579	Brooklyn, Wellington Region, NZ		locality		-41.31667	174.75		1				
+-10.619758199476777	85943755	Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
+-10.619758199476777	85951193	Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
 ```
 
 ### wof-coarse-geocoder-server
@@ -728,9 +728,9 @@ $> bin/wof-coarse-geocoder-query \
 2026/08/12 12:51:39 INFO Rewrite geocoder URI to enable VFS uri="sql://sqlite?dsn=file%3Awof-sfom.db%3Fvfs%3Dvfs1%26mode%3Dro"
 2026/08/12 12:51:43 INFO Query results total=2 page=1 pages=1
 
-rank				id			label					placetype	latitude	longitude	is current	inception	cessation
--17.49931058334353	85865587	Gowanus, New York, New York, US		neighbourhood	40.678529	-73.987462	1				
--15.032719333750485	102061079	Gowanus Heights, New York, New York, US	neighbourhood	40.682373	-73.987939	-1		2012	
+rank				id			label									placetype		latitude	longitude	is current	inception	cessation
+-17.49931058334353	85865587	Gowanus, New York, New York, US			neighbourhood	40.678529	-73.987462	1				
+-15.032719333750485	102061079	Gowanus Heights, New York, New York, US	neighbourhood	40.682373	-73.987939	-1			2012	
 ```
 
 Note the use of the `-query-timeout` flag. The default query timeout is 5 seconds which may not be enough depending on the specifics of your remote database (VFS) configuration. For example, initial testing using a VFS layer in an Amazon AWS Lambda + AWS S3 setup required timeouts in excess of 30 seconds which largely makes it impractical for most applications.
@@ -818,22 +818,22 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/12 09:36:29 INFO Query results total=15 page=1 pages=1
 
-rank			id	label					placetype				latitude	longitude	is current	inception	cessation
--11.689057370580107	1015480	Lavaltrie, Québec, CA			locality; 83002; inhabited place	45.8833		-73.2833	-1				
--11.689057370580107	7013063	Laval, Québec, CA			locality; 83002; inhabited place	45.5667		-73.6667	-1				
--11.689057370580107	9218033	Laval, Québec, CA			locality; 83002; inhabited place	45.6167		-73.75		-1				
--11.689057370580107	9220988	Laval, Québec, CA			locality; 83002; inhabited place	45.6		-73.7333	-1				
--11.689057370580107	9220991	Lavaltrie, Québec, CA			locality; 83002; inhabited place	45.882		-73.284		-1				
--9.982415653685324	1004951	Laval-Oest, Québec, CA			locality; 83002; inhabited place	45.55		-73.8667	-1				
--9.982415653685324	4002106	Calixa-Lavallée, Québec, CA		locality; 83002; inhabited place	0		0		-1				
--9.982415653685324	9220990	Laval-Ouest, Québec, CA			locality; 83002; inhabited place	45.55		-73.8667	-1				
--9.982415653685324	9225833	Calixa-Lavallée, Québec, CA		locality; 83002; inhabited place	45.7498		-73.2811	-1				
--8.710633802009356	1004952	Laval-des-Rapides, Québec, CA		locality; 83002; inhabited place	45.55		-73.7167	-1				
--8.710633802009356	9220989	Laval-des-Rapides, Québec, CA		locality; 83002; inhabited place	45.55		-73.7		-1				
--7.726287651987254	1005506	Saint-François-de-Laval, Québec, CA	locality; 83002; inhabited place	45.6667		-73.5667	-1				
--7.726287651987254	9222959	Sainte-Angèle-de-Laval, Québec, CA	locality; 83002; inhabited place	46.3167		-72.5167	-1				
--7.726287651987254	9225598	Sainte-Brigitte-de-Laval, Québec, CA	locality; 83002; inhabited place	47.007		-71.1935	-1				
--7.726287651987254	9222992	Saint-Elzéar, Québec, CA		county; 81300; second level subdivision	45.6		-73.7333	-1
+rank				id		label									placetype								latitude	longitude	is current	inception	cessation
+-11.689057370580107	1015480	Lavaltrie, Québec, CA					locality; 83002; inhabited place		45.8833		-73.2833	-1				
+-11.689057370580107	7013063	Laval, Québec, CA						locality; 83002; inhabited place		45.5667		-73.6667	-1				
+-11.689057370580107	9218033	Laval, Québec, CA						locality; 83002; inhabited place		45.6167		-73.75		-1				
+-11.689057370580107	9220988	Laval, Québec, CA						locality; 83002; inhabited place		45.6		-73.7333	-1				
+-11.689057370580107	9220991	Lavaltrie, Québec, CA					locality; 83002; inhabited place		45.882		-73.284		-1				
+-9.982415653685324	1004951	Laval-Oest, Québec, CA					locality; 83002; inhabited place		45.55		-73.8667	-1				
+-9.982415653685324	4002106	Calixa-Lavallée, Québec, CA				locality; 83002; inhabited place		0			0			-1				
+-9.982415653685324	9220990	Laval-Ouest, Québec, CA					locality; 83002; inhabited place		45.55		-73.8667	-1				
+-9.982415653685324	9225833	Calixa-Lavallée, Québec, CA				locality; 83002; inhabited place		45.7498		-73.2811	-1				
+-8.710633802009356	1004952	Laval-des-Rapides, Québec, CA			locality; 83002; inhabited place		45.55		-73.7167	-1				
+-8.710633802009356	9220989	Laval-des-Rapides, Québec, CA			locality; 83002; inhabited place		45.55		-73.7		-1				
+-7.726287651987254	1005506	Saint-François-de-Laval, Québec, CA		locality; 83002; inhabited place		45.6667		-73.5667	-1				
+-7.726287651987254	9222959	Sainte-Angèle-de-Laval, Québec, CA		locality; 83002; inhabited place		46.3167		-72.5167	-1				
+-7.726287651987254	9225598	Sainte-Brigitte-de-Laval, Québec, CA	locality; 83002; inhabited place		47.007		-71.1935	-1				
+-7.726287651987254	9222992	Saint-Elzéar, Québec, CA				county; 81300; second level subdivision	45.6		-73.7333	-1
 ```
 
 ### WebAssembly (WASM)
