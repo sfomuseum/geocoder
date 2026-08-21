@@ -52,7 +52,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			http.Error(rsp, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		
+
 		query, err := sanitize.PostString(req, "query")
 
 		if err != nil {

@@ -187,15 +187,16 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		tw.Init(os.Stdout, 1, 8, 1, '\t', 0)
 
 		cols := []string{
+			"rank",
 			"id",
-			"name",
+			//"name",
+			"label",
 			"placetype",
 			"latitude",
 			"longitude",
 			"is current",
 			"inception",
 			"cessation",
-			"label",
 		}
 
 		fmt.Println("")
@@ -234,15 +235,16 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			}
 
 			vals := []string{
+				fmt.Sprintf("%v", f.Properties["geocoder:rank"]),
 				fmt.Sprintf("%d", f.ID),
-				f.Properties["wof:name"].(string),
+				// f.Properties["wof:name"].(string),
+				f.Properties["wof:label"].(string),
 				strings.Join(all_pt, "; "),
 				strconv.FormatFloat(lat, 'g', -1, 64),
 				strconv.FormatFloat(lon, 'g', -1, 64),
 				fmt.Sprintf("%v", f.Properties["mz:is_current"]),
 				f.Properties["edtf:inception"].(string),
 				f.Properties["edtf:cessation"].(string),
-				f.Properties["wof:label"].(string),
 			}
 
 			fmt.Fprintln(tw, strings.Join(vals, "\t"))
