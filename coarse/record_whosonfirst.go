@@ -364,13 +364,28 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 	sort.Strings(pt_alt)
 
+	count_hiers := len(hiers)
+
+	str_hiers := make([]map[string]string, count_hiers)
+
+	for i, h := range hiers {
+
+		str_h := make(map[string]string)
+
+		for k, id := range h {
+			str_h[k] = fmt.Sprintf("wof:id=%d", id)
+		}
+
+		str_hiers[i] = str_h
+	}
+
 	r := &Record{
-		Id:               id,
-		ParentId:         parent_id,
+		Id:               fmt.Sprintf("wof:id=%d", id),
+		ParentId:         fmt.Sprintf("wof:id=%d", parent_id),
 		Name:             name,
 		Placetype:        pt,
 		PlacetypeAlt:     pt_alt,
-		Hierarchies:      hiers,
+		Hierarchies:      str_hiers,
 		Country:          co,
 		Inception:        inception,
 		Cessation:        cessation,

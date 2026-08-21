@@ -34,9 +34,9 @@ type VectorEmbeddings struct {
 // geocoding are retained.
 type Record struct {
 	// Id is the Who's On First identifier of the place.
-	Id int64 `json:"wof:id"`
+	Id string `json:"wof:id"`
 	// ParentId is the Who's On First identifier of the parent place.
-	ParentId int64 `json:"wof:parent_id"`
+	ParentId string `json:"wof:parent_id"`
 	// Name is the primary name of the place.
 	Name string `json:"wof:name"`
 	// Country is the ISO 3166‑1 alpha‑2 country code of the place.
@@ -48,7 +48,7 @@ type Record struct {
 	PlacetypeAlt []string `json:"wof:placetype_alt"`
 	// Hierarchies contains the ancestor hierarchies for the place.
 	// Each hierarchy is a map of placetype to ancestor ID.
-	Hierarchies []map[string]int64 `json:"wof:hierarchies"`
+	Hierarchies []map[string]string `json:"wof:hierarchies"`
 	// Centroid is the geographic centroid of the place.
 	Centroid *orb.Point `json:"wof:centroid"`
 	// Bounds is a slice of bounding boxes that enclose the place.

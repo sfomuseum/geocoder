@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS {{ .Name }} (
        row_id INTEGER PRIMARY KEY AUTOINCREMENT,
-       id INTEGER,
+       id TEXT,
        lang STRING,
        tag STRING,
        token STRING

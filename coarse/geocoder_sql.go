@@ -346,7 +346,7 @@ func (g *SQLGeocoder) HasRecordHashChanged(ctx context.Context, rec *Record) (bo
 	}
 }
 
-func (g *SQLGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) {
+func (g *SQLGeocoder) RecordExists(ctx context.Context, id string) (bool, error) {
 
 	q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = ?", g.tableName("records"))
 	row := g.db.QueryRowContext(ctx, q, id)
@@ -366,7 +366,7 @@ func (g *SQLGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) 
 
 // AddRecord has been moved in to geocoder_sql_add.go
 
-func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
+func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id string) error {
 
 	logger := slog.Default()
 	logger = logger.With("id", id)
@@ -681,7 +681,7 @@ func (g *SQLGeocoder) prepareQuery(input string) string {
 	return strings.Join(sanitized, " AND ")
 }
 
-func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, tx *db_sql.Tx, record_id int64, model string, language string, tag string) (int64, error) {
+func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, tx *db_sql.Tx, record_id string, model string, language string, tag string) (int64, error) {
 
 	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", g.tableName("embeddings_records"))
 

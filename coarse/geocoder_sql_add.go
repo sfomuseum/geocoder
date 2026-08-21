@@ -155,7 +155,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			defer anc_st.Close()
 
-			ancestors := make([]int64, 0)
+			ancestors := make([]string, 0)
 
 			for _, hier := range rec.Hierarchies {
 

@@ -1,6 +1,6 @@
 CREATE TABLE {{ .Name }} (
-       id INTEGER PRIMARY KEY,
-       parent_id INTEGER NOT NULL,
+       id TEXT PRIMARY KEY,
+       parent_id TEXT NOT NULL,
        name TEXT NOT NULL,
        placetype TEXT NOT NULL,
        country TEXT NOT NULL,

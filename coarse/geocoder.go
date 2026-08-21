@@ -29,9 +29,9 @@ type Geocoder interface {
 	AddRecord(context.Context, *Record) error
 	// RemoveRecord deletes a record and all of its dependent rows
 	// from the database.
-	RemoveRecord(context.Context, int64) error
+	RemoveRecord(context.Context, string) error
 	// RecordExists reports whether a record with the supplied ID is present in the database.
-	RecordExists(context.Context, int64) (bool, error)
+	RecordExists(context.Context, string) (bool, error)
 	// HasRecordHashChanged checks whether a record already exists  and, if so, whether its
 	// content hash has changed. It returns (exists, changed, error).
 	HasRecordHashChanged(context.Context, *Record) (bool, bool, error)

@@ -496,11 +496,17 @@ func main() {
 			}
 		}
 
+		str_hier := make(map[string]string)
+
+		for k, v := range hier {
+			str_hier[k] = fmt.Sprintf("wof:id=%d", v)
+		}
+
 		// Add to database
 
 		rec := &coarse.Record{
-			Id:           id,
-			ParentId:     parent_id,
+			Id:           fmt.Sprintf("tgn:id=%d", id),
+			ParentId:     fmt.Sprintf("tgn:id=%d", parent_id),
 			Name:         name,
 			Placetype:    wof_pt,
 			Country:      wof_co,
@@ -513,8 +519,8 @@ func main() {
 			Inception: start_date,
 			Cessation: end_date,
 			Tokens:    tokens,
-			Hierarchies: []map[string]int64{
-				hier,
+			Hierarchies: []map[string]string{
+				str_hier,
 			},
 		}
 

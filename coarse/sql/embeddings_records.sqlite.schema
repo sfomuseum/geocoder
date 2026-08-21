@@ -1,6 +1,6 @@
 CREATE TABLE {{ .Name  }} (
        id INTEGER PRIMARY KEY,
-       record_id INTEGER NOT NULL,
+       record_id TEXT NOT NULL,
        model TEXT NOT NULL,
        language TEXT NOT NULL,
        tag TEXT NOT NULL
