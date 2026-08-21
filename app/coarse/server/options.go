@@ -44,7 +44,7 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 	opts.Prefix = prefix
 	opts.QueryTimeout = query_timeout
 	opts.PaginationPerPage = per_page
-	opts.Demo = demo
+	opts.Demo = with_demo
 	opts.AllowQueryEmbeddings = allow_query_embeddings
 
 	opts.Verbose = verbose

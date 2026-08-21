@@ -278,7 +278,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			// and doing those updates in batches with entirely separate transactions will speed up overall
 			// indexing time. This will require logic to ensure buffers get flushed and play nicely with
 			// per-record transactions.
-			
+
 			if rec.VectorEmbeddings != nil && len(rec.VectorEmbeddings) > 0 {
 
 				slog.Debug("Add vector embeddings", "id", rec.Id, "count", len(rec.VectorEmbeddings))

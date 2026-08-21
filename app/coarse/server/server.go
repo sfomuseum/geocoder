@@ -11,7 +11,7 @@ import (
 	"github.com/aaronland/go-http-maps/v2"
 	"github.com/aaronland/go-http/v4/server"
 	"github.com/sfomuseum/geocoder/http/api"
-	www_coarse "github.com/sfomuseum/geocoder/http/www/coarse"
+	"github.com/sfomuseum/geocoder/http/www/demo"
 )
 
 func Run(ctx context.Context) error {
@@ -46,7 +46,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 	mux := http.NewServeMux()
 
-	if demo {
+	if opts.Demo {
 
 		map_opts := &maps.AssignMapConfigHandlerOptions{
 			MapProvider: "leaflet",
@@ -69,10 +69,10 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 		maps.AssignMapConfigHandler(map_opts, mux, map_uri)
 
-		www_handler := http.FileServerFS(www_coarse.FS)
+		demo_handler := http.FileServerFS(demo.FS)
 
 		if opts.Prefix == "" {
-			mux.Handle("/", www_handler)
+			mux.Handle("/", demo_handler)
 		} else {
 
 			root_uri, err := url.JoinPath(opts.Prefix, "/")
@@ -81,7 +81,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 				return fmt.Errorf("Failed to apply prefix to root (demo) URL, %w", err)
 			}
 
-			mux.Handle(root_uri, http.StripPrefix(opts.Prefix, www_handler))
+			mux.Handle(root_uri, http.StripPrefix(opts.Prefix, demo_handler))
 		}
 	}
 
