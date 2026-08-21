@@ -523,7 +523,7 @@ The JSON response will include a `pagination` object that contains:
 
 ###### Date Filters
 
-Both `date-starts` and `date-ends` accept EDTF strings. The server uses the [sfomuseum/go-edtf/unix](#) package to convert these into Unix‑timestamp ranges. For example:
+Both `date-starts` and `date-ends` accept EDTF strings. The server uses the [sfomuseum/go-edtf/unix](https://pkg.go.dev/github.com/sfomuseum/go-edtf/unix) package to convert these into Unix‑timestamp ranges. For example:
 
 ```
 $> curl -X POST \
@@ -556,11 +556,11 @@ If the server was started with `AllowQueryEmbeddings=true`, you can supply a vec
 
 ```
 $> curl -X POST \
-	-F 'query-embeddings=[0.12,0.34,0.56,0.78]' \
+	-F 'query-embeddings=[0.12,0.34,0.56,0.78, ...]' \
 	http://localhost:8080/api/query
 ```
 
-_Caution – If embeddings are not enabled, the server will respond with `400 Bad Request` and the message “Query embeddings are not supported”. Query embeddings are still considered experimental. [See details below.](#)_
+_Caution – If embeddings are not enabled, the server will respond with `400 Bad Request` and the message “Query embeddings are not supported”. Query embeddings are still considered experimental. [See details below.](#vector-embeddings)_
 
 #### Demo mode
 
@@ -674,7 +674,7 @@ $> curl -X POST -F 'query=boston' -F 'query-embeddings=[...]' http://localhost:8
 
 #### Querying vector embeddings in the "demo" server
 
-Querying vector embeddings in the "demo" server is NOT enabled by default. This functionality depends on the presence of the [ngxson/wllama](#) Javascript library and the WebAssembly binary in addition to the `bert-bge-small/ggml-model-f16.gguf` (large language) model. All of these assets _could_ be loaded remotely but one of the design criteria for the API/demo server is that all its assets are bundled locally.
+Querying vector embeddings in the "demo" server is NOT enabled by default. This functionality depends on the presence of the [ngxson/wllama](https://github.com/ngxson/wllama) Javascript library and the WebAssembly binary in addition to the `bert-bge-small/ggml-model-f16.gguf` (large language) model. All of these assets _could_ be loaded remotely but one of the design criteria for the API/demo server is that all its assets are bundled locally.
 
 The `wllama` and `bert-bge-small` assets are not bundled with this repository to prevent unnecessary bloat. (These files are also explicitly excluded from version control.) You can download these assets using the handy `embeddings` Makefile target in the [http/www/coarse](http/www/coarse) folder. For example:
 
