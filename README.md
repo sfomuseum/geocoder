@@ -733,7 +733,7 @@ Querying for "khmer rouge" returns Cambodia and	Hồ Chí Minh city, in Vietnam,
 
 ![](docs/images/geocoder-demo-vector-khmer-rouge.png)
 
-Anything else may get weird. Large language models are weird. For example, searching for "ham and cheese" and getting back results for towns called "Sandwich":
+Anything else may get weird. Large language models are weird. For example, searching for "ham and cheese" and getting back results for towns called "Sandwich" which is... kind of not-wrong?
 
 ![](docs/images/geocoder-demo-vector-ham-cheese.png)
 
