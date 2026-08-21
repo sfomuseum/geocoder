@@ -655,20 +655,20 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/21 10:16:40 INFO Query results total=29 page=1 pages=3
 
-rank			id		label									placetype	latitude	longitude	is current	inception	cessation
-0.5294566750526428	102527513	San Francisco International Airport, San Francisco, California, US	campus		37.61799	-122.370943	1		1948~		..
-0.5966955423355103	102530873	Yuba County Airport, Olivehurst, California, US				campus		39.097801	-121.57		1				
-0.606959342956543	102528839	San Carlos Airport, San Carlos, California, US				campus		37.511902	-122.25		1				
-0.6179097890853882	102527337	Santa Barbara Municipal Airport, Santa Barbara, California, US		campus		34.427974	-119.837133	1				
-0.6228018999099731	102527529	Norman Y Mineta San Jose International Airport, California, US		campus		37.363728	-121.928755	1		2001-11		..
-0.641245424747467	404517201	Airport Township, Missouri, US						localadmin	38.741639	-90.359883	1				
-0.641245424747467	85926473	Airport, California, US							locality	37.632083	-120.979923	1				
-0.641245424747467	420539489	Airport, Philadelphia, Philadelphia, Pennsylvania, US			neighbourhood	39.885787	-75.213489	1				
-0.641245424747467	1729434409	Airport, Missouri, US							locality	38.750377	-90.363144	1				
-0.6423512697219849	102528473	Flabob Airport, Jurupa Valley, California, US				campus		33.9894		-117.40997	1
+rank				id			label																placetype		latitude	longitude	is current	inception	cessation
+0.5294566750526428	102527513	San Francisco International Airport, San Francisco, California, US	campus			37.61799	-122.370943	1			1948~		..
+0.5966955423355103	102530873	Yuba County Airport, Olivehurst, California, US						campus			39.097801	-121.57		1				
+0.606959342956543	102528839	San Carlos Airport, San Carlos, California, US						campus			37.511902	-122.25		1				
+0.6179097890853882	102527337	Santa Barbara Municipal Airport, Santa Barbara, California, US		campus			34.427974	-119.837133	1				
+0.6228018999099731	102527529	Norman Y Mineta San Jose International Airport, California, US		campus			37.363728	-121.928755	1			2001-11		..
+0.641245424747467	404517201	Airport Township, Missouri, US										localadmin		38.741639	-90.359883	1				
+0.641245424747467	85926473	Airport, California, US												locality		37.632083	-120.979923	1				
+0.641245424747467	420539489	Airport, Philadelphia, Philadelphia, Pennsylvania, US				neighbourhood	39.885787	-75.213489	1				
+0.641245424747467	1729434409	Airport, Missouri, US												locality		38.750377	-90.363144	1				
+0.6423512697219849	102528473	Flabob Airport, Jurupa Valley, California, US						campus			33.9894		-117.40997	1
 ```
 
-Remember: This is not doing full text search. It is searching for the closest vector embeddings created by, and stored in, a large language model whose internals are probably opaque and poorly understood. This stuff can be amazing when it works but few people, if anyone, understands what's _actually_ happening under the hood or more importantly _why_. As often as not it's just plain weird.
+Remember: This is not doing full text search. It is searching for the closest vector embeddings created by, and stored in, a large language model whose internals are probably opaque and poorly understood. This stuff can be amazing when it works but few people understand what's _actually_ happening under the hood or, more importantly, _why_. As often as not it's just plain weird.
 
 #### Querying vector embeddings in the API
 
