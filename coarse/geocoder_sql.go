@@ -514,6 +514,9 @@ func (g *SQLGeocoder) assignBBox(ctx context.Context, f *geojson.Feature) error 
 
 func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.Feature) error {
 
+	// To do: Update to account for string-based IDs and convert back to WOF int-based IDs
+	// where applicable.
+	
 	logger := slog.Default()
 	logger = logger.With("id", f.ID)
 
