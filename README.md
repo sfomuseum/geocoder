@@ -696,7 +696,7 @@ Querying for "mont royal" returns Montreal:
 
 ![](docs/images/geocoder-demo-vector-mont-royal.png)
 
-Querying for "khmer rouge" returns Cambodia and	Hồ Chí Minh city, in Vietnam, which is not incorrect:
+Querying for "khmer rouge" returns Cambodia and	Hồ Chí Minh city, in Vietnam, which is not _incorrect_ historically:
 
 ![](docs/images/geocoder-demo-vector-khmer-rouge.png)
 
