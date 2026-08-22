@@ -390,12 +390,7 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id string) error {
 
 	}()
 
-	record_q := fmt.Sprintf("SELECT record_id FROM %s WHERE id = ?", g.tableName("records"))
-	row := tx.QueryRowContext(ctx, record_q, id)
-
-	var record_id int64
-
-	err = row.Scan(&record_id)
+	record_id, err := g.getRecordId(ctx, tx, id)
 
 	if err != nil {
 		return err
@@ -542,110 +537,40 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 	if len(str_hiers) == 0 {
 		return nil
 	}
-
-	// Convert back to wof-compliant hierarchies
-
-	wof_hiers := make([]map[string]int64, 0)
-
-	for _, h := range str_hiers {
-
-		wof_h := make(map[string]int64)
-		has_wof := false
-
-		for k, v := range h {
-
-			if !strings.HasPrefix(v, "wof:id=") {
-				continue
-			}
-
-			// To do: proper machine tag parser
-
-			v = strings.Replace(v, "wof:id=", "", 1)
-			id, err := strconv.ParseInt(v, 10, 64)
-
-			if err != nil {
-				slog.Warn("Failed to parse what looks like a wof:id", "id", h[k], "error", err)
-				continue
-			}
-
-			wof_h[k] = id
-			has_wof = true
-		}
-
-		if has_wof {
-			wof_hiers = append(wof_hiers, wof_h)
-		}
-	}
-
-	if len(wof_hiers) == 0 {
-		return nil
-	}
-
-	// START OF put me in a function
-
+	
 	name := f.Properties.MustString("wof:name")
-	str_pt := f.Properties.MustString("wof:placetype", "")
 
 	labels := []string{
 		name,
 	}
-
-	var parent_id int64
-	f_pid := f.Properties["wof:parent_id"]
-
-	switch f_pid.(type) {
-	case string:
-
-		str_p := f_pid.(string)
-
-		if strings.HasPrefix(str_p, "wof:id=") {
-
-			// To do: proper machine tag parser
-
-			str_p = strings.Replace(str_p, "wof:id=", "", 1)
-			id, err := strconv.ParseInt(str_p, 10, 64)
-
-			if err != nil {
-				slog.Warn("Failed to parse what looks like a wof:id", "id", str_p, "error", err)
-				parent_id = -1
-			} else {
-				parent_id = id
-			}
-
-		} else {
-			parent_id = -1
-		}
-
-	default:
-		parent_id = -1
-	}
-
-	label_opts := &hierarchies.AncestorIdsForLabelOptions{
-		Hierarchies: wof_hiers,
+	
+	str_pt := f.Properties.MustString("wof:placetype", "")
+	parent_id := f.Properties.MustString("wof:parent_id", "")	
+	
+	label_opts := &hierarchies.AncestorIdsForLabelOptionsGeneric[string]{
+		Hierarchies: str_hiers,
 		Placetype:   str_pt,
 		ParentId:    parent_id,
 	}
 
-	name_ids := hierarchies.AncestorIdsForLabel(label_opts)
+	name_ids := hierarchies.AncestorIdsForLabelGeneric[string](label_opts)
 
 	names_q := fmt.Sprintf("SELECT name, placetype, country from %s WHERE id = ?", g.tableName("records"))
 
 	for _, id := range name_ids {
 
-		wof_id := fmt.Sprintf("wof:id=%d", id)
-
 		var id_name string
 		var id_placetype string
 		var id_country string
 
-		row := g.db.QueryRowContext(ctx, names_q, wof_id)
+		row := g.db.QueryRowContext(ctx, names_q, id)
 		err := row.Scan(&id_name, &id_placetype, &id_country)
 
 		switch {
 		case err == db_sql.ErrNoRows:
 			continue
 		case err != nil:
-			logger.Warn("Failed to query ID for name", "name id", wof_id)
+			logger.Warn("Failed to query ID for name", "name id", id)
 		default:
 
 			switch id_placetype {
@@ -776,4 +701,20 @@ func (g *SQLGeocoder) tableName(label string) string {
 	}
 
 	return t.Name()
+}
+
+func (g *SQLGeocoder) getRecordId(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+
+	record_q := fmt.Sprintf("SELECT record_id FROM %s WHERE id = ?", g.tableName("records"))
+	row := tx.QueryRowContext(ctx, record_q, id)
+
+	var record_id int64
+
+	err := row.Scan(&record_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return record_id, nil
 }
