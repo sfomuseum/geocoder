@@ -111,7 +111,10 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
+			new_id := snowflake_node.Generate()
+			record_id := new_id.Int64()
+
+			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (record_id, id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
 
 			_, err = tx.ExecContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
 
@@ -122,7 +125,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Placetypes (alt)
 
-			pt_stq := fmt.Sprintf("INSERT INTO %s (id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))
+			pt_stq := fmt.Sprintf("INSERT INTO %s (record_id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))
 
 			pt_st, err := tx.Prepare(pt_stq)
 
@@ -135,7 +138,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			for _, pt := range rec.PlacetypeAlt {
 
-				_, err = pt_st.ExecContext(ctx, rec.Id, pt)
+				_, err = pt_st.ExecContext(ctx, record_id, pt)
 
 				if err != nil {
 					err_ch <- fmt.Errorf("Failed to execute placetype statement, %w", err)
@@ -145,7 +148,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Ancestors
 
-			anc_stq := fmt.Sprintf("INSERT INTO %s (id, ancestor_id) VALUES(?, ?)", g.tableName("ancestors"))
+			anc_stq := fmt.Sprintf("INSERT INTO %s (record_id, ancestor_id) VALUES(?, ?)", g.tableName("ancestors"))
 			anc_st, err := tx.Prepare(anc_stq)
 
 			if err != nil {
@@ -169,7 +172,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			for _, id := range ancestors {
 
-				_, err = anc_st.ExecContext(ctx, rec.Id, id)
+				_, err = anc_st.ExecContext(ctx, record_id, id)
 
 				if err != nil {
 					err_ch <- fmt.Errorf("Failed to execute ancestors statement, %w", err)
@@ -179,7 +182,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Bounds
 
-			bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, wofid) VALUES(?, ?, ?, ?, ?)", g.tableName("bounds"))
+			bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, record_id) VALUES(?, ?, ?, ?, ?)", g.tableName("bounds"))
 			bounds_st, err := tx.Prepare(bounds_stq)
 
 			if err != nil {
@@ -191,7 +194,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			for _, b := range rec.Bounds {
 
-				_, err = bounds_st.ExecContext(ctx, b.Min.X(), b.Min.Y(), b.Max.X(), b.Max.Y(), rec.Id)
+				_, err = bounds_st.ExecContext(ctx, b.Min.X(), b.Min.Y(), b.Max.X(), b.Max.Y(), record_id)
 
 				if err != nil {
 					err_ch <- fmt.Errorf("Failed to execute bounds statement, %w", err)
@@ -251,7 +254,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Tokens
 
-			tok_stq := fmt.Sprintf("INSERT INTO %s (id, token, lang, tag) VALUES(?, ?, ?, ?)", g.tableName("tokens"))
+			tok_stq := fmt.Sprintf("INSERT INTO %s (record_id, token, lang, tag) VALUES(?, ?, ?, ?)", g.tableName("tokens"))
 			tok_st, err := tx.Prepare(tok_stq)
 
 			if err != nil {
@@ -264,7 +267,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			for lang, tag_tokens := range rec.Tokens {
 
 				for tag, tokens := range tag_tokens {
-					_, err = tok_st.ExecContext(ctx, rec.Id, strings.Join(tokens, " "), lang, tag)
+					_, err = tok_st.ExecContext(ctx, record_id, strings.Join(tokens, " "), lang, tag)
 
 					if err != nil {
 						err_ch <- fmt.Errorf("Failed to execute token statement, %w", err)
@@ -332,7 +335,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 							return
 						}
 
-						vrec_id, err := g.uidForVectorRecord(ctx, tx, rec.Id, v.Model, e.Language, e.Tag)
+						vrec_id, err := g.uidForVectorRecord(ctx, tx, record_id, v.Model, e.Language, e.Tag)
 
 						if err != nil {
 							err_ch <- fmt.Errorf("Failed to derive UID for vector record, %w", err)
@@ -355,7 +358,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 							return
 						}
 
-						_, err = vrec_st.ExecContext(ctx, vrec_id, rec.Id, v.Model, e.Language, e.Tag)
+						_, err = vrec_st.ExecContext(ctx, vrec_id, record_id, v.Model, e.Language, e.Tag)
 
 						if err != nil {
 							logger.Error("NOPE vec r", "error", err)

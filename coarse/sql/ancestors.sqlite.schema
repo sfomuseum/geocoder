@@ -1,6 +1,6 @@
 CREATE TABLE {{ .Name }} (
-       id TEXT,
+       record_id INTEGER,
        ancestor_id TEXT
 );
 
--- CREATE UNIQUE INDEX idx_ancestors ON ancestors (id, ancestor_id);
+-- CREATE UNIQUE INDEX idx_ancestors ON ancestors (record_id, ancestor_id);

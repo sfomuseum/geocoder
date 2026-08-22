@@ -4,29 +4,32 @@ BEGIN TRANSACTION;
 DELETE FROM ancestors WHERE rowid NOT IN (
     SELECT MIN(rowid)
     FROM ancestors
-    GROUP BY id, ancestor_id
+    GROUP BY record_id, ancestor_id
 );
 
 -- See above.
 DELETE FROM placetypes_alt WHERE rowid NOT IN (
     SELECT MIN(rowid)
     FROM placetypes_alt
-    GROUP BY id, placetype
+    GROUP BY record_id, placetype
 );
 
 -- Create indices
-CREATE UNIQUE INDEX idx_ancestors ON ancestors (id, ancestor_id);
-CREATE UNIQUE INDEX idx_placetypes_alt ON placetypes_alt (id, placetype);
-CREATE INDEX bounds_by_wofid ON bounds (wofid);
+
+CREATE UNIQUE INDEX idx_records_id ON records (id);
+
+CREATE UNIQUE INDEX idx_ancestors ON ancestors (record_id, ancestor_id);
+CREATE UNIQUE INDEX idx_placetypes_alt ON placetypes_alt (record_id, placetype);
+CREATE INDEX bounds_by_wofid ON bounds (record_id);
 
 CREATE INDEX idx_dates_outer ON dates (start_outer, end_outer);
 CREATE INDEX idx_dates_outer_inner ON dates (start_outer, end_inner);
 CREATE INDEX idx_dates_inner_outer ON dates (start_inner, end_outer);
 CREATE INDEX idx_dates_inner ON dates (start_inner, end_inner);
 
-CREATE INDEX idx_tokens_covering ON tokens (row_id, id, lang, tag);
+CREATE INDEX idx_tokens_covering ON tokens (row_id, record_id, lang, tag);
 CREATE INDEX idx_bounds_covering ON bounds (wofid, minx, maxx, miny, maxy);
-CREATE INDEX idx_records_sorting ON records(id, is_current, population_rank, placetype, country);
+CREATE INDEX idx_records_sorting ON records(record_id, is_current, population_rank, placetype, country);
 
 CREATE UNIQUE INDEX vec_record_model ON embeddings_records (record_id, model, language, tag);
 

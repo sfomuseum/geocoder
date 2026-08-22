@@ -1,6 +1,6 @@
 CREATE TABLE {{ .Name }} (
-       id TEXT NOT NULL,
+       record_id INTEGER NOT NULL,
        placetype TEXT NOT NULL
 );
 
--- CREATE UNIQUE INDEX idx_placetypes ON placetypes (id, placetype);
+-- CREATE UNIQUE INDEX idx_placetypes ON placetypes (record_id, placetype);

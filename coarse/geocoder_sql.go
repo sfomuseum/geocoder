@@ -744,7 +744,7 @@ func (g *SQLGeocoder) prepareQuery(input string) string {
 	return strings.Join(sanitized, " AND ")
 }
 
-func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, tx *db_sql.Tx, record_id string, model string, language string, tag string) (int64, error) {
+func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, tx *db_sql.Tx, record_id int64, model string, language string, tag string) (int64, error) {
 
 	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", g.tableName("embeddings_records"))
 

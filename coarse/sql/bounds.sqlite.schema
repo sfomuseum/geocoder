@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS {{ .Name }} (
        maxx DOUBLE,
        miny DOUBLE,
        maxy DOUBLE,
-       wofid TEXT
+       record_id TEXT
 );
 
--- CREATE INDEX `bounds_by_wofid` ON {{ .Name }} (`wofid`);
+-- CREATE INDEX `bounds_by_recordid` ON {{ .Name }} (`record_id`);
