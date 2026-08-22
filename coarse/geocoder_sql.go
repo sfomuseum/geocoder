@@ -263,7 +263,7 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		vector_query_k:     50,
 		min_query_length:   2,
 		records:            make([]*Record, 0),
-		batch_size:         10,
+		batch_size:         1000,
 		bulk_workers:       50,
 	}
 

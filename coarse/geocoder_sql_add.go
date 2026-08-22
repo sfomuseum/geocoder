@@ -111,20 +111,22 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			new_id := snowflake_node.Generate()
-			record_id := new_id.Int64()
+			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
 
-			logger = logger.With("record id", record_id)
+			row := tx.QueryRowContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
 
-			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (record_id, id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
+			var record_id int64
 
-			_, err = tx.ExecContext(ctx, rec_q, record_id, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
-
+			err = row.Scan(&record_id)
+			
 			if err != nil {
 				err_ch <- fmt.Errorf("Failed to insert in to records, %w", err)
 				return
 			}
 
+			logger = logger.With("record id", record_id)
+			logger.Info("WTF")
+			
 			// Placetypes (alt)
 
 			pt_stq := fmt.Sprintf("INSERT INTO %s (record_id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))

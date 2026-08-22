@@ -1,5 +1,5 @@
 CREATE TABLE {{ .Name }} (
-       record_id INTEGER PRIMARY KEY,
+       record_id INTEGER PRIMARY KEY AUTOINCREMENT,
        id TEXT NOT NULL,
        parent_id TEXT NOT NULL,
        name TEXT NOT NULL,
