@@ -114,9 +114,11 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			new_id := snowflake_node.Generate()
 			record_id := new_id.Int64()
 
+			logger = logger.With("record id", record_id)
+
 			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (record_id, id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
 
-			_, err = tx.ExecContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
+			_, err = tx.ExecContext(ctx, rec_q, record_id, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
 
 			if err != nil {
 				err_ch <- fmt.Errorf("Failed to insert in to records, %w", err)
@@ -207,11 +209,11 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			start_outer, start_inner, end_inner, end_outer := rec.DateRanges()
 
 			date_fields := []string{
-				"id",
+				"record_id",
 			}
 
 			date_args := []any{
-				rec.Id,
+				record_id,
 			}
 
 			if start_outer != nil {

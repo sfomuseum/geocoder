@@ -390,6 +390,17 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id string) error {
 
 	}()
 
+	record_q := fmt.Sprintf("SELECT record_id FROM %s WHERE id = ?", g.tableName("records"))
+	row := tx.QueryRowContext(ctx, record_q, id)
+
+	var record_id int64
+
+	err = row.Scan(&record_id)
+
+	if err != nil {
+		return err
+	}
+
 	tables := []string{
 		g.tableName("records"),
 		g.tableName("placetypes_alt"),
@@ -403,18 +414,9 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id string) error {
 
 	for _, t := range tables {
 
-		var q string
+		q := fmt.Sprintf("DELETE FROM %s WHERE record_id = ?", t)
 
-		switch t {
-		case g.tableName("bounds"):
-			q = fmt.Sprintf("DELETE FROM %s WHERE wofid = ?", t)
-		case g.tableName("embeddings_records"):
-			q = fmt.Sprintf("DELETE FROM %s WHERE record_id = ?", t)
-		default:
-			q = fmt.Sprintf("DELETE FROM %s WHERE id = ?", t)
-		}
-
-		_, err := tx.ExecContext(ctx, q, id)
+		_, err := tx.ExecContext(ctx, q, record_id)
 
 		if err != nil {
 			return fmt.Errorf("Failed to remove %s table, %w", t, err)
@@ -488,7 +490,7 @@ func (g *SQLGeocoder) assignExtra(ctx context.Context, f *geojson.Feature) error
 
 func (g *SQLGeocoder) assignBBox(ctx context.Context, f *geojson.Feature) error {
 
-	bounds_q := fmt.Sprintf("SELECT MIN(minx), MIN(miny), MAX(maxx), MAX(maxy) FROM %s WHERE wofid = ?", g.tableName("bounds"))
+	bounds_q := fmt.Sprintf("SELECT MIN(b.minx), MIN(b.miny), MAX(b.maxx), MAX(b.maxy) FROM %s b, %s r  WHERE b.record_id = r.record_id AND r.id = ?", g.tableName("bounds"), g.tableName("records"))
 
 	bounds_row := g.db.QueryRowContext(ctx, bounds_q, f.ID)
 
@@ -661,7 +663,7 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 func (g *SQLGeocoder) assignPlacetypeAlt(ctx context.Context, f *geojson.Feature) error {
 
-	pt_q := fmt.Sprintf("SELECT placetype from %s WHERE id = ?", g.tableName("placetypes_alt"))
+	pt_q := fmt.Sprintf("SELECT p.placetype from %s p, %s r WHERE r.record_id = p.record_id AND r.id = ?", g.tableName("placetypes_alt"), g.tableName("records"))
 
 	pt_rows, err := g.db.QueryContext(ctx, pt_q, f.ID)
 
