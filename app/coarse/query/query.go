@@ -236,7 +236,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 			vals := []string{
 				fmt.Sprintf("%v", f.Properties["geocoder:rank"]),
-				fmt.Sprintf("%d", f.ID),
+				f.Properties["wof:id"].(string),
 				// f.Properties["wof:name"].(string),
 				f.Properties["wof:label"].(string),
 				strings.Join(all_pt, "; "),

@@ -271,8 +271,8 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	for rows.Next() {
 
 		var rank float64
-		var id int64
-		var parent_id int64
+		var id string
+		var parent_id string
 		var name string
 		var country string
 		var placetype string

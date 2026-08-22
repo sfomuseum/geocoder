@@ -630,18 +630,20 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	for _, id := range name_ids {
 
+		wof_id := fmt.Sprintf("wof:id=%d", id)
+
 		var id_name string
 		var id_placetype string
 		var id_country string
 
-		row := g.db.QueryRowContext(ctx, names_q, id)
+		row := g.db.QueryRowContext(ctx, names_q, wof_id)
 		err := row.Scan(&id_name, &id_placetype, &id_country)
 
 		switch {
 		case err == db_sql.ErrNoRows:
 			continue
 		case err != nil:
-			logger.Warn("Failed to query ID for name", "name id", id)
+			logger.Warn("Failed to query ID for name", "name id", wof_id)
 		default:
 
 			switch id_placetype {
