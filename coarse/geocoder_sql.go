@@ -516,28 +516,66 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	// To do: Update to account for string-based IDs and convert back to WOF int-based IDs
 	// where applicable.
-	
+
 	logger := slog.Default()
 	logger = logger.With("id", f.ID)
 
-	str_hiers := f.Properties.MustString("wof:hierarchies", "")
+	f_hiers := f.Properties.MustString("wof:hierarchies", "")
 
-	if str_hiers == "" {
+	if f_hiers == "" {
 		f.Properties["wof:hierarchies"] = make([]map[string]int64, 0)
 		return nil
 	}
 
-	var hiers []map[string]int64
+	var str_hiers []map[string]string
 
-	err := json.Unmarshal([]byte(str_hiers), &hiers)
+	err := json.Unmarshal([]byte(f_hiers), &str_hiers)
 
 	if err != nil {
 		return fmt.Errorf("Failed to unmarshal hierarchies, %w", err)
 	}
 
-	f.Properties["wof:hierarchies"] = hiers
+	f.Properties["wof:hierarchies"] = str_hiers
 
-	if len(hiers) == 0 {
+	if len(str_hiers) == 0 {
+		return nil
+	}
+
+	// Convert back to wof-compliant hierarchies
+
+	wof_hiers := make([]map[string]int64, 0)
+
+	for _, h := range str_hiers {
+
+		wof_h := make(map[string]int64)
+		has_wof := false
+
+		for k, v := range h {
+
+			if !strings.HasPrefix(v, "wof:id=") {
+				continue
+			}
+
+			// To do: proper machine tag parser
+
+			v = strings.Replace(v, "wof:id=", "", 1)
+			id, err := strconv.ParseInt(v, 10, 64)
+
+			if err != nil {
+				slog.Warn("Failed to parse what looks like a wof:id", "id", h[k], "error", err)
+				continue
+			}
+
+			wof_h[k] = id
+			has_wof = true
+		}
+
+		if has_wof {
+			wof_hiers = append(wof_hiers, wof_h)
+		}
+	}
+
+	if len(wof_hiers) == 0 {
 		return nil
 	}
 
@@ -554,14 +592,34 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 	f_pid := f.Properties["wof:parent_id"]
 
 	switch f_pid.(type) {
-	case int64:
-		parent_id, _ = f_pid.(int64)
+	case string:
+
+		str_p := f_pid.(string)
+
+		if strings.HasPrefix(str_p, "wof:id=") {
+
+			// To do: proper machine tag parser
+
+			str_p = strings.Replace(str_p, "wof:id=", "", 1)
+			id, err := strconv.ParseInt(str_p, 10, 64)
+
+			if err != nil {
+				slog.Warn("Failed to parse what looks like a wof:id", "id", str_p, "error", err)
+				parent_id = -1
+			} else {
+				parent_id = id
+			}
+
+		} else {
+			parent_id = -1
+		}
+
 	default:
 		parent_id = -1
 	}
 
 	label_opts := &hierarchies.AncestorIdsForLabelOptions{
-		Hierarchies: hiers,
+		Hierarchies: wof_hiers,
 		Placetype:   str_pt,
 		ParentId:    parent_id,
 	}
