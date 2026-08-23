@@ -12,12 +12,12 @@ import (
 )
 
 type Record struct {
-	Id         int64  `parquet:"id,type=int64"`
-	ParentId   int64  `parquet:"parent_id,type="int64"`
-	Placetype  string `parquet:"placetype,type=dict,zstd"`
-	Country    string `parquet:"country,type=dict,zstd"`
-	Geometry   []byte `parquet:"geometry,geometry"`
-	Properties []byte `parquet:"properties,json"`
+        Id         int64  `parquet:"id"`
+        ParentId   int64  `parquet:"parent_id"`
+        Placetype  string `parquet:"placetype,dict,zstd"`
+        Country    string `parquet:"country,dict,zstd"`
+        Geometry   []byte `parquet:"geometry,geometry"` 
+        Properties []byte `parquet:"properties,json,zstd"`
 }
 
 func (r *Record) AsGeoJSON() (*geojson.Feature, error) {
