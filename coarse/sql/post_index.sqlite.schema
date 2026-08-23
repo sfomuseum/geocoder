@@ -18,7 +18,7 @@ DELETE FROM placetypes_alt WHERE rowid NOT IN (
 
 CREATE UNIQUE INDEX idx_records_id ON records (id);
 
-CREATE UNIQUE INDEX idx_ancestors ON ancestors (record_id, ancestor_id);
+CREATE UNIQUE INDEX idx_ancestors ON ancestors (ancestor_id, record_id);
 CREATE UNIQUE INDEX idx_placetypes_alt ON placetypes_alt (record_id, placetype);
 CREATE INDEX bounds_by_recordid ON bounds (record_id);
 
@@ -29,7 +29,7 @@ CREATE INDEX idx_dates_inner ON dates (start_inner, end_inner);
 
 CREATE INDEX idx_tokens_covering ON tokens (row_id, record_id, lang, tag);
 CREATE INDEX idx_bounds_covering ON bounds (record_id, minx, maxx, miny, maxy);
-CREATE INDEX idx_records_sorting ON records(record_id, is_current, population_rank, placetype, country);
+-- CREATE INDEX idx_records_sorting ON records(record_id, is_current, population_rank, placetype, country);
 
 CREATE UNIQUE INDEX vec_record_model ON embeddings_records (record_id, model, language, tag);
 

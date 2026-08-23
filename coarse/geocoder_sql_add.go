@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -76,6 +77,16 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		throttle <- true
 	}
 
+	q := fmt.Sprintf("SELECT COALESCE(MAX(record_id), 0) FROM %s", g.tableName("records"))
+	row := tx.QueryRowContext(ctx, q)
+
+	var max int64
+	err = row.Scan(&max)
+
+	if err != nil {
+		return err
+	}
+
 	for _, rec := range records {
 
 		<-throttle
@@ -111,22 +122,20 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			rec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
+			record_id := atomic.AddInt64(&max, 1)
 
-			row := tx.QueryRowContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
+			logger = logger.With("record id", record_id)
 
-			var record_id int64
+			rec_q := fmt.Sprintf("INSERT INTO %s (record_id, id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
 
-			err = row.Scan(&record_id)
-			
+			_, err = tx.ExecContext(ctx, rec_q, record_id, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
+
 			if err != nil {
-				err_ch <- fmt.Errorf("Failed to insert in to records, %w", err)
+				logger.Error("Failed to create record row", "error", err)
+				err_ch <- err
 				return
 			}
 
-			logger = logger.With("record id", record_id)
-			logger.Info("WTF")
-			
 			// Placetypes (alt)
 
 			pt_stq := fmt.Sprintf("INSERT INTO %s (record_id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))

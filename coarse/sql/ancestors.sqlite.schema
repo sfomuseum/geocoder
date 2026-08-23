@@ -1,6 +1,4 @@
 CREATE TABLE {{ .Name }} (
-       record_id INTEGER,
-       ancestor_id TEXT
+       record_id INTEGER NOT NULL,
+       ancestor_id TEXT NOT NULL COLLATE BINARY
 );
-
--- CREATE UNIQUE INDEX idx_ancestors ON ancestors (record_id, ancestor_id);

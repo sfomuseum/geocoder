@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS {{ .Name }} (
        maxx DOUBLE,
        miny DOUBLE,
        maxy DOUBLE,
-       record_id INTEGER
+       record_id INTEGER NOT NULL
 );
 
 -- CREATE INDEX `bounds_by_recordid` ON {{ .Name }} (`record_id`);

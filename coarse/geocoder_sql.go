@@ -537,16 +537,16 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 	if len(str_hiers) == 0 {
 		return nil
 	}
-	
+
 	name := f.Properties.MustString("wof:name")
 
 	labels := []string{
 		name,
 	}
-	
+
 	str_pt := f.Properties.MustString("wof:placetype", "")
-	parent_id := f.Properties.MustString("wof:parent_id", "")	
-	
+	parent_id := f.Properties.MustString("wof:parent_id", "")
+
 	label_opts := &hierarchies.AncestorIdsForLabelOptionsGeneric[string]{
 		Hierarchies: str_hiers,
 		Placetype:   str_pt,
