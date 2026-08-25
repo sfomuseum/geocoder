@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
-	"sync/atomic"
+	_ "sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -122,13 +122,9 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			record_id := atomic.AddInt64(&max, 1)
+			rec_q := fmt.Sprintf("INSERT INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING record_id", g.tableName("records"))
 
-			logger = logger.With("record id", record_id)
-
-			rec_q := fmt.Sprintf("INSERT INTO %s (record_id, id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
-
-			_, err = tx.ExecContext(ctx, rec_q, record_id, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
+			rsp, err := tx.ExecContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
 
 			if err != nil {
 				logger.Error("Failed to create record row", "error", err)
@@ -136,6 +132,15 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
+			record_id, err := rsp.LastInsertId()
+
+			if err != nil {
+				err_ch <- err
+				return
+			}
+
+			logger = logger.With("record id", record_id)
+			// logger.Info("WTF")
 			// Placetypes (alt)
 
 			pt_stq := fmt.Sprintf("INSERT INTO %s (record_id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))
