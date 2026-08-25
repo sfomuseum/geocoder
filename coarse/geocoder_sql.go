@@ -61,6 +61,7 @@ type SQLGeocoder struct {
 	records            []*Record
 	batch_size         int
 	bulk_workers       int
+	identifier_cache   *sync.Map
 }
 
 type NewSQLGeocoderOptions struct {
@@ -253,6 +254,7 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 	}
 
 	mu := new(sync.RWMutex)
+	identifier_cache := new(sync.Map)
 
 	g := &SQLGeocoder{
 		db:                 opts.Database,
@@ -265,6 +267,7 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		records:            make([]*Record, 0),
 		batch_size:         1000,
 		bulk_workers:       50,
+		identifier_cache:   identifier_cache,
 	}
 
 	return g, nil
@@ -701,6 +704,56 @@ func (g *SQLGeocoder) tableName(label string) string {
 	}
 
 	return t.Name()
+}
+
+func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+
+	v, ok := g.identifier_cache.Load(id)
+
+	if ok {
+		return v.(int64), nil
+	}
+
+	q := fmt.Sprintf("INSERT INTO %s (identifier) VALUES (?) ON CONFLICT(identifier) DO UPDATE SET identifier = excluded.identifier", g.tableName("identifiers"))
+
+	slog.Info("Q", "q", q)
+	
+	rsp, err := tx.ExecContext(ctx, q, id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	record_id, err := rsp.LastInsertId()
+
+	if err != nil {
+		return 0, err
+	}
+
+	g.identifier_cache.Store(id, record_id)
+	return record_id, nil
+}
+
+func (g *SQLGeocoder) retrieveIdentifier(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+
+	v, ok := g.identifier_cache.Load(id)
+
+	if ok {
+		return v.(int64), nil
+	}
+
+	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
+	row := tx.QueryRowContext(ctx, q, id)
+
+	var record_id int64
+	err := row.Scan(&record_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	g.identifier_cache.Store(id, record_id)
+	return record_id, nil
 }
 
 func (g *SQLGeocoder) getRecordId(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {

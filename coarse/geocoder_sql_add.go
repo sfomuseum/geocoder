@@ -77,16 +77,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		throttle <- true
 	}
 
-	q := fmt.Sprintf("SELECT COALESCE(MAX(record_id), 0) FROM %s", g.tableName("records"))
-	row := tx.QueryRowContext(ctx, q)
-
-	var max int64
-	err = row.Scan(&max)
-
-	if err != nil {
-		return err
-	}
-
 	for _, rec := range records {
 
 		<-throttle
@@ -108,6 +98,48 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				done_ch <- true
 			}()
 
+			//
+
+			logger.Info("STORE", "id", rec.Id)
+			
+			record_id, err := g.storeIdentifier(ctx, tx, rec.Id)
+
+			if err != nil {
+				err_ch <- err
+				return
+			}
+
+			logger = logger.With("record id", record_id)
+
+			parent_id, err := g.storeIdentifier(ctx, tx, rec.ParentId)
+
+			if err != nil {
+				err_ch <- err
+				return
+			}
+
+			others := make([]string, 0)
+
+			for _, h := range rec.Hierarchies {
+
+				for _, v := range h {
+
+					if !slices.Contains(others, v) {
+						others = append(others, v)
+					}
+				}
+			}
+
+			for _, other_id := range others {
+				_, err := g.storeIdentifier(ctx, tx, other_id)
+
+				if err != nil {
+					logger.Error("Failed to store identifier for other ID", "other", other_id, "error", err)
+				}
+			}
+
+			//
+
 			enc_hierarchies, err := json.Marshal(rec.Hierarchies)
 
 			if err != nil {
@@ -122,9 +154,9 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			rec_q := fmt.Sprintf("INSERT INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING record_id", g.tableName("records"))
+			rec_q := fmt.Sprintf("INSERT INTO %s (id, parent_id, name, placetype, latitude, longitude, country, inception, cessation, hierarchies, is_current, population_rank, record_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", g.tableName("records"))
 
-			rsp, err := tx.ExecContext(ctx, rec_q, rec.Id, rec.ParentId, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
+			_, err = tx.ExecContext(ctx, rec_q, record_id, parent_id, rec.Name, rec.Placetype, rec.Centroid.Lat(), rec.Centroid.Lon(), rec.Country, rec.Inception, rec.Cessation, string(enc_hierarchies), rec.IsCurrent, rec.PopulationRank, record_hash)
 
 			if err != nil {
 				logger.Error("Failed to create record row", "error", err)
@@ -132,14 +164,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			record_id, err := rsp.LastInsertId()
-
-			if err != nil {
-				err_ch <- err
-				return
-			}
-
-			logger = logger.With("record id", record_id)
 			// logger.Info("WTF")
 			// Placetypes (alt)
 
@@ -176,11 +200,18 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			defer anc_st.Close()
 
-			ancestors := make([]string, 0)
+			ancestors := make([]int64, 0)
 
 			for _, hier := range rec.Hierarchies {
 
-				for _, id := range hier {
+				for _, str_id := range hier {
+
+					id, err := g.retrieveIdentifier(ctx, tx, str_id)
+
+					if err != nil {
+						logger.Error("Failed to retrieve identifier", "id", str_id, "error", err)
+						continue
+					}
 
 					if !slices.Contains(ancestors, id) {
 						ancestors = append(ancestors, id)

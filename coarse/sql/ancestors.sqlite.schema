@@ -1,4 +1,4 @@
 CREATE TABLE {{ .Name }} (
        record_id INTEGER NOT NULL,
-       ancestor_id TEXT NOT NULL COLLATE BINARY
+       ancestor_id INTEGER NOT NULL
 );

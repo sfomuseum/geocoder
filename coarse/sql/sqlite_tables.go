@@ -13,6 +13,12 @@ var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {
 
 	ctx := context.Background()
 
+	identifiers_table, err := NewIdentifiersTable(ctx)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to instantiate identifiers table, %w", err)
+	}
+
 	records_table, err := NewRecordsTable(ctx)
 
 	if err != nil {
@@ -71,6 +77,7 @@ var sqliteTables = sync.OnceValues(func() (map[string]sfom_sql.Table, error) {
 	}
 
 	db_tables := map[string]sfom_sql.Table{
+		"identifiers":        identifiers_table,
 		"records":            records_table,
 		"tokens":             tokens_table,
 		"dates":              dates_table,
