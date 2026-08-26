@@ -1,6 +1,6 @@
 CREATE TABLE {{ .Name }} (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       id INTEGER PRIMARY KEY,
        identifier TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX `idx_identifier` ON {{ .Name }} (`identifier`);
+-- CREATE UNIQUE INDEX `idx_identifier` ON {{ .Name }} (`identifier`);

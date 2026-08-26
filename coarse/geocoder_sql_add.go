@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
-	_ "sync/atomic"
+	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -77,6 +77,29 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		throttle <- true
 	}
 
+	//
+
+	g.identifier_mu.Lock()
+
+	q := fmt.Sprintf("SELECT COALESCE(MAX(id), 0) FROM %s", g.tableName("identifiers"))
+	row := tx.QueryRowContext(ctx, q)
+
+	var max_id int64
+	err = row.Scan(&max_id)
+
+	if err != nil {
+		g.identifier_mu.Unlock()
+		return err
+	}
+
+	if max_id > 0 {
+		atomic.StoreInt64(&g.identifier_counter, max_id)
+	}
+
+	g.identifier_mu.Unlock()
+
+	//
+
 	for _, rec := range records {
 
 		<-throttle
@@ -100,8 +123,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			//
 
-			logger.Info("STORE", "id", rec.Id)
-			
 			record_id, err := g.storeIdentifier(ctx, tx, rec.Id)
 
 			if err != nil {

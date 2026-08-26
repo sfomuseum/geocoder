@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -62,6 +63,8 @@ type SQLGeocoder struct {
 	batch_size         int
 	bulk_workers       int
 	identifier_cache   *sync.Map
+	identifier_counter int64
+	identifier_mu      *sync.RWMutex
 }
 
 type NewSQLGeocoderOptions struct {
@@ -254,7 +257,10 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 	}
 
 	mu := new(sync.RWMutex)
+
 	identifier_cache := new(sync.Map)
+	identifier_mu := new(sync.RWMutex)
+	identifier_counter := int64(0)
 
 	g := &SQLGeocoder{
 		db:                 opts.Database,
@@ -268,6 +274,8 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		batch_size:         1000,
 		bulk_workers:       50,
 		identifier_cache:   identifier_cache,
+		identifier_counter: identifier_counter,
+		identifier_mu:      identifier_mu,
 	}
 
 	return g, nil
@@ -708,29 +716,26 @@ func (g *SQLGeocoder) tableName(label string) string {
 
 func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
 
+	g.identifier_mu.Lock()
+	defer g.identifier_mu.Unlock()
+
 	v, ok := g.identifier_cache.Load(id)
 
 	if ok {
 		return v.(int64), nil
 	}
 
-	q := fmt.Sprintf("INSERT INTO %s (identifier) VALUES (?) ON CONFLICT(identifier) DO UPDATE SET identifier = excluded.identifier", g.tableName("identifiers"))
+	record_id := atomic.AddInt64(&g.identifier_counter, 1)
 
-	slog.Info("Q", "q", q)
-	
-	rsp, err := tx.ExecContext(ctx, q, id)
+	q := fmt.Sprintf("INSERT INTO %s (id, identifier) VALUES (?, ?)", g.tableName("identifiers"))
 
-	if err != nil {
-		return 0, err
-	}
-
-	record_id, err := rsp.LastInsertId()
+	_, err := tx.ExecContext(ctx, q, record_id, id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	g.identifier_cache.Store(id, record_id)
+	go g.identifier_cache.Store(id, record_id)
 	return record_id, nil
 }
 
