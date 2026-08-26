@@ -496,7 +496,7 @@ func (g *SQLGeocoder) assignExtra(ctx context.Context, f *geojson.Feature) error
 
 func (g *SQLGeocoder) assignBBox(ctx context.Context, f *geojson.Feature) error {
 
-	bounds_q := fmt.Sprintf("SELECT MIN(b.minx), MIN(b.miny), MAX(b.maxx), MAX(b.maxy) FROM %s b, %s r  WHERE b.record_id = r.record_id AND r.id = ?", g.tableName("bounds"), g.tableName("records"))
+	bounds_q := fmt.Sprintf("SELECT MIN(b.minx), MIN(b.miny), MAX(b.maxx), MAX(b.maxy) FROM %s b, %s r  WHERE b.record_id = r.id AND r.id = ?", g.tableName("bounds"), g.tableName("records"))
 
 	bounds_row := g.db.QueryRowContext(ctx, bounds_q, f.ID)
 
@@ -556,12 +556,25 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 	}
 
 	str_pt := f.Properties.MustString("wof:placetype", "")
-	parent_id := f.Properties.MustString("wof:parent_id", "")
+	parent_id, ok := f.Properties["wof:parent_id"]
+
+	str_parent := ""
+
+	if ok {
+
+		p, err := g.retrieveStringIdentifier(ctx, parent_id.(int64))
+
+		if err != nil {
+			slog.Warn("Failed to rerieve string identifier for parent", "id", parent_id, "error", err)
+		} else {
+			str_parent = p
+		}
+	}
 
 	label_opts := &hierarchies.AncestorIdsForLabelOptionsGeneric[string]{
 		Hierarchies: str_hiers,
 		Placetype:   str_pt,
-		ParentId:    parent_id,
+		ParentId:    str_parent,
 	}
 
 	name_ids := hierarchies.AncestorIdsForLabelGeneric[string](label_opts)
@@ -599,7 +612,7 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 func (g *SQLGeocoder) assignPlacetypeAlt(ctx context.Context, f *geojson.Feature) error {
 
-	pt_q := fmt.Sprintf("SELECT p.placetype from %s p, %s r WHERE r.record_id = p.record_id AND r.id = ?", g.tableName("placetypes_alt"), g.tableName("records"))
+	pt_q := fmt.Sprintf("SELECT p.placetype from %s p, %s r WHERE r.id = p.record_id AND r.id = ?", g.tableName("placetypes_alt"), g.tableName("records"))
 
 	pt_rows, err := g.db.QueryContext(ctx, pt_q, f.ID)
 
@@ -751,6 +764,23 @@ func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id str
 	g.identifier_cache.Store(id, record_id)
 	return record_id, nil
 }
+
+func (g *SQLGeocoder) retrieveStringIdentifier(ctx context.Context, id int64) (string, error) {
+
+	q := fmt.Sprintf("SELECT id FROM %s WHERE id = ?", g.tableName("identifiers"))
+	row := g.db.QueryRowContext(ctx, q, id)
+
+	var identifier string
+	err := row.Scan(&identifier)
+
+	if err != nil {
+		return "", err
+	}
+
+	return identifier, nil
+}
+
+// rename me ...
 
 func (g *SQLGeocoder) retrieveIdentifier(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
 

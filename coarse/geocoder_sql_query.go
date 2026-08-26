@@ -51,7 +51,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		logger = logger.With("query", query_str)
 
 		sb.WriteString("SELECT f.rank, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
-		sb.WriteString(" FROM tokens_fts f JOIN tokens t ON t.row_id = f.rowid JOIN records r ON r.record_id = t.record_id")
+		sb.WriteString(" FROM tokens_fts f JOIN tokens t ON t.row_id = f.rowid JOIN records r ON r.id = t.record_id")
 
 	} else {
 
@@ -64,7 +64,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 		sb.WriteString("WITH vector_matches AS (SELECT rowid, distance FROM embeddings WHERE embedding MATCH ? AND k = ?)")
 		sb.WriteString(" SELECT vm.distance AS distance, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
-		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.record_id = vm.rowid JOIN records r ON r.record_id = er.record_id")
+		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.id = vm.rowid JOIN records r ON r.id = er.id")
 
 		args = append(args, string(enc_e))
 		args = append(args, g.vector_query_k)
@@ -72,23 +72,23 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	}
 
 	if len(req.Placetype) > 0 {
-		sb.WriteString(" LEFT JOIN placetypes_alt p ON r.record_id = p.record_id")
+		sb.WriteString(" LEFT JOIN placetypes_alt p ON r.id = p.record_id")
 	}
 
 	if len(req.BelongsTo) > 0 {
-		sb.WriteString(" JOIN ancestors a ON r.record_id = a.record_id")
+		sb.WriteString(" JOIN ancestors a ON r.id = a.record_id")
 	}
 
 	// dates
 
 	if req.DateStarts != nil || req.DateEnds != nil {
-		sb.WriteString(" JOIN dates d ON r.record_id = d.record_id")
+		sb.WriteString(" JOIN dates d ON r.id = d.record_id")
 	}
 
 	// bounds
 
 	if req.Bounds != nil {
-		sb.WriteString(" JOIN bounds b ON r.record_id = b.record_id")
+		sb.WriteString(" JOIN bounds b ON r.id = b.record_id")
 	}
 
 	// Query stuff
@@ -271,8 +271,8 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	for rows.Next() {
 
 		var rank float64
-		var id string
-		var parent_id string
+		var id int64
+		var parent_id int64
 		var name string
 		var country string
 		var placetype string
