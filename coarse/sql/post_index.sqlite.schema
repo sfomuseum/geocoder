@@ -16,7 +16,6 @@ DELETE FROM placetypes_alt WHERE rowid NOT IN (
 
 -- Create indices
 
-CREATE UNIQUE INDEX idx_identifier ON identifiers (identifier);
 CREATE UNIQUE INDEX idx_records_id ON records (id);
 
 CREATE UNIQUE INDEX idx_ancestors ON ancestors (ancestor_id, record_id);

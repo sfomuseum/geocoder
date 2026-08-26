@@ -725,17 +725,30 @@ func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id str
 		return v.(int64), nil
 	}
 
-	record_id := atomic.AddInt64(&g.identifier_counter, 1)
+	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
 
-	q := fmt.Sprintf("INSERT INTO %s (id, identifier) VALUES (?, ?)", g.tableName("identifiers"))
+	row := tx.QueryRowContext(ctx, q, id)
 
-	_, err := tx.ExecContext(ctx, q, record_id, id)
+	var record_id int64
+	err := row.Scan(&record_id)
 
-	if err != nil {
+	switch {
+	case err == db_sql.ErrNoRows:
+		// pass
+	case err != nil:
 		return 0, err
+	default:
+		g.identifier_cache.Store(id, record_id)
+		return record_id, nil
 	}
 
-	go g.identifier_cache.Store(id, record_id)
+	record_id = atomic.AddInt64(&g.identifier_counter, 1)
+
+	q = fmt.Sprintf("INSERT INTO %s (id, identifier) VALUES (?, ?)", g.tableName("identifiers"))
+
+	_, err = tx.ExecContext(ctx, q, record_id, id)
+
+	g.identifier_cache.Store(id, record_id)
 	return record_id, nil
 }
 
