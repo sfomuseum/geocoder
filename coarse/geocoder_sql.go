@@ -473,7 +473,26 @@ func (g *SQLGeocoder) assignExtra(ctx context.Context, f *geojson.Feature) error
 	logger := slog.Default()
 	logger = logger.With("id", f.ID)
 
-	err := g.assignHierarchiesAndLabel(ctx, f)
+	id := f.Properties["wof:id"]
+	parent_id := f.Properties["wof:parent_id"]	
+	
+	str_id, err := g.retrieveStringIdentifier(ctx, id.(int64))
+
+	if err != nil {
+		slog.Error("Failed to retrieve string identifier", "id", id, "error", err)
+	} else {
+		f.Properties["wof:id"] = str_id
+	}
+		
+	str_parent, err := g.retrieveStringIdentifier(ctx, parent_id.(int64))
+
+	if err != nil {
+		slog.Error("Failed to retrieve string identifier", "id", parent_id, "error", err)
+	} else {
+		f.Properties["wof:parent_id"] = str_parent
+	}
+	
+	err = g.assignHierarchiesAndLabel(ctx, f)
 
 	if err != nil {
 		logger.Warn("Failed to assign label", "error", err)
@@ -562,12 +581,25 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	if ok {
 
-		p, err := g.retrieveStringIdentifier(ctx, parent_id.(int64))
-
-		if err != nil {
-			slog.Warn("Failed to rerieve string identifier for parent", "id", parent_id, "error", err)
-		} else {
-			str_parent = p
+		// This is unfortunate but we need to trap instances where parent_id
+		// has already been reassigned as a string value (this happens in
+		// assignExtra)
+		
+		switch parent_id.(type) {
+		case int64:
+			
+			p, err := g.retrieveStringIdentifier(ctx, parent_id.(int64))
+			
+			if err != nil {
+				slog.Warn("Failed to rerieve string identifier for parent", "id", parent_id, "error", err)
+			} else {
+				str_parent = p
+			}
+			
+		case string:
+			str_parent = parent_id.(string)
+		default:
+			slog.Warn("Unexpected type for parent ID")
 		}
 	}
 
@@ -581,14 +613,21 @@ func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.
 
 	names_q := fmt.Sprintf("SELECT name, placetype, country from %s WHERE id = ?", g.tableName("records"))
 
-	for _, id := range name_ids {
+	for _, str_id := range name_ids {
 
+		id, err := g.retrieveInt64IdentifierDb(ctx, str_id)
+		
+		if err != nil {
+			logger.Error("Failed to retrieve int64 id", "id", str_id, "error", err)
+			continue
+		}
+		
 		var id_name string
 		var id_placetype string
 		var id_country string
 
 		row := g.db.QueryRowContext(ctx, names_q, id)
-		err := row.Scan(&id_name, &id_placetype, &id_country)
+		err = row.Scan(&id_name, &id_placetype, &id_country)
 
 		switch {
 		case err == db_sql.ErrNoRows:
@@ -732,32 +771,15 @@ func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id str
 	g.identifier_mu.Lock()
 	defer g.identifier_mu.Unlock()
 
-	v, ok := g.identifier_cache.Load(id)
+	record_id, err := g.retrieveInt64IdentifierTx(ctx, tx, id)
 
-	if ok {
-		return v.(int64), nil
-	}
-
-	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
-
-	row := tx.QueryRowContext(ctx, q, id)
-
-	var record_id int64
-	err := row.Scan(&record_id)
-
-	switch {
-	case err == db_sql.ErrNoRows:
-		// pass
-	case err != nil:
-		return 0, err
-	default:
-		g.identifier_cache.Store(id, record_id)
+	if err == nil {
 		return record_id, nil
 	}
 
 	record_id = atomic.AddInt64(&g.identifier_counter, 1)
 
-	q = fmt.Sprintf("INSERT INTO %s (id, identifier) VALUES (?, ?)", g.tableName("identifiers"))
+	q := fmt.Sprintf("INSERT INTO %s (id, identifier) VALUES (?, ?)", g.tableName("identifiers"))
 
 	_, err = tx.ExecContext(ctx, q, record_id, id)
 
@@ -767,7 +789,7 @@ func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id str
 
 func (g *SQLGeocoder) retrieveStringIdentifier(ctx context.Context, id int64) (string, error) {
 
-	q := fmt.Sprintf("SELECT id FROM %s WHERE id = ?", g.tableName("identifiers"))
+	q := fmt.Sprintf("SELECT identifier FROM %s WHERE id = ?", g.tableName("identifiers"))
 	row := g.db.QueryRowContext(ctx, q, id)
 
 	var identifier string
@@ -780,9 +802,7 @@ func (g *SQLGeocoder) retrieveStringIdentifier(ctx context.Context, id int64) (s
 	return identifier, nil
 }
 
-// rename me ...
-
-func (g *SQLGeocoder) retrieveIdentifier(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+func (g *SQLGeocoder) retrieveInt64IdentifierTx(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
 
 	v, ok := g.identifier_cache.Load(id)
 
@@ -792,6 +812,28 @@ func (g *SQLGeocoder) retrieveIdentifier(ctx context.Context, tx *db_sql.Tx, id 
 
 	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
 	row := tx.QueryRowContext(ctx, q, id)
+
+	var record_id int64
+	err := row.Scan(&record_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	g.identifier_cache.Store(id, record_id)
+	return record_id, nil
+}
+
+func (g *SQLGeocoder) retrieveInt64IdentifierDb(ctx context.Context, id string) (int64, error) {
+
+	v, ok := g.identifier_cache.Load(id)
+
+	if ok {
+		return v.(int64), nil
+	}
+
+	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
+	row := g.db.QueryRowContext(ctx, q, id)
 
 	var record_id int64
 	err := row.Scan(&record_id)

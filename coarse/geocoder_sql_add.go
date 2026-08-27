@@ -227,7 +227,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 				for _, str_id := range hier {
 
-					id, err := g.retrieveIdentifier(ctx, tx, str_id)
+					id, err := g.retrieveInt64IdentifierTx(ctx, tx, str_id)
 
 					if err != nil {
 						logger.Error("Failed to retrieve identifier", "id", str_id, "error", err)
