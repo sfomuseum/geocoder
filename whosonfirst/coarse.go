@@ -184,7 +184,7 @@ func NewCoarseGeocoderRecord(ctx context.Context, opts *NewCoarseGeocoderRecordO
 
 		throttle := make(chan bool, workers)
 
-		for i := 0; i < workers; i++ {
+		for range workers {
 			throttle <- true
 		}
 
