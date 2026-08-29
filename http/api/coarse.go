@@ -258,7 +258,21 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 			query_req.DateEnds = ranges
 		}
 
-		//
+		// Source
+
+		source, err := sanitize.PostString(req, "source")
+
+		if err != nil {
+			logger.Error("Failed to derive source", "error", err)
+			http.Error(rsp, "Invalid source parameter", http.StatusBadRequest)
+			return
+		}
+
+		if source != "" {
+			query_req.Source = source
+		}
+
+		// Pagination
 
 		// To do: derive options from URI constructor...
 		pg_opts, err := countable.NewCountableOptions()

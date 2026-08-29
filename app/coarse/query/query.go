@@ -119,6 +119,10 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		req.DateEnds = ranges
 	}
 
+	if opts.Source != "" {
+		req.Source = opts.Source
+	}
+
 	// START OF...
 
 	if opts.EmbeddingsSearch {
@@ -236,9 +240,9 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 			vals := []string{
 				fmt.Sprintf("%v", f.Properties["geocoder:rank"]),
-				fmt.Sprintf("%v", f.Properties["wof:id"]),
-				// f.Properties["wof:name"].(string),
-				f.Properties["wof:label"].(string),
+				f.Properties["geocoder:id"].(string),
+				f.Properties["geocoder:name"].(string),
+				f.Properties["geocoder:label"].(string),
 				strings.Join(all_pt, "; "),
 				strconv.FormatFloat(lat, 'g', -1, 64),
 				strconv.FormatFloat(lon, 'g', -1, 64),

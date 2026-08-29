@@ -8,14 +8,13 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	_ "modernc.org/sqlite"
-	_ "modernc.org/sqlite/vec"
+	"unicode"
 
 	"github.com/aaronland/go-pagination"
 	"github.com/aaronland/go-pagination/countable"
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
+	"github.com/sfomuseum/geocoder/placeholder"
 )
 
 func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagination.Options) ([]*geojson.Feature, pagination.Results, error) {
@@ -89,6 +88,10 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 	if req.Bounds != nil {
 		sb.WriteString(" JOIN bounds b ON r.id = b.record_id")
+	}
+
+	if req.Source != "" {
+		sb.WriteString(" JOIN identifiers i ON i.id = r.id")
 	}
 
 	// Query stuff
@@ -203,6 +206,13 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		args = append(args, req.IsCurrent.StringFlag())
 	}
 
+	// Source
+
+	if req.Source != "" {
+		sb.WriteString(" AND i.identifier LIKE ?")
+		args = append(args, req.Source+"%")
+	}
+
 	sb.WriteString(" GROUP BY r.id")
 
 	sb.WriteString(` ORDER BY (
@@ -220,6 +230,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(`, f.rank ASC, MIN(CASE t.tag
 					WHEN 'concordance' THEN 0.5
 					WHEN 'preferred'    THEN 1.0
+					WHEN 'offical'    THEN 1.5
 					WHEN 'colloquial' THEN 2.0
 					WHEN 'variant'    THEN 4.0
 					WHEN 'historical'    THEN 5.0
@@ -239,6 +250,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 				WHEN 'campus' THEN 2.5
 				WHEN 'postalcode' THEN 2.9
 				WHEN 'county' THEN 3.0
+				WHEN 'marinearea' THEN 3.5
 				WHEN 'region' THEN 4.0
 				WHEN 'country' THEN 5.0	
 				ELSE 10.0
@@ -290,16 +302,16 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		}
 
 		props := map[string]any{
-			"wof:id":          id,
-			"wof:parent_id":   parent_id,
-			"wof:name":        name,
-			"wof:country":     country,
-			"wof:placetype":   placetype,
-			"mz:is_current":   is_current,
-			"edtf:inception":  inception,
-			"edtf:cessation":  cessation,
-			"wof:hierarchies": enc_hierarchies,
-			"geocoder:rank":   rank,
+			"geocoder:id":          id,
+			"geocoder:parent_id":   parent_id,
+			"geocoder:name":        name,
+			"wof:country":          country,
+			"wof:placetype":        placetype,
+			"mz:is_current":        is_current,
+			"edtf:inception":       inception,
+			"edtf:cessation":       cessation,
+			"geocoder:hierarchies": enc_hierarchies,
+			"geocoder:rank":        rank,
 		}
 
 		pt := orb.Point([2]float64{longitude, latitude})
@@ -336,4 +348,50 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	}
 
 	return features, pg_rsp, nil
+}
+
+func (g *SQLGeocoder) prepareQuery(input string) string {
+
+	if re_machinetag.MatchString(input) {
+		// To do: Support wildcards
+		input = strings.ReplaceAll(input, ":", "_")
+		input = strings.ReplaceAll(input, "=", "__")
+		return input
+	}
+
+	words := strings.Fields(placeholder.Normalize(input))
+
+	if len(words) == 0 {
+		return ""
+	}
+
+	var sanitized []string
+
+	for _, word := range words {
+
+		// Strip characters that disrupt FTS5 syntax (like raw quotes or dashes)
+		clean := strings.Map(func(r rune) rune {
+			// unicode.IsLetter handles all global alphabets (Greek, Cyrillic, CJK, Arabic, etc.)
+			// unicode.IsNumber handles global digits (0-9, and non-Arabic numeral systems)
+			if unicode.IsLetter(r) || unicode.IsNumber(r) {
+				return r
+			}
+
+			// Keep Unicode letters/numbers if working with global languages
+			return -1
+		}, word)
+
+		if clean != "" {
+			sanitized = append(sanitized, clean)
+		}
+	}
+
+	if len(sanitized) == 0 {
+		return ""
+	}
+
+	lastIdx := len(sanitized) - 1
+	sanitized[lastIdx] = sanitized[lastIdx] + "*"
+
+	return strings.Join(sanitized, " AND ")
 }

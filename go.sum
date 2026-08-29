@@ -282,8 +282,8 @@ github.com/whosonfirst/go-rfc-5646 v0.1.0 h1:HNFPAem6v5De61PXLgbGzx9tfNOP83AAkVv
 github.com/whosonfirst/go-rfc-5646 v0.1.0/go.mod h1:JZj//FV9YeV3fkyOY/82V53EMLQXwRwNPuQIGs8BUmo=
 github.com/whosonfirst/go-sanitize v0.1.0 h1:ygSqCnakwdzH/m8UEa15zXGDsoo5/JJeRkgmAjXZrBU=
 github.com/whosonfirst/go-sanitize v0.1.0/go.mod h1:p/emgbafMM0p5iVAz2XWwecYPl06Tw4Jos9rhTKIrt8=
-github.com/whosonfirst/go-whosonfirst/v4 v4.11.0 h1:hD3NAfbLh6wbsbOStbY4xROMRzmBBzpdeJk0wFkdjMU=
-github.com/whosonfirst/go-whosonfirst/v4 v4.11.0/go.mod h1:RILVgKrvcVR3dIKIec7pNDo+zwjQrFVGFtxvx11UUpI=
+github.com/whosonfirst/go-whosonfirst/v4 v4.11.1 h1:qRLk+A0890SDh6GWv6bOKSxIDoHAerLA6yivMVk/3sw=
+github.com/whosonfirst/go-whosonfirst/v4 v4.11.1/go.mod h1:RILVgKrvcVR3dIKIec7pNDo+zwjQrFVGFtxvx11UUpI=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=

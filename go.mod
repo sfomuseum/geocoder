@@ -18,7 +18,7 @@ require (
 	github.com/sfomuseum/go-flags v0.12.1
 	github.com/tidwall/gjson v1.19.0
 	github.com/whosonfirst/go-rfc-5646 v0.1.0
-	github.com/whosonfirst/go-whosonfirst/v4 v4.11.0
+	github.com/whosonfirst/go-whosonfirst/v4 v4.11.1
 	golang.org/x/text v0.40.0
 	modernc.org/sqlite v1.56.0
 )

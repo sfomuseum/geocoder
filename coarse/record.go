@@ -33,12 +33,12 @@ type VectorEmbeddings struct {
 // WOF schema – only the fields that are needed for coarse
 // geocoding are retained.
 type Record struct {
-	// Id is the Who's On First identifier of the place.
-	Id string `json:"wof:id"`
-	// ParentId is the Who's On First identifier of the parent place.
-	ParentId string `json:"wof:parent_id"`
+	// Id is the unique identifier of the place.
+	Id string `json:"geocoder:id"`
+	// ParentId is the unique identifier of the parent place.
+	ParentId string `json:"geocoder:parent_id"`
 	// Name is the primary name of the place.
-	Name string `json:"wof:name"`
+	Name string `json:"geocoder:name"`
 	// Country is the ISO 3166‑1 alpha‑2 country code of the place.
 	Country string `json:"wof:country"`
 	// Placetype is the primary Who's On First placetype of the place.
@@ -48,11 +48,11 @@ type Record struct {
 	PlacetypeAlt []string `json:"wof:placetype_alt"`
 	// Hierarchies contains the ancestor hierarchies for the place.
 	// Each hierarchy is a map of placetype to ancestor ID.
-	Hierarchies []map[string]string `json:"wof:hierarchies"`
+	Hierarchies []map[string]string `json:"geocoder:hierarchies"`
 	// Centroid is the geographic centroid of the place.
-	Centroid *orb.Point `json:"wof:centroid"`
+	Centroid *orb.Point `json:"geo:centroid"`
 	// Bounds is a slice of bounding boxes that enclose the place.
-	Bounds []orb.Bound `json:"wof:bounds"`
+	Bounds []orb.Bound `json:"geo:bounds"`
 	// Inception is the EDTF representation of the start date of the place.
 	Inception string `json:"edtf:inception,omitempty"`
 	// Cessation is the EDTF representation of the end date of the place.

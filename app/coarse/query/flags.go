@@ -21,6 +21,7 @@ var belongsto multi.MultiInt64
 var str_bounds string
 var date_starts string
 var date_ends string
+var source string
 
 var embeddings_search bool
 var embeddings_model string
@@ -48,6 +49,7 @@ func DefaultFlagSet() *flag.FlagSet {
 	fs.StringVar(&str_bounds, "bounds", "", "Optional bounding box (in the form of 'minx,miny,maxx,mayx') to filter results by.")
 	fs.StringVar(&date_starts, "date-starts", "", "Optional ETDF starting date string to filter results by.")
 	fs.StringVar(&date_ends, "date-ends", "", "Optional ETDF ending date string to filter results by.")
+	fs.StringVar(&source, "source", "", "Optional source (identifier prefix) to filter results by.")
 
 	fs.BoolVar(&embeddings_search, "embeddings-search", false, "Generate and use vector embeddings for search terms to query records. This feature is still considered experimental.")
 	fs.StringVar(&embedder_uri, "embedder-uri", vec.DEFAULT_EMBEDDER_URI, "A registered sfomuseum/go-embeddings.Embedder URI.")

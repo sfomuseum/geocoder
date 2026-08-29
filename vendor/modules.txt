@@ -517,7 +517,7 @@ github.com/whosonfirst/go-rfc-5646/tags
 # github.com/whosonfirst/go-sanitize v0.1.0
 ## explicit; go 1.12
 github.com/whosonfirst/go-sanitize
-# github.com/whosonfirst/go-whosonfirst/v4 v4.11.0
+# github.com/whosonfirst/go-whosonfirst/v4 v4.11.1
 ## explicit; go 1.26.6
 github.com/whosonfirst/go-whosonfirst/v4/feature
 github.com/whosonfirst/go-whosonfirst/v4/feature/alt
