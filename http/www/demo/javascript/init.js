@@ -24,6 +24,7 @@ window.addEventListener("load", function load(event){
     const adv_placetype_el = document.querySelector("#advanced-placetype");
     const adv_country_el = document.querySelector("#advanced-country");
     const adv_belongsto_el = document.querySelector("#advanced-belongsto");
+    const adv_source_el = document.querySelector("#advanced-source");    
     const adv_submit_el = document.querySelector("#advanced-submit");                    
 
     var geocode_spinner = document.getElementById("geocode-spinner-svg");    
@@ -485,6 +486,12 @@ window.addEventListener("load", function load(event){
 	    form_data.set("belongsto", bt.split(","));
 	}
 
+	const source = adv_source_el.value;
+
+	if (source != ""){
+	    form_data.set("source", source);
+	}
+	
 	results_el.style.display = "none";	
 	results_el.innerHTML = "";
 	feedback_el.innerHTML = "";
