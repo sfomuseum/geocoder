@@ -16,12 +16,13 @@ DELETE FROM placetypes_alt WHERE rowid NOT IN (
 
 -- Create indices
 
-CREATE UNIQUE INDEX idx_records_id ON records (id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tokens_row_id ON tokens (row_id);
+CREATE INDEX IF NOT EXISTS idx_ancestors_record_id ON ancestors (record_id);
+CREATE INDEX IF NOT EXISTS idx_identifiers_id_identifier ON identifiers (id, identifier);
 
 CREATE UNIQUE INDEX idx_ancestors ON ancestors (ancestor_id, record_id);
 CREATE UNIQUE INDEX idx_placetypes_alt ON placetypes_alt (record_id, placetype);
 CREATE INDEX bounds_by_recordid ON bounds (record_id);
-CREATE INDEX idx_identifers_id ON identifiers (id);
 
 CREATE INDEX idx_dates_outer ON dates (start_outer, end_outer);
 CREATE INDEX idx_dates_outer_inner ON dates (start_outer, end_inner);

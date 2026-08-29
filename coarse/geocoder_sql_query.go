@@ -75,71 +75,47 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 	}
 
 	if len(req.BelongsTo) > 0 {
-		sb.WriteString(" JOIN ancestors a ON r.id = a.record_id")
-
-		// Will this work?
-		sb.WriteString(" JOIN identifiers i ON a.ancestorid = i.id")		
+		sb.WriteString(" LEFT JOIN ancestors a ON r.id = a.record_id")
+		sb.WriteString(" LEFT JOIN identifiers ia ON a.ancestor_id = ia.id")
 	}
 
-	// dates
+	if req.Source != "" {
+		sb.WriteString(" LEFT JOIN identifiers ir ON ir.id = r.id")
+	}
 
 	if req.DateStarts != nil || req.DateEnds != nil {
 		sb.WriteString(" JOIN dates d ON r.id = d.record_id")
 	}
 
-	// bounds
-
 	if req.Bounds != nil {
 		sb.WriteString(" JOIN bounds b ON r.id = b.record_id")
 	}
 
-	if req.Source != "" {
-		sb.WriteString(" JOIN identifiers i ON i.id = r.id")
-	}
-
-	// Query stuff
-
 	if len(req.QueryEmbeddings) == 0 {
-
 		sb.WriteString(" WHERE f.token MATCH ?")
-
-		args = []any{
-			query_str,
-		}
+		args = []any{query_str}
 	}
-
-	// Dates
 
 	if req.DateStarts != nil {
-
 		sb.WriteString(" AND (? <= d.start_outer AND ? <= d.start_inner)")
-		args = append(args, req.DateStarts.Outer.Start)
-		args = append(args, req.DateStarts.Inner.Start)
+		args = append(args, req.DateStarts.Outer.Start, req.DateStarts.Inner.Start)
 	}
 
 	if req.DateEnds != nil {
-
 		sb.WriteString(" AND (d.end_inner <= ? AND d.end_outer <= ?)")
-		args = append(args, req.DateEnds.Inner.End)
-		args = append(args, req.DateEnds.Outer.End)
+		args = append(args, req.DateEnds.Inner.End, req.DateEnds.Outer.End)
 	}
-
-	// Bounds
 
 	if req.Bounds != nil {
 
 		coords := []any{
-			req.Bounds.Min.X(),
-			req.Bounds.Max.X(),
-			req.Bounds.Min.Y(),
-			req.Bounds.Max.Y(),
+			req.Bounds.Min.X(), req.Bounds.Max.X(),
+			req.Bounds.Min.Y(), req.Bounds.Max.Y(),
 		}
 
 		sb.WriteString(" AND (b.maxx >= ? AND b.minx <= ? AND b.maxy >= ? AND b.miny <= ?)")
 		args = append(args, coords...)
 	}
-
-	// Placetypes
 
 	if len(req.Placetype) > 0 {
 
@@ -150,17 +126,15 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			args = append(args, pt)
 		}
 
-		for i, pt := range req.Placetype {
-			placeholders[i] = "?"
+		// Duplicate elements for the second IN clause array
+
+		for _, pt := range req.Placetype {
 			args = append(args, pt)
 		}
 
 		str_placeholders := strings.Join(placeholders, ",")
-
 		sb.WriteString(fmt.Sprintf(" AND (r.placetype IN (%s) OR p.placetype IN (%s))", str_placeholders, str_placeholders))
 	}
-
-	// Belongs to (ancestors)
 
 	if len(req.BelongsTo) > 0 {
 
@@ -171,27 +145,22 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			args = append(args, anc_id)
 		}
 
-		// sb.WriteString(fmt.Sprintf(" AND a.ancestor_id IN (%s)", strings.Join(placeholders, ",")))
-		
-		// Will this work?		
-		sb.WriteString(fmt.Sprintf(" AND a.ancestor_id = i.id AND i.identifier IN (%s)", strings.Join(placeholders, ",")))
-	}
+		for _, anc_id := range req.BelongsTo {
+			args = append(args, anc_id)
+		}
 
-	// Language
+		sb.WriteString(fmt.Sprintf(" AND (a.ancestor_id IN (%s) OR ia.identifier IN (%s))", strings.Join(placeholders, ","), strings.Join(placeholders, ",")))
+	}
 
 	if req.Lang != "" {
 		sb.WriteString(" AND r.lang = ?")
-		args = append(args, req.Tag)
+		args = append(args, req.Lang) // Note: fixed from req.Tag to req.Lang
 	}
-
-	// Language (x-) tag
 
 	if req.Tag != "" {
 		sb.WriteString(" AND r.tag = ?")
 		args = append(args, req.Tag)
 	}
-
-	// Countries
 
 	if len(req.Country) > 0 {
 
@@ -205,17 +174,13 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(fmt.Sprintf(" AND r.country IN (%s)", strings.Join(placeholders, ",")))
 	}
 
-	// Is current
-
 	if req.IsCurrent != nil {
 		sb.WriteString(" AND r.is_current = ?")
 		args = append(args, req.IsCurrent.StringFlag())
 	}
 
-	// Source
-
 	if req.Source != "" {
-		sb.WriteString(" AND i.identifier LIKE ?")
+		sb.WriteString(" AND ir.identifier LIKE ?")
 		args = append(args, req.Source+"%")
 	}
 
@@ -236,9 +201,9 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(`, f.rank ASC, MIN(CASE t.tag
 					WHEN 'concordance' THEN 0.5
 					WHEN 'preferred'    THEN 1.0
-					WHEN 'offical'    THEN 1.5
-					WHEN 'colloquial' THEN 2.0
-					WHEN 'variant'    THEN 4.0
+					WHEN 'official'    THEN 1.5
+					WHEN 'variant'    THEN 2.0
+					WHEN 'colloquial' THEN 2.5
 					WHEN 'historical'    THEN 5.0
 					WHEN 'unknown'   THEN 6.0
 					ELSE 10.0
@@ -258,7 +223,10 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 				WHEN 'county' THEN 3.0
 				WHEN 'marinearea' THEN 3.5
 				WHEN 'region' THEN 4.0
-				WHEN 'country' THEN 5.0	
+				WHEN 'macroregion' THEN 4.5
+				WHEN 'dependency' THEN 4.5
+				WHEN 'country' THEN 5.0
+				WHEN 'empire' THEN 9.0	
 				ELSE 10.0
                         END) ASC`)
 

@@ -12,6 +12,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/netascode/xmldot v0.5.1
 	github.com/paulmach/orb v0.13.0
+	github.com/sfomuseum/go-csvdict/v2 v2.0.1
 	github.com/sfomuseum/go-database v0.0.21
 	github.com/sfomuseum/go-edtf v1.3.0
 	github.com/sfomuseum/go-embeddings v0.5.2

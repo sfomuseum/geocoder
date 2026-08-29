@@ -70,6 +70,56 @@ SFO Museum has produced a data file containing records from all the [whosonfirst
 $> curl -s -o wof-sfom.db https://static.sfomuseum.org/geocoder/wof-sfom.db
 ```
 
+## Data sources
+
+Although this tool is primary targeted at Who's On First-shaped documents, internally those documents are transformed in an [internal `Record` struct](coarse/record.go) which looks like this:
+
+```
+type Record struct {
+	// Id is the unique identifier of the place.
+	Id string `json:"geocoder:id"`
+	// ParentId is the unique identifier of the parent place.
+	ParentId string `json:"geocoder:parent_id"`
+	// Name is the primary name of the place.
+	Name string `json:"geocoder:name"`
+	// Country is the ISO 3166‑1 alpha‑2 country code of the place.
+	Country string `json:"wof:country"`
+	// Placetype is the primary Who's On First placetype of the place.
+	Placetype string `json:"wof:placetype"`
+	// PlacetypeAlt contains any alternative placetypes stored in
+	// the Who's On First `wof:placetype_alt` property.
+	PlacetypeAlt []string `json:"wof:placetype_alt"`
+	// Hierarchies contains the ancestor hierarchies for the place.
+	// Each hierarchy is a map of placetype to ancestor ID.
+	Hierarchies []map[string]string `json:"geocoder:hierarchies"`
+	// Centroid is the geographic centroid of the place.
+	Centroid *orb.Point `json:"geo:centroid"`
+	// Bounds is a slice of bounding boxes that enclose the place.
+	Bounds []orb.Bound `json:"geo:bounds"`
+	// Inception is the EDTF representation of the start date of the place.
+	Inception string `json:"edtf:inception,omitempty"`
+	// Cessation is the EDTF representation of the end date of the place.
+	Cessation string `json:"etdf:cessation,omitempty"`
+	// PopulationRank is an integer that indicates relative population size.
+	PopulationRank int64 `json:"wof:population_rank,omitempty"`
+	// IsCurrent indicates whether the place is current (1), not current (0)
+	// or unknown (-1).
+	IsCurrent string `json:"mz:is_current,omitempty"`
+	// Tokens contains tokenised names and concordances indexed for full‑text search.
+	Tokens map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
+	// VectorEmbeddings holds pre‑computed embeddings for the place.
+	VectorEmbeddings []*VectorEmbeddings
+}
+```
+
+Which is not really Who's On First (WOF) specific. For started unique identifiers are recorded as string values rather than integers (as used by WOF). This prevents the potential for ID collisions when indexing two or more different data sources that use numeric identifiers. It also allows for data sources that use string-derive identifiers to be indexed.
+
+There are no specific rules for identifiers and this package does not try to resolve ID conflicts. That is left up to consumers of the package. The convention used by this package is to encode identifiers in machinetag-style strings. For example, WOF identifiers are encoded as `wof:id={WOF IDENTIFIER}`. Requiring that identifiers follow that particular convention feels like overkill, though.
+
+Placetypes and hierarchies are expected, but not required, to be [WOF-defined placetypes](https://github.com/whosonfirst/whosonfirst-placetypes). This is mostly to support the logic to construct place labels with a detailed lineage. If alternate placetypes are used and that lineage can not be defined results will simply use the name value defined in the `Record` instance.
+
+Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1). This remain "to be determined".
+
 ## Tools
 
 ```
@@ -210,7 +260,7 @@ Usage:
 	./bin/wof-coarse-geocoder-query [options]
 Valid options are:
   -belongs-to value
-    	Zero or more Who's On First ancestor IDs to filter results by.
+    	Zero or more ancestor identifiers to filter results by.
   -bounds string
     	Optional bounding box (in the form of 'minx,miny,maxx,mayx') to filter results by.
   -country value
@@ -230,7 +280,7 @@ Valid options are:
   -lang string
     	An optional (3-letter) language code to filter results by,
   -mode string
-    	Output mode for results. Valid options are: geojson, tab. (default "tab")
+    	Output mode for results. Valid options are: csv, geojson, tab. (default "tab")
   -page int
     	The specific page number to query for paginated result sets. (default 1)
   -per-page int
@@ -494,7 +544,7 @@ $> curl -X POST \
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `country` | string (multi‑value) | Two‑letter ISO country code(s). Limits results to places that belong to the specified country/ies. Example: `country=US` or `country=US&country=CA`. |
-| `belongs-to` | integer (multi‑value) | Ancestor WOF IDs that the results must belong to. Example: `belongs-to=12345678`. |
+| `belongs-to` | string (multi‑value) | Ancestor IDs that the results must belong to. Example: `belongs-to=12345678`. |
 | `placetype` | string (multi‑value) | One or more place‑type identifiers (e.g. `city`, `river`). Example: `placetype=location&placetype=region`. |
 | `lang` | string | Three‑letter language code that restricts the search to tokens in that language. |
 | `tag` | string | WOF language tag (e.g. `preferred`, `variant`). |
@@ -584,54 +634,6 @@ Clicking on either a location's point on the map or its ID in list view will dis
 ![](docs/images/geocoder-demo-paris-2.png)
 
 That's all it does for the time being.
-
-## Data sources
-
-Although this tool is primary targeted at Who's On First-shaped documents, internally those documents are transformed in an [internal `Record` struct](coarse/record.go) which looks like this:
-
-```
-type Record struct {
-	// Id is the unique identifier of the place.
-	Id string `json:"geocoder:id"`
-	// ParentId is the unique identifier of the parent place.
-	ParentId string `json:"geocoder:parent_id"`
-	// Name is the primary name of the place.
-	Name string `json:"geocoder:name"`
-	// Country is the ISO 3166‑1 alpha‑2 country code of the place.
-	Country string `json:"wof:country"`
-	// Placetype is the primary Who's On First placetype of the place.
-	Placetype string `json:"wof:placetype"`
-	// PlacetypeAlt contains any alternative placetypes stored in
-	// the Who's On First `wof:placetype_alt` property.
-	PlacetypeAlt []string `json:"wof:placetype_alt"`
-	// Hierarchies contains the ancestor hierarchies for the place.
-	// Each hierarchy is a map of placetype to ancestor ID.
-	Hierarchies []map[string]string `json:"geocoder:hierarchies"`
-	// Centroid is the geographic centroid of the place.
-	Centroid *orb.Point `json:"geo:centroid"`
-	// Bounds is a slice of bounding boxes that enclose the place.
-	Bounds []orb.Bound `json:"geo:bounds"`
-	// Inception is the EDTF representation of the start date of the place.
-	Inception string `json:"edtf:inception,omitempty"`
-	// Cessation is the EDTF representation of the end date of the place.
-	Cessation string `json:"etdf:cessation,omitempty"`
-	// PopulationRank is an integer that indicates relative population size.
-	PopulationRank int64 `json:"wof:population_rank,omitempty"`
-	// IsCurrent indicates whether the place is current (1), not current (0)
-	// or unknown (-1).
-	IsCurrent string `json:"mz:is_current,omitempty"`
-	// Tokens contains tokenised names and concordances indexed for full‑text search.
-	Tokens map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
-	// VectorEmbeddings holds pre‑computed embeddings for the place.
-	VectorEmbeddings []*VectorEmbeddings
-}
-```
-
-Which is not really Who's On First (WOF) specific. For started unique identifiers are recorded as string values rather than integers (as used by WOF). This prevents the potential for ID collisions when indexing two or more different data sources that use numeric identifiers. It also allows for data sources that use string-derive identifiers to be indexed.
-
-There are no specific rules for identifiers and this package does not try to resolve ID conflicts. That is left up to consumers of the package. The convention used by this package is to encode identifiers in machinetag-style strings. For example, WOF identifiers are encoded as `wof:id={WOF IDENTIFIER}`.
-
-Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1). This remain "to be determined".
 
 ## Experimental
 

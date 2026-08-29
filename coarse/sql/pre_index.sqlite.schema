@@ -2,8 +2,9 @@ DROP TRIGGER IF EXISTS tokens_insert;
 DROP TRIGGER IF EXISTS tokens_delete;
 DROP TABLE IF EXISTS tokens_fts;
 
-DROP INDEX IF EXISTS idx_identifers_id;
-DROP INDEX IF EXISTS idx_records_id;
+DROP INDEX IF EXISTS idx_tokens_row_id
+DROP INDEX IF EXISTS idx_ancestors_record_id
+DROP INDEX IF EXISTS idx_identifiers_id_identifier
 DROP INDEX IF EXISTS idx_tokens_lookup;
 DROP INDEX IF EXISTS idx_ancestors;
 DROP INDEX IF EXISTS idx_placetypes;
