@@ -89,7 +89,6 @@ window.addEventListener("load", function load(event){
 		feature_cache[id_prep] = layer;
 
 		layer.on("click", function(){
-		    console.log("CLICK", id_prep);
 		    select_row(id_prep);
 		});
 		
@@ -283,13 +282,9 @@ window.addEventListener("load", function load(event){
 
 		const el = e.target;
 		const id = el.getAttribute("data-id");
-
-		console.log("DATA", id);
 		
 		const layer = feature_cache[id];
 
-		console.log("LAYER", layer);
-		
 		if (layer) {
 		    const pos = layer.getLatLng();
 

@@ -10,20 +10,35 @@ import (
 	"github.com/sfomuseum/go-edtf/parser"
 )
 
+// Tokens stores a list of tokenised names that correspond to a particular language and tag.
+// Tokens are used for full‑text search and concordance indexing.
 type Tokens struct {
+	// Language code (e.g. "en").
 	Language string
-	Tag      string
-	Tokens   []string
+	// Tag identifying the token set (e.g. "preferred").
+	Tag string
+	// Individual tokenised names.
+	Tokens []string
 }
 
+// Embeddings holds a vector of float32 values that represent an embedding for a place name in a particular language and tag.
 type Embeddings struct {
-	Language   string
-	Tag        string
+	// Language code (e.g. "en").
+	Language string
+	// Tag identifying the embedding set (e.g. "variant").
+	Tag string
+	// Embedding vectors.
 	Embeddings []float32
 }
 
+// VectorEmbeddings groups embeddings produced by a single model.
+// The Model field identifies the model name (e.g. "fasttext") and
+// the Embeddings slice contains the embeddings for each language/tag
+// combination that the model supports.
 type VectorEmbeddings struct {
-	Model      string
+	// Name of the model that produced these embeddings.
+	Model string
+	// Embeddings for each language/tag pair.
 	Embeddings []*Embeddings
 }
 
@@ -64,7 +79,7 @@ type Record struct {
 	IsCurrent string `json:"mz:is_current,omitempty"`
 	// Tokens contains tokenised names and concordances indexed for full‑text search.
 	Tokens map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
-	// Vectors ...
+	// VectorEmbeddings holds pre‑computed embeddings for the place.
 	VectorEmbeddings []*VectorEmbeddings
 }
 

@@ -434,27 +434,27 @@ $> curl -s 'http://localhost:8080/api/query/?query=SFO&placetype=airport' | jq
           "geocoder:rank": -13.013866678659102,
           "mz:is_current": 1,
           "wof:country": "US",
-          "wof:hierarchies": [
+          "geocoder:hierarchies": [
             {
-              "campus_id": 102527513,
-              "continent_id": 102191575,
-              "country_id": 85633793,
-              "county_id": 102087579,
-              "locality_id": 85922583,
-              "postalcode_id": 554784711,
-              "region_id": 85688637
+              "campus_id": "wof:id=102527513",
+              "continent_id": "wof:id=102191575",
+              "country_id": "wof:id=85633793",
+              "county_id": "wof:id=102087579",
+              "locality_id": "wof:id=85922583",
+              "postalcode_id": "wof:id=554784711",
+              "region_id": "wof:id=85688637"
             },
             {
-              "campus_id": 102527513,
-              "continent_id": 102191575,
-              "country_id": 85633793,
-              "county_id": 102085387,
-              "region_id": 85688637
+              "campus_id": "wof:id=102527513",
+              "continent_id": "wof:id=102191575",
+              "country_id": "wof:id=85633793",
+              "county_id": "wof:id=102085387",
+              "region_id": "wof:id=85688637"
             }
           ],
-          "wof:id": "wof:id=102527513",
-          "wof:label": "San Francisco International Airport, San Francisco, California, US",
-          "wof:name": "San Francisco International Airport",
+          "geocoder:id": "wof:id=102527513",
+          "geocoder:label": "San Francisco International Airport, San Francisco, California, US",
+          "geocoder:name": "San Francisco International Airport",
           "wof:parent_id": 85922583,
           "wof:placetype": "campus",
           "wof:placetype_alt": [
@@ -587,30 +587,51 @@ That's all it does for the time being.
 
 ## Data sources
 
-Currently, only Who's On First-shaped documents are supported. Internally those documents are transformed in an internal `Record` struct which looks like this:
+Although this tool is primary targeted at Who's On First-shaped documents, internally those documents are transformed in an [internal `Record` struct](coarse/record.go) which looks like this:
 
 ```
 type Record struct {
-	Id             int64                          `json:"wof:id"`
-	ParentId       int64                          `json:"wof:parent_id"`
-	Name           string                         `json:"wof:name"`
-	Country        string                         `json:"wof:country"`
-	Placetype      string                         `json:"wof:placetype"`
-	PlacetypeAlt   []string                       `json:"wof:placetype_alt"`
-	Hierarchies    []map[string]int64             `json:"wof:hierarchies"`
-	Centroid       *orb.Point                     `json:"wof:centroid"`
-	Bounds         []orb.Bound                    `json:"wof:bounds"`
-	Inception      string                         `json:"edtf:inception,omitempty"`
-	Cessation      string                         `json:"etdf:cessation,omitempty"`
-	PopulationRank int64                          `json:"wof:population_rank,omitempty"`
-	IsCurrent      string                         `json:"mz:is_current,omitempty"`
-	Tokens         map[string]map[string][]string `json:"tokens,omitempty"`
+	// Id is the unique identifier of the place.
+	Id string `json:"geocoder:id"`
+	// ParentId is the unique identifier of the parent place.
+	ParentId string `json:"geocoder:parent_id"`
+	// Name is the primary name of the place.
+	Name string `json:"geocoder:name"`
+	// Country is the ISO 3166‑1 alpha‑2 country code of the place.
+	Country string `json:"wof:country"`
+	// Placetype is the primary Who's On First placetype of the place.
+	Placetype string `json:"wof:placetype"`
+	// PlacetypeAlt contains any alternative placetypes stored in
+	// the Who's On First `wof:placetype_alt` property.
+	PlacetypeAlt []string `json:"wof:placetype_alt"`
+	// Hierarchies contains the ancestor hierarchies for the place.
+	// Each hierarchy is a map of placetype to ancestor ID.
+	Hierarchies []map[string]string `json:"geocoder:hierarchies"`
+	// Centroid is the geographic centroid of the place.
+	Centroid *orb.Point `json:"geo:centroid"`
+	// Bounds is a slice of bounding boxes that enclose the place.
+	Bounds []orb.Bound `json:"geo:bounds"`
+	// Inception is the EDTF representation of the start date of the place.
+	Inception string `json:"edtf:inception,omitempty"`
+	// Cessation is the EDTF representation of the end date of the place.
+	Cessation string `json:"etdf:cessation,omitempty"`
+	// PopulationRank is an integer that indicates relative population size.
+	PopulationRank int64 `json:"wof:population_rank,omitempty"`
+	// IsCurrent indicates whether the place is current (1), not current (0)
+	// or unknown (-1).
+	IsCurrent string `json:"mz:is_current,omitempty"`
+	// Tokens contains tokenised names and concordances indexed for full‑text search.
+	Tokens map[string]map[string][]string `json:"tokens,omitempty"` // please make me something better...
+	// VectorEmbeddings holds pre‑computed embeddings for the place.
+	VectorEmbeddings []*VectorEmbeddings
 }
 ```
 
-Going forward the "easiest" thing may be to simply change this data structure to assume that all identifiers are strings – specifically machinetag-based string identifiers – and do the extra work, internally, to convert them to and from their source values. Maybe? It's just too soon to think about right now.
+Which is not really Who's On First (WOF) specific. For started unique identifiers are recorded as string values rather than integers (as used by WOF). This prevents the potential for ID collisions when indexing two or more different data sources that use numeric identifiers. It also allows for data sources that use string-derive identifiers to be indexed.
 
-Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1) and some sort of "source" property may be added. These remain "to be determined".
+There are no specific rules for identifiers and this package does not try to resolve ID conflicts. That is left up to consumers of the package. The convention used by this package is to encode identifiers in machinetag-style strings. For example, WOF identifiers are encoded as `wof:id={WOF IDENTIFIER}`.
+
+Otherwise, the `IsCurrent` property may be changed to an `int64` value (-1, 0, 1). This remain "to be determined".
 
 ## Experimental
 
