@@ -16,8 +16,8 @@ import (
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/sfomuseum/geocoder"
-	"github.com/sfomuseum/go-csvdict/v2"	
 	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/go-csvdict/v2"
 	"github.com/sfomuseum/go-edtf/unix"
 	"github.com/sfomuseum/go-embeddings"
 )
@@ -193,7 +193,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		if err != nil {
 			return fmt.Errorf("Failed to create CSV writer, %w", err)
 		}
-		
+
 		for _, f := range rsp {
 
 			row := feature2csv(f)
@@ -201,7 +201,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 		}
 
 		csv_wr.Flush()
-		
+
 	default:
 
 		tw := new(tabwriter.Writer)
@@ -243,46 +243,46 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 func feature2csv(f *geojson.Feature) map[string]string {
 
-			all_pt := []string{
-				f.Properties["wof:placetype"].(string),
-			}
+	all_pt := []string{
+		f.Properties["wof:placetype"].(string),
+	}
 
-			alt_pt, ok := f.Properties["wof:placetype_alt"]
+	alt_pt, ok := f.Properties["wof:placetype_alt"]
 
-			if ok {
+	if ok {
 
-				switch alt_pt.(type) {
-				case []string:
-					all_pt = append(all_pt, alt_pt.([]string)...)
-				default:
-					// pass
-				}
-			}
+		switch alt_pt.(type) {
+		case []string:
+			all_pt = append(all_pt, alt_pt.([]string)...)
+		default:
+			// pass
+		}
+	}
 
-			lat := 0.0
-			lon := 0.0
+	lat := 0.0
+	lon := 0.0
 
-			orb_geom := f.Geometry
+	orb_geom := f.Geometry
 
-			switch orb_geom.GeoJSONType() {
-			case "Point":
-				pt := orb_geom.(orb.Point)
-				lat = pt.Lat()
-				lon = pt.Lon()
-			default:
-				// pass
-			}
+	switch orb_geom.GeoJSONType() {
+	case "Point":
+		pt := orb_geom.(orb.Point)
+		lat = pt.Lat()
+		lon = pt.Lon()
+	default:
+		// pass
+	}
 
-			return map[string]string{
-				"rank": fmt.Sprintf("%v", f.Properties["geocoder:rank"]),
-				"id": f.Properties["geocoder:id"].(string),
-				"label": f.Properties["geocoder:label"].(string),
-				"placetype": strings.Join(all_pt, "; "),
-				"latitude": strconv.FormatFloat(lat, 'g', -1, 64),
-				"longitude": strconv.FormatFloat(lon, 'g', -1, 64),
-				"is_current": fmt.Sprintf("%v", f.Properties["mz:is_current"]),
-				"inception": f.Properties["edtf:inception"].(string),
-				"cessation": f.Properties["edtf:cessation"].(string),
-			}
+	return map[string]string{
+		"rank":       fmt.Sprintf("%v", f.Properties["geocoder:rank"]),
+		"id":         f.Properties["geocoder:id"].(string),
+		"label":      f.Properties["geocoder:label"].(string),
+		"placetype":  strings.Join(all_pt, "; "),
+		"latitude":   strconv.FormatFloat(lat, 'g', -1, 64),
+		"longitude":  strconv.FormatFloat(lon, 'g', -1, 64),
+		"is_current": fmt.Sprintf("%v", f.Properties["mz:is_current"]),
+		"inception":  f.Properties["edtf:inception"].(string),
+		"cessation":  f.Properties["edtf:cessation"].(string),
+	}
 
 }
