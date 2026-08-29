@@ -10,6 +10,19 @@ import (
 
 var langtag_map = new(sync.Map)
 
+// ParseLangTag attempts to parse a language tag string into its
+// language component and an optional private‑use tag component.
+//
+// The function first checks an in‑memory cache (`langtag_map`) that
+// stores previously parsed results.  Cache entries can be either:
+//   - a [2]string tuple – the parsed language and tag, or
+//   - an error – indicating that a previous parse attempt failed.
+//
+// If the cache does not contain an entry, the function uses
+// github.com/whosonfirst/go-rfc‑5646/tags to parse the tag.  If the
+// RFC‑5646 parser fails, the function falls back to a custom
+// `_x_` separator convention (e.g. `"eng_x_concordance"`).  The
+// parsed values are then stored in the cache for future look‑ups.
 func ParseLangTag(lang_str string) (string, string, error) {
 
 	v, ok := langtag_map.Load(lang_str)

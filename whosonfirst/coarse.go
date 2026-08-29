@@ -20,11 +20,18 @@ import (
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/properties"
 )
 
+// NewCoarseGeocoderRecordOptions holds optional arguments that
+// control how a raw Who's On First GeoJSON document is turned into
+// a `coarse.Record`.
 type NewCoarseGeocoderRecordOptions struct {
-	Body           []byte
-	Embedder       embeddings.Embedder[float32]
+	// The raw Who's On First GeoJSON bytes.
+	Body []byte
+	// Optional `embeddings.Embedder` that produces vector embeddings for the document’s names.
+	Embedder embeddings.Embedder[float32]
+	// List of model identifiers to use when generating embeddings.
 	EmbedderModels []string
-	Cache          *ristretto.Cache[string, *coarse.VectorEmbeddings]
+	// Optional Ristretto cache to memoise embeddings look‑ups by key.
+	Cache *ristretto.Cache[string, *coarse.VectorEmbeddings]
 }
 
 // NewCoarseGeocoderRecord converts a raw Who's On First GeoJSON document into a `coarse.Record` struct.

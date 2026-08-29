@@ -34,6 +34,6 @@ type QueryRequest struct {
 	DateStarts *unix.DateRange `json:"date_starts,omitempty"`
 	// DateEnds is an optional date range that limits results to those whose end date overlaps the supplied range.
 	DateEnds *unix.DateRange `json:"date_ends,omitempty"`
-	// Source...
+	// Optional source (identifier prefix) to filter results by.
 	Source string `json:"source,omitempty"`
 }
