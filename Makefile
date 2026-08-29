@@ -42,3 +42,12 @@ server:
 		-allow-query-embeddings=$(ALLOW_QUERY_EMBEDDINGS) \
 		-server-uri http://localhost:8080 \
 		-geocoder-uri $(GEOCODER_URI)
+
+fixtures-coarse:
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/ca.geojson > ./fixtures/ca-coarse.json
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/ny.geojson > ./fixtures/ny-coarse.json
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/nyc.geojson > ./fixtures/nyc-coarse.json
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/sf.geojson > ./fixtures/sf-coarse.json
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/sfo.geojson > ./fixtures/sfo-coarse.json
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/t3.geojson > ./fixtures/t3-coarse.json
+	go run cmd/wof-coarse-geocoder-wof-record/main.go ./fixtures/us.geojson > ./fixtures/us-coarse.json
