@@ -76,6 +76,9 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 	if len(req.BelongsTo) > 0 {
 		sb.WriteString(" JOIN ancestors a ON r.id = a.record_id")
+
+		// Will this work?
+		sb.WriteString(" JOIN identifiers i ON a.ancestorid = i.id")		
 	}
 
 	// dates
@@ -168,7 +171,10 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			args = append(args, anc_id)
 		}
 
-		sb.WriteString(fmt.Sprintf(" AND a.ancestor_id IN (%s)", strings.Join(placeholders, ",")))
+		// sb.WriteString(fmt.Sprintf(" AND a.ancestor_id IN (%s)", strings.Join(placeholders, ",")))
+		
+		// Will this work?		
+		sb.WriteString(fmt.Sprintf(" AND a.ancestor_id = i.id AND i.identifier IN (%s)", strings.Join(placeholders, ",")))
 	}
 
 	// Language

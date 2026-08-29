@@ -17,7 +17,7 @@ var lang_tag string
 
 var placetypes multi.MultiString
 var countries multi.MultiString
-var belongsto multi.MultiInt64
+var belongsto multi.MultiString
 var str_bounds string
 var date_starts string
 var date_ends string

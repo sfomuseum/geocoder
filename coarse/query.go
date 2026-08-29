@@ -24,8 +24,8 @@ type QueryRequest struct {
 	Placetype []string `json:"placetype,omitempty"`
 	// Country is a list of 2‑letter ISO country codes to restrict the search to.
 	Country []string `json:"country,omitempty"`
-	// BelongsTo contains a list of ancestor WOF IDs that the results must belong to.
-	BelongsTo []int64 `json:"belongsto,omitempty"`
+	// BelongsTo contains a list of ancestor IDs that the results must belong to.
+	BelongsTo []string `json:"belongsto,omitempty"`
 	// Bounds is an optional geographical bounding box that limits the search to results whose bounds intersect this box.
 	Bounds *orb.Bound `json:"bounds,omitempty"`
 	// IsCurrent is an optional filter that limits results to places that are current, not current or unknown.

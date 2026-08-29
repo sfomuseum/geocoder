@@ -20,7 +20,7 @@ type Options struct {
 	LangTag          string
 	Placetypes       []string
 	Countries        []string
-	BelongsTo        []int64
+	BelongsTo        []string
 	Bounds           string
 	DateStarts       string
 	DateEnds         string

@@ -128,7 +128,7 @@ func CoarseGeocoderHandler(opts *CoarseGeocoderHandlerOptions) (http.Handler, er
 
 		// Belongs to
 
-		belongsto, err := sanitize.PostInt64Multi(req, "belongs-to")
+		belongsto, err := sanitize.PostStringMulti(req, "belongs-to")
 
 		if err != nil {
 			logger.Error("Failed to derive belongs-to parameter(s)", "error", err)
