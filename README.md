@@ -258,7 +258,7 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:25:22 INFO Query results total=7 page=1 pages=1
 
-rank				id			label																						placetype		latitude	longitude	is current	inception	cessation
+rank				id					label																						placetype		latitude	longitude	is current	inception	cessation
 -17.33661134210852	wof:id=1947304447	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	1			2024-11-05	..
 -17.33661134210852	wof:id=1159157307	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2017~		2019-07-23
 -17.33661134210852	wof:id=1477855699	Terminal 3, SFO Terminal Complex, San Francisco International Airport, San Francisco, US	wing; terminal	37.618362	-122.386773	0			2019-07-23	2020-~05
@@ -278,7 +278,7 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/08 11:27:37 INFO Query results total=1 page=1 pages=1
 
-rank				id			label																placetype		latitude	longitude	is current	inception	cessation
+rank				id					label																placetype		latitude	longitude	is current	inception	cessation
 -13.013866678659102	wof:id=102527513	San Francisco International Airport, San Francisco, California, US	campus; airport	37.61799	-122.370943	1			1948~		..
 ```
 
@@ -291,7 +291,7 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:06:39 INFO Query results total=1 page=1 pages=1
 
-rank				id			label																		placetype	latitude	longitude	is current	inception	cessation
+rank				id					label																		placetype	latitude	longitude	is current	inception	cessation
 -7.027890456522998	wof:id=102554351	Montreal-Pierre Elliott Trudeau International Airport, Dorval, Quebec, CA	campus		45.462004	-73.744749	1			1941-09-01
 ```
 
@@ -304,7 +304,7 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/08 13:09:26 INFO Query results total=2 page=1 pages=1
 
-rank				id			label						placetype						latitude	longitude	is current	inception	cessation
+rank				id					label						placetype						latitude	longitude	is current	inception	cessation
 -6.48038846479113	wof:id=101750367	London, Greater London, GB	locality; county; localadmin	51.509648	-0.099076	1			0043~		
 -6.122169631962154	wof:id=1880762729	Greater London, GB			region							51.49254	-0.109335	1			
 ```
@@ -319,17 +319,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:20:13 INFO Query results total=135 page=1 pages=14
 
-rank				id			label								placetype		latitude	longitude	is current	inception	cessation
+rank				id					label								placetype		latitude	longitude	is current	inception	cessation
 -10.619758199476777	wof:id=421205765	Brooklyn, New York, New York, US	borough			40.652256	-73.956582	1				
 -10.619758199476777	wof:id=101712549	Brooklyn, Ohio, US					locality		41.433531	-81.751846	1				
 -10.619758199476777	wof:id=404525053	Brooklyn, Ohio, US					localadmin		41.433531	-81.751846	1				
 -10.619758199476777	wof:id=404495913	Brooklyn, Connecticut, US			localadmin		41.787597	-71.953053	1				
--10.619758199476777	wof:id=85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
--10.619758199476777	wof:id=85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
--10.619758199476777	wof:id=85942463	Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
+-10.619758199476777	wof:id=85807887		Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
+-10.619758199476777	wof:id=85807897		Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
+-10.619758199476777	wof:id=85942463		Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
 -10.619758199476777	wof:id=1126026579	Brooklyn, Wellington Region, NZ		locality		-41.31667	174.75		1				
--10.619758199476777	wof:id=85943755	Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
--10.619758199476777	wof:id=85951193	Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
+-10.619758199476777	wof:id=85943755		Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
+-10.619758199476777	wof:id=85951193		Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
 ```
 
 And in other languages, like Farsi:
@@ -342,17 +342,17 @@ $> ./bin/wof-coarse-geocoder-query \
 	
 2026/08/09 22:22:22 INFO Query results total=72 page=1 pages=8
 
-rank				id			label								placetype		latitude	longitude	is current	inception	cessation
+rank				id					label								placetype		latitude	longitude	is current	inception	cessation
 -10.619758199476777	wof:id=421205765	Brooklyn, New York, New York, US	borough			40.652256	-73.956582	1				
 -10.619758199476777	wof:id=101712549	Brooklyn, Ohio, US					locality		41.433531	-81.751846	1				
 -10.619758199476777	wof:id=404525053	Brooklyn, Ohio, US					localadmin		41.433531	-81.751846	1				
 -10.619758199476777	wof:id=404495913	Brooklyn, Connecticut, US			localadmin		41.787597	-71.953053	1				
--10.619758199476777	wof:id=85807887	Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
--10.619758199476777	wof:id=85807897	Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
--10.619758199476777	wof:id=85942463	Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
+-10.619758199476777	wof:id=85807887		Brooklyn, Jacksonville, Florida, US	neighbourhood	30.31732	-81.676342	1				
+-10.619758199476777	wof:id=85807897		Brooklyn, Portland, Oregon, US		neighbourhood	45.495203	-122.648672	1				
+-10.619758199476777	wof:id=85942463		Brooklyn, Indiana, US				locality		39.54363	-86.369575	1				
 -10.619758199476777	wof:id=1126026579	Brooklyn, Wellington Region, NZ		locality		-41.31667	174.75		1				
--10.619758199476777	wof:id=85943755	Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
--10.619758199476777	wof:id=85951193	Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
+-10.619758199476777	wof:id=85943755		Brooklyn, Iowa, US					locality		41.729445	-92.446958	1				
+-10.619758199476777	wof:id=85951193		Brooklyn, Michigan, US				locality		42.105725	-84.248831	1
 ```
 
 ### wof-coarse-geocoder-server
@@ -689,14 +689,14 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/21 10:16:40 INFO Query results total=29 page=1 pages=3
 
-rank				id			label																placetype		latitude	longitude	is current	inception	cessation
+rank				id					label																placetype		latitude	longitude	is current	inception	cessation
 0.5294566750526428	wof:id=102527513	San Francisco International Airport, San Francisco, California, US	campus			37.61799	-122.370943	1			1948~		..
 0.5966955423355103	wof:id=102530873	Yuba County Airport, Olivehurst, California, US						campus			39.097801	-121.57		1				
 0.606959342956543	wof:id=102528839	San Carlos Airport, San Carlos, California, US						campus			37.511902	-122.25		1				
 0.6179097890853882	wof:id=102527337	Santa Barbara Municipal Airport, Santa Barbara, California, US		campus			34.427974	-119.837133	1				
 0.6228018999099731	wof:id=102527529	Norman Y Mineta San Jose International Airport, California, US		campus			37.363728	-121.928755	1			2001-11		..
 0.641245424747467	wof:id=404517201	Airport Township, Missouri, US										localadmin		38.741639	-90.359883	1				
-0.641245424747467	wof:id=85926473	Airport, California, US												locality		37.632083	-120.979923	1				
+0.641245424747467	wof:id=85926473		Airport, California, US												locality		37.632083	-120.979923	1				
 0.641245424747467	wof:id=420539489	Airport, Philadelphia, Philadelphia, Pennsylvania, US				neighbourhood	39.885787	-75.213489	1				
 0.641245424747467	wof:id=1729434409	Airport, Missouri, US												locality		38.750377	-90.363144	1				
 0.6423512697219849	wof:id=102528473	Flabob Airport, Jurupa Valley, California, US						campus			33.9894		-117.40997	1
@@ -789,8 +789,8 @@ $> bin/wof-coarse-geocoder-query \
 2026/08/12 12:51:39 INFO Rewrite geocoder URI to enable VFS uri="sql://sqlite?dsn=file%3Awof-sfom.db%3Fvfs%3Dvfs1%26mode%3Dro"
 2026/08/12 12:51:43 INFO Query results total=2 page=1 pages=1
 
-rank				id			label									placetype		latitude	longitude	is current	inception	cessation
--17.49931058334353	wof:id=85865587	Gowanus, New York, New York, US			neighbourhood	40.678529	-73.987462	1				
+rank				id					label									placetype		latitude	longitude	is current	inception	cessation
+-17.49931058334353	wof:id=85865587		Gowanus, New York, New York, US			neighbourhood	40.678529	-73.987462	1				
 -15.032719333750485	wof:id=102061079	Gowanus Heights, New York, New York, US	neighbourhood	40.682373	-73.987939	-1			2012	
 ```
 
@@ -879,7 +879,7 @@ $> ./bin/wof-coarse-geocoder-query \
 
 2026/08/12 09:36:29 INFO Query results total=15 page=1 pages=1
 
-rank				id		label									placetype								latitude	longitude	is current	inception	cessation
+rank				id				label									placetype								latitude	longitude	is current	inception	cessation
 -11.689057370580107	tgn:id=1015480	Lavaltrie, Québec, CA					locality; 83002; inhabited place		45.8833		-73.2833	-1				
 -11.689057370580107	tgn:id=7013063	Laval, Québec, CA						locality; 83002; inhabited place		45.5667		-73.6667	-1				
 -11.689057370580107	tgn:id=9218033	Laval, Québec, CA						locality; 83002; inhabited place		45.6167		-73.75		-1				
