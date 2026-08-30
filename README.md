@@ -112,7 +112,7 @@ type Record struct {
 }
 ```
 
-Which is not really Who's On First (WOF) specific. For started unique identifiers are recorded as string values rather than integers (as used by WOF). This prevents the potential for ID collisions when indexing two or more different data sources that use numeric identifiers. It also allows for data sources that use string-derive identifiers to be indexed.
+Which is not really Who's On First (WOF) specific. For started unique identifiers are recorded as string values rather than integers (as used by WOF). This prevents the potential for ID collisions when indexing two or more different data sources that use numeric identifiers. It also allows for data sources that use string-derive identifiers to be indexed. These ID-based identifiers are only stored once in an internal `identifiers` tables which maps them to unique integer values. These integer values are then used everywhere else. This produces slightly larger database files than if only integers were used but noticeably smaller than if text-based identifiers were used everywhere. As such it feels like an acceptable trade-off.
 
 There are no specific rules for identifiers and this package does not try to resolve ID conflicts. That is left up to consumers of the package. The convention used by this package is to encode identifiers in machinetag-style strings. For example, WOF identifiers are encoded as `wof:id={WOF IDENTIFIER}`. Requiring that identifiers follow that particular convention feels like overkill, though.
 
@@ -176,47 +176,27 @@ For example:
 ```
 $> ./bin/wof-coarse-geocoder-index \
 	-fresh \
-	-exclude-superseded=false \
-	-iterator-uri repo:// \
-	-geocoder-uri 'sql://sqlite?dsn=sfom.db' \
-	/usr/local/data/sfomuseum-data-architecture \
-	/usr/local/data/sfomuseum-data-whosonfirst
-	
-2026/08/08 11:15:04 INFO Rewrote iterator URI uri="repo:?exclude=properites.edtf%3Adeprecated%3D.%2A&exclude=properites.wof%3Asuperseded_by%3D.%2A&exclude=properites.mz%3Ais_funky%3D1"
-2026/08/08 11:15:04 INFO Pre-indexing complete time=154.5µs
-2026/08/08 11:16:04 INFO Iterator stats elapsed=1m0.001052708s seen=2530 allocated="9.7 MB" "total allocated"="498 MB" sys="54 MB" numgc=103
-2026/08/08 11:16:04 INFO Indexing stats elapsed=1m0.001189958s seen=2530 "average (ms)"=0.09881422924901186
-
-...time passes
-
-2026/08/08 11:21:04 INFO Iterator stats elapsed=6m0.00110525s seen=3469 allocated="37 MB" "total allocated"="4.2 GB" sys="275 MB" numgc=287
-2026/08/08 11:21:33 INFO Iterator stats elapsed=6m29.009900916s seen=3623 allocated="60 MB" "total allocated"="4.4 GB" sys="275 MB" numgc=294
-2026/08/08 11:21:33 INFO Indexing complete seen=3623 time=6m29.014973666s "average (ms)"=0.2555892906431134
-2026/08/08 11:21:34 INFO Post-indexing complete time=661.16725ms "time (total)"=6m29.676154166s
-```
-
-Indexing time can depend a lot on the data source. Files on disk (above) can take a while. Indexing Who's On First Parquet files (produced by the [wof-parquet-export](https://github.com/whosonfirst/go-whosonfirst) tool in the `whosonfirst/go-whosonfirst` package) is significantly faster, taking only 20-30 minutes to create a geocoding database for all 6 million plus records:
-
-```
-$> ./bin/wof-coarse-geocoder-index \
-	-fresh \
 	-iterator-uri parquet:// \
 	-geocoder-uri 'sql://sqlite?dsn=wof-sfom.db' \
 	/usr/local/data/whosonfirst-parquet/whosonfirst-data-admin-*.parquet
-	
-2026/08/08 11:31:00 INFO Rewrote iterator URI uri="parquet:?exclude=properites.edtf%3Adeprecated%3D.%2A&exclude=properites.wof%3Asuperseded_by%3D.%2A&exclude=properites.mz%3Ais_funky%3D1"
-2026/08/08 11:31:00 INFO Pre-indexing complete time=88.792µs
-2026/08/08 11:32:00 INFO Iterator stats elapsed=1m0.000199625s seen=319775 allocated="3.2 GB" "total allocated"="38 GB" sys="4.5 GB" numgc=88
-2026/08/08 11:32:00 INFO Indexing stats elapsed=1m0.000307583s seen=319765 "average (ms)"=0.09237721451691086
+
+2026/08/30 12:12:56 INFO Rewrote iterator URI uri="parquet:?exclude=properties.edtf%3Adeprecated%3D.%2A&exclude=propertiees.mz%3Ais_funky%3D1&exclude_mode=ANY"
+2026/08/30 12:12:56 INFO Pre-indexing complete time=120.5µs
+2026/08/30 12:13:56 INFO Iterator stats elapsed=1m0.000194584s seen=274270 allocated="3.6 GB" "total allocated"="49 GB" sys="4.7 GB" numgc=70
+2026/08/30 12:13:56 INFO Indexing stats elapsed=1m0.000329833s seen=274260 "average (ms)"=0.10562969445052141
 
 ...time passes
 
-2026/08/08 11:51:01 INFO Iterator stats elapsed=20m1.057480125s seen=6457706 allocated="4.1 GB" "total allocated"="576 GB" sys="19 GB" numgc=374
+2026/08/30 12:44:56 INFO Indexing stats elapsed=32m0.002176208s seen=5958677 "average (ms)"=0.23700479149985812
+2026/08/30 12:45:55 INFO Iterator stats elapsed=32m59.157798625s seen=6081032 allocated="5.8 GB" "total allocated"="645 GB" sys="18 GB" numgc=386
+2026/08/30 12:45:55 INFO Indexing complete seen=6081032 time=32m59.669498291s "average (ms)"=0.23995269224039603
 
-...more time passes
+...a little more time passes
 
-2026/08/08 12:01:46 INFO Post-indexing complete time=10m44.596903375s "time (total)"=30m45.71374225s
+2026/08/30 12:55:50 INFO Post-indexing complete time=9m55.09932625s "time (total)"=42m54.768847541s
 
+$> du -h work/wof-sfom.db 
+7.7G	work/wof-sfom.db
 ```
 
 _Note that these Who's On First Parquet files are not available for download from the Who's On First servers yet so you'll need to create them manually. SFO Museum might provide alternate downloads in the interim._
