@@ -121,6 +121,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 	}
 
 	if opts.Source != "" {
+		slog.Info("PEW PEW", "source", opts.Source)
 		req.Source = opts.Source
 	}
 

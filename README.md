@@ -199,35 +199,28 @@ $> du -h work/wof-sfom.db
 7.7G	work/wof-sfom.db
 ```
 
-_Note that these Who's On First Parquet files are not available for download from the Who's On First servers yet so you'll need to create them manually. SFO Museum might provide alternate downloads in the interim._
+Valid data sources are anything the [whosonfirst/go-whosonfirst/v4/iterate](https://github.com/whosonfirst/go-whosonfirst/tree/main/iterate) package can support. Please consult documentation for details. Note that these Who's On First Parquet files are not available for download from the Who's On First servers yet so you'll need to create them manually. SFO Museum might provide alternate downloads in the interim.
 
 That database, in turn, can be supplemented with SFO Museum specific Who's On First style data repositories. For example:
 
-```
 $> ./bin/wof-coarse-geocoder-index \
-	-prune \
+	-geocoder-uri='sql://sqlite?dsn=work/wof-sfom.db' \
 	-iterator-uri repo:// \
-	-geocoder-uri 'sql://sqlite?dsn=wof-sfom.db' \
 	/usr/local/data/sfomuseum-data-architecture \
-	/usr/local/data/sfomuseum-data-whosonfirst
+	/usr/local/data/sfomuseum-data-whosonfirst/
 	
-2026/08/08 12:33:40 INFO Rewrote iterator URI uri="repo:?exclude=properites.edtf%3Adeprecated%3D.%2A&exclude=properites.wof%3Asuperseded_by%3D.%2A&exclude=properites.mz%3Ais_funky%3D1"
-2026/08/08 12:33:40 INFO Pre-indexing complete time=95.542µs
-2026/08/08 12:34:40 INFO Iterator stats elapsed=1m0.001063042s seen=1229 allocated="5.2 MB" "total allocated"="262 MB" sys="46 MB" numgc=60
-2026/08/08 12:34:40 INFO Indexing stats elapsed=1m0.001180792s seen=1229 "average (ms)"=0.10903173311635476
+2026/08/30 16:46:10 INFO Rewrote iterator URI uri="repo:?exclude=properties.edtf%3Adeprecated%3D.%2A&exclude=propertiees.mz%3Ais_funky%3D1&exclude_mode=ANY"
+2026/08/30 16:46:10 INFO Pre-indexing complete time=147.417µs
+2026/08/30 16:47:10 INFO Iterator stats elapsed=1m0.000902958s seen=2986 allocated="157 MB" "total allocated"="2.5 GB" sys="292 MB" numgc=37
 
 ...time passes
 
-2026/08/08 12:42:25 INFO Iterator stats elapsed=8m44.648322417s seen=3623 allocated="43 MB" "total allocated"="4.4 GB" sys="317 MB" numgc=295
-2026/08/08 12:42:25 INFO Indexing complete seen=3623 time=8m44.654067s "average (ms)"=0.281810654154016
-...
-2026/08/08 12:48:44 INFO Post-indexing complete time=6m19.407913166s "time (total)"=15m4.061988625s
+2026/08/30 16:47:58 INFO Indexing complete seen=3420 time=1m47.963836375s "average (ms)"=0.5611111111111111
 
-$> du -h wof-sfom.db 
-6.5G	wof-sfom.db
+...time passes again
+
+2026/08/30 16:53:59 INFO Post-indexing complete time=6m0.653266542s "time (total)"=7m48.61712275s
 ```
-
-Valid data sources are anything the [whosonfirst/go-whosonfirst/v4/iterate](https://github.com/whosonfirst/go-whosonfirst/tree/main/iterate) package can support. Please consult documentation for details.
 
 ### wof-coarse-geocoder-query
 
@@ -645,7 +638,7 @@ $> bin/wof-coarse-geocoder-index/main.go \
 	/usr/local/data/whosonfirst-parquet/whosonfirst-data-admin-us.parquet
 ```
 
-Note that indexing with vector embeddings, even when embeddings for the same place names are cached, takes _significantly_ longer than indexing data without vector embeddings and yields much larger data files. For example, a vector embeddings-enabled database containing [only records for the United States](https://github.com/whosonfirst-data/whosonfirst-data-admin-us/) is 2.5GB (as opposed to 6.5 for the entire planet without embeddings) and takes over 24 hours to produce:
+Note that indexing with vector embeddings, even when embeddings for the same place names are cached, takes _significantly_ longer than indexing data without vector embeddings and yields much larger data files. For example, a vector embeddings-enabled database containing [only records for the United States](https://github.com/whosonfirst-data/whosonfirst-data-admin-us/) is 2.5GB (as opposed to 6.5 for the entire planet without embeddings) and takes over 36 hours to produce:
 
 ```
 ...

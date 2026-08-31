@@ -63,7 +63,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 
 		sb.WriteString("WITH vector_matches AS (SELECT rowid, distance FROM embeddings WHERE embedding MATCH ? AND k = ?)")
 		sb.WriteString(" SELECT vm.distance AS distance, COUNT(*) OVER() as total_count, r.id, r.parent_id, r.name, r.placetype, r.country, r.is_current, r.latitude, r.longitude, r.inception, r.cessation, r.hierarchies")
-		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.id = vm.rowid JOIN records r ON r.id = er.id")
+		sb.WriteString(" FROM vector_matches vm JOIN embeddings_records er ON er.id = vm.rowid JOIN records r ON r.id = er.record_id")
 
 		args = append(args, string(enc_e))
 		args = append(args, g.vector_query_k)
@@ -91,18 +91,23 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		sb.WriteString(" JOIN bounds b ON r.id = b.record_id")
 	}
 
+	// Build up filters in an array rather than using sb.WriteString
+	// to make it easier to reason about conditionals (AND vs. WHERE)
+
+	filters := make([]string, 0)
+
 	if len(req.QueryEmbeddings) == 0 {
 		sb.WriteString(" WHERE f.token MATCH ?")
 		args = []any{query_str}
 	}
 
 	if req.DateStarts != nil {
-		sb.WriteString(" AND (? <= d.start_outer AND ? <= d.start_inner)")
+		filters = append(filters, "(? <= d.start_outer AND ? <= d.start_inner)")
 		args = append(args, req.DateStarts.Outer.Start, req.DateStarts.Inner.Start)
 	}
 
 	if req.DateEnds != nil {
-		sb.WriteString(" AND (d.end_inner <= ? AND d.end_outer <= ?)")
+		filters = append(filters, "(d.end_inner <= ? AND d.end_outer <= ?)")
 		args = append(args, req.DateEnds.Inner.End, req.DateEnds.Outer.End)
 	}
 
@@ -113,7 +118,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			req.Bounds.Min.Y(), req.Bounds.Max.Y(),
 		}
 
-		sb.WriteString(" AND (b.maxx >= ? AND b.minx <= ? AND b.maxy >= ? AND b.miny <= ?)")
+		filters = append(filters, "(b.maxx >= ? AND b.minx <= ? AND b.maxy >= ? AND b.miny <= ?)")
 		args = append(args, coords...)
 	}
 
@@ -133,7 +138,7 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 		}
 
 		str_placeholders := strings.Join(placeholders, ",")
-		sb.WriteString(fmt.Sprintf(" AND (r.placetype IN (%s) OR p.placetype IN (%s))", str_placeholders, str_placeholders))
+		filters = append(filters, fmt.Sprintf("(r.placetype IN (%s) OR p.placetype IN (%s))", str_placeholders, str_placeholders))
 	}
 
 	if len(req.BelongsTo) > 0 {
@@ -149,16 +154,16 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			args = append(args, anc_id)
 		}
 
-		sb.WriteString(fmt.Sprintf(" AND (a.ancestor_id IN (%s) OR ia.identifier IN (%s))", strings.Join(placeholders, ","), strings.Join(placeholders, ",")))
+		filters = append(filters, "(a.ancestor_id IN (%s) OR ia.identifier IN (%s))", strings.Join(placeholders, ","), strings.Join(placeholders, ","))
 	}
 
 	if req.Lang != "" {
-		sb.WriteString(" AND r.lang = ?")
+		filters = append(filters, "r.lang = ?")
 		args = append(args, req.Lang) // Note: fixed from req.Tag to req.Lang
 	}
 
 	if req.Tag != "" {
-		sb.WriteString(" AND r.tag = ?")
+		filters = append(filters, "r.tag = ?")
 		args = append(args, req.Tag)
 	}
 
@@ -171,17 +176,26 @@ func (g *SQLGeocoder) Query(ctx context.Context, req *QueryRequest, pg_opts pagi
 			args = append(args, pt)
 		}
 
-		sb.WriteString(fmt.Sprintf(" AND r.country IN (%s)", strings.Join(placeholders, ",")))
+		filters = append(filters, fmt.Sprintf(" AND r.country IN (%s)", strings.Join(placeholders, ",")))
 	}
 
 	if req.IsCurrent != nil {
-		sb.WriteString(" AND r.is_current = ?")
+		filters = append(filters, "r.is_current = ?")
 		args = append(args, req.IsCurrent.StringFlag())
 	}
 
 	if req.Source != "" {
-		sb.WriteString(" AND ir.identifier LIKE ?")
+		filters = append(filters, "ir.identifier LIKE ?")
 		args = append(args, req.Source+"%")
+	}
+
+	if len(filters) > 0 {
+
+		if len(req.QueryEmbeddings) == 0 {
+			sb.WriteString(fmt.Sprintf(" AND %s", strings.Join(filters, " AND ")))
+		} else {
+			sb.WriteString(fmt.Sprintf(" WHERE %s", strings.Join(filters, " AND ")))
+		}
 	}
 
 	sb.WriteString(" GROUP BY r.id")
