@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS {{ .Name }} (
-       id INTEGER PRIMARY KEY,
+       record_id INTEGER PRIMARY KEY,
        start_outer INTEGER,
        start_inner INTEGER,
        end_inner INTEGER,

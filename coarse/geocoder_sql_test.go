@@ -2,6 +2,7 @@ package coarse
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -32,11 +33,9 @@ func testCreateDatabase(ctx context.Context, to_index ...string) (Geocoder, erro
 			return nil, err
 		}
 
-		opts := &NewWhosOnFirstRecordOptions{
-			Body: body,
-		}
+		var rec *Record
 
-		rec, err := NewWhosOnFirstRecord(ctx, opts)
+		err = json.Unmarshal(body, &rec)
 
 		if err != nil {
 			return nil, err
@@ -79,7 +78,7 @@ func TestSQLGeocoderIndex(t *testing.T) {
 
 	ctx := context.Background()
 
-	db, err := testCreateDatabase(ctx, "../fixtures/sf.geojson")
+	db, err := testCreateDatabase(ctx, "../fixtures/sf-coarse.json")
 
 	if err != nil {
 		t.Fatalf("Failed to create SQL geocoder, %v", err)
@@ -96,7 +95,7 @@ func TestSQLGeocoderQuery(t *testing.T) {
 
 	ctx := context.Background()
 
-	db, err := testCreateDatabase(ctx, "../fixtures/sf.geojson")
+	db, err := testCreateDatabase(ctx, "../fixtures/sf-coarse.json")
 
 	if err != nil {
 		t.Fatalf("Failed to create SQL geocoder, %v", err)
@@ -124,8 +123,10 @@ func TestSQLGeocoderQuery(t *testing.T) {
 
 	rec := rsp[0]
 
-	if rec.ID != int64(85922583) {
-		t.Fatalf("Invalid ID: %d", rec.ID)
+	rec_id := rec.Properties.MustString("geocoder:id", "")
+
+	if rec_id != "wof:id=85922583" {
+		t.Fatalf("Invalid ID: '%v'", rec_id)
 	}
 
 	req2 := &QueryRequest{
@@ -147,8 +148,8 @@ func TestSQLGeocoderQuery(t *testing.T) {
 
 	req3 := &QueryRequest{
 		Query: "SF",
-		BelongsTo: []int64{
-			102087579,
+		BelongsTo: []string{
+			"wof:id=102087579",
 		},
 	}
 
@@ -225,9 +226,10 @@ func TestSQLGeocoderQuery(t *testing.T) {
 	}
 
 	rec6 := rsp6[0]
+	rec6_id := rec6.Properties.MustString("geocoder:id", "")
 
-	if rec6.ID != int64(85922583) {
-		t.Fatalf("Invalid ID: %d (6)", rec6.ID)
+	if rec6_id != "wof:id=85922583" {
+		t.Fatalf("Invalid ID: '%s' (6)", rec6_id)
 	}
 
 	//
@@ -244,12 +246,12 @@ func TestSQLGeocoderLabels(t *testing.T) {
 	ctx := context.Background()
 
 	to_index := []string{
-		"../fixtures/sfo.geojson",
-		"../fixtures/sf.geojson",
-		"../fixtures/ca.geojson",
-		"../fixtures/nyc.geojson",
-		"../fixtures/ny.geojson",
-		"../fixtures/us.geojson",
+		"../fixtures/sfo-coarse.json",
+		"../fixtures/sf-coarse.json",
+		"../fixtures/ca-coarse.json",
+		"../fixtures/nyc-coarse.json",
+		"../fixtures/ny-coarse.json",
+		"../fixtures/us-coarse.json",
 	}
 
 	db, err := testCreateDatabase(ctx, to_index...)
@@ -281,12 +283,13 @@ func TestSQLGeocoderLabels(t *testing.T) {
 	}
 
 	sfo_rec := sfo_rsp[0]
+	sfo_rec_id := sfo_rec.Properties.MustString("geocoder:id", "")
 
-	if sfo_rec.ID != int64(102527513) {
-		t.Fatalf("Invalid ID: %d", sfo_rec.ID)
+	if sfo_rec_id != "wof:id=102527513" {
+		t.Fatalf("Invalid ID: '%s'", sfo_rec_id)
 	}
 
-	sfo_label := sfo_rec.Properties.MustString("wof:label", "")
+	sfo_label := sfo_rec.Properties.MustString("geocoder:label", "")
 
 	if sfo_label != "San Francisco International Airport, San Francisco, California, US" {
 		t.Fatalf("Invalid label for SFO: '%s'", sfo_label)
@@ -310,11 +313,12 @@ func TestSQLGeocoderLabels(t *testing.T) {
 
 	nyc_rec := nyc_rsp[0]
 
-	if nyc_rec.ID != int64(85977539) {
-		t.Fatalf("Invalid ID: %d", nyc_rec.ID)
-	}
+	nyc_id := nyc_rec.Properties.MustString("geocoder:id", "")
+	nyc_label := nyc_rec.Properties.MustString("geocoder:label", "")
 
-	nyc_label := nyc_rec.Properties.MustString("wof:label", "")
+	if nyc_id != "wof:id=85977539" {
+		t.Fatalf("Invalid ID: '%s'", nyc_id)
+	}
 
 	if nyc_label != "New York, New York, US" {
 		t.Fatalf("Invalid label for NYC: '%s'", nyc_label)
@@ -335,8 +339,8 @@ func TestSQLGeocoderDates(t *testing.T) {
 	ctx := context.Background()
 
 	to_index := []string{
-		"../fixtures/t3.geojson",
-		"../fixtures/sf.geojson",
+		"../fixtures/t3-coarse.json",
+		"../fixtures/sf-coarse.json",
 	}
 
 	db, err := testCreateDatabase(ctx, to_index...)
@@ -389,8 +393,10 @@ func TestSQLGeocoderDates(t *testing.T) {
 		t.Fatalf("Expected 1 result but got %d (1)", len(rsp1))
 	}
 
-	if rsp1[0].ID != int64(1477855699) {
-		t.Fatalf("Unexpected ID %d", rsp1[0].ID)
+	rsp1_id := rsp1[0].Properties.MustString("geocoder:id", "")
+
+	if rsp1_id != "wof:id=1477855699" {
+		t.Fatalf("Unexpected ID '%s'", rsp1_id)
 	}
 
 	//

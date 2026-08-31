@@ -88,8 +88,10 @@ func AncestorIdsForLabelGeneric[T Id](opts *AncestorIdsForLabelOptionsGeneric[T]
 			lineage = []string{"concourse", "wing", "building", "campus", "country"}
 		case "enclosure":
 			lineage = []string{"arcade", "concourse", "wing", "campus", "country"}
+		case "marinearea":
+			lineage = []string{ "country" }
 		default:
-			slog.Warn("Unsupported placetype", "placetype", opts.Placetype)
+			slog.Debug("Unsupported placetype", "placetype", opts.Placetype)
 		}
 
 		var use_hier map[string]T

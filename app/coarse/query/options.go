@@ -20,10 +20,11 @@ type Options struct {
 	LangTag          string
 	Placetypes       []string
 	Countries        []string
-	BelongsTo        []int64
+	BelongsTo        []string
 	Bounds           string
 	DateStarts       string
 	DateEnds         string
+	Source           string
 	Page             int64
 	PerPage          int64
 	QueryTimeout     int
@@ -71,6 +72,7 @@ func OptionsFromFlagSet(ctx context.Context, fs *flag.FlagSet) (*Options, error)
 	opts.Bounds = str_bounds
 	opts.DateStarts = date_starts
 	opts.DateEnds = date_ends
+	opts.Source = source
 	opts.Page = page
 	opts.PerPage = per_page
 	opts.QueryTimeout = query_timeout

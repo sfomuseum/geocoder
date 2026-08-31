@@ -1,0 +1,4 @@
+CREATE TABLE {{ .Name }} (
+       id INTEGER,
+       identifier TEXT PRIMARY KEY
+);

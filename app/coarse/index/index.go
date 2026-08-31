@@ -11,7 +11,7 @@ import (
 	_ "github.com/whosonfirst/go-whosonfirst/v4/iterate/git"
 	_ "github.com/whosonfirst/go-whosonfirst/v4/iterate/parquet"
 
-	"github.com/sfomuseum/geocoder/coarse"
+	"github.com/sfomuseum/geocoder/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/alt"
 	"github.com/whosonfirst/go-whosonfirst/v4/uri"
 )
@@ -129,7 +129,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			continue
 		}
 
-		wof_opts := &coarse.NewWhosOnFirstRecordOptions{
+		wof_opts := &whosonfirst.NewCoarseGeocoderRecordOptions{
 			Body:     body,
 			Embedder: opts.Embedder,
 			EmbedderModels: []string{
@@ -138,7 +138,7 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 			Cache: opts.VectorCache,
 		}
 
-		rec, err := coarse.NewWhosOnFirstRecord(ctx, wof_opts)
+		rec, err := whosonfirst.NewCoarseGeocoderRecord(ctx, wof_opts)
 
 		if err != nil {
 			return fmt.Errorf("Failed to create new record, %w", err)
@@ -194,8 +194,15 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 	logger.Info("Indexing complete", "seen", opts.Iterator.Seen(), "time", time.Since(t1), "average (ms)", avg_tti())
 
+	err = opts.Iterator.Close()
+
+	if err != nil {
+		logger.Error("Failed to close iterator", "error", err)
+	}
+
 	if opts.IndexJuggling {
 
+		logger.Info("Start post-indexing")
 		t2 := time.Now()
 
 		err = opts.Geocoder.PostIndex(ctx)

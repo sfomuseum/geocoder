@@ -3,7 +3,6 @@ package coarse
 import (
 	"context"
 	db_sql "database/sql"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -11,22 +10,17 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
-	"unicode"
 
 	_ "modernc.org/sqlite"
 	_ "modernc.org/sqlite/vec"
 
 	"github.com/bwmarrin/snowflake"
-	"github.com/paulmach/orb"
-	"github.com/paulmach/orb/geojson"
 	geocoder_sql "github.com/sfomuseum/geocoder/coarse/sql"
-	"github.com/sfomuseum/geocoder/placeholder"
 	x_vfs "github.com/sfomuseum/geocoder/x/vfs"
 	"github.com/sfomuseum/go-database/sql"
-	"github.com/whosonfirst/go-whosonfirst/v4/hierarchies"
 	"modernc.org/sqlite/vfs"
 )
 
@@ -49,6 +43,11 @@ func init() {
 	snowflake_node = n
 }
 
+const DEFAULT_BULK_WORKERS int = 50
+const DEFAULT_BATCH_SIZE int = 1000
+const DEFAULT_VECTOR_K int = 50
+const DEFAULT_MIN_QUERY_LENGTH int = 2
+
 type SQLGeocoder struct {
 	Geocoder
 	db                 *db_sql.DB
@@ -61,11 +60,15 @@ type SQLGeocoder struct {
 	records            []*Record
 	batch_size         int
 	bulk_workers       int
+	identifier_cache   *sync.Map
+	identifier_counter int64
+	identifier_mu      *sync.RWMutex
 }
 
 type NewSQLGeocoderOptions struct {
-	Database *db_sql.DB
-	VFS      *vfs.FS
+	Database    *db_sql.DB
+	VFS         *vfs.FS
+	BulkWorkers int
 }
 
 func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
@@ -76,12 +79,12 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
+	q := u.Query()
+
 	vfs_enable := false
 
 	switch u.Host {
 	case "sqlite":
-
-		q := u.Query()
 
 		if q.Has("vfs-enable") {
 
@@ -207,8 +210,22 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 		return nil, fmt.Errorf("Unsupported SQL driver, %s", driver)
 	}
 
+	bulk_workers := DEFAULT_BULK_WORKERS
+
+	if q.Has("bulk-workers") {
+
+		v, err := strconv.Atoi(q.Get("bulk-workers"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?bulk-workers=, %w", err)
+		}
+
+		bulk_workers = v
+	}
+
 	opts := &NewSQLGeocoderOptions{
-		Database: db,
+		Database:    db,
+		BulkWorkers: bulk_workers,
 	}
 
 	return NewSQLGeocoderWithOptions(ctx, opts)
@@ -230,8 +247,9 @@ func NewSQLGeocoderWithFS(ctx context.Context, db_fs fs.FS, db_name string) (Geo
 	}
 
 	opts := &NewSQLGeocoderOptions{
-		Database: db,
-		VFS:      vfs_fs,
+		Database:    db,
+		VFS:         vfs_fs,
+		BulkWorkers: DEFAULT_BULK_WORKERS,
 	}
 
 	return NewSQLGeocoderWithOptions(ctx, opts)
@@ -254,17 +272,24 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 
 	mu := new(sync.RWMutex)
 
+	identifier_cache := new(sync.Map)
+	identifier_mu := new(sync.RWMutex)
+	identifier_counter := int64(0)
+
 	g := &SQLGeocoder{
 		db:                 opts.Database,
 		tables:             db_tables,
 		vfs:                opts.VFS,
 		mu:                 mu,
 		vector_compression: geocoder_sql.SQLiteVecDefaultCompression,
-		vector_query_k:     50,
-		min_query_length:   2,
+		vector_query_k:     DEFAULT_VECTOR_K,
+		min_query_length:   DEFAULT_MIN_QUERY_LENGTH,
 		records:            make([]*Record, 0),
-		batch_size:         10,
-		bulk_workers:       50,
+		batch_size:         DEFAULT_BATCH_SIZE,
+		bulk_workers:       opts.BulkWorkers,
+		identifier_cache:   identifier_cache,
+		identifier_counter: identifier_counter,
+		identifier_mu:      identifier_mu,
 	}
 
 	return g, nil
@@ -346,7 +371,7 @@ func (g *SQLGeocoder) HasRecordHashChanged(ctx context.Context, rec *Record) (bo
 	}
 }
 
-func (g *SQLGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) {
+func (g *SQLGeocoder) RecordExists(ctx context.Context, id string) (bool, error) {
 
 	q := fmt.Sprintf("SELECT 1 FROM %s WHERE id = ?", g.tableName("records"))
 	row := g.db.QueryRowContext(ctx, q, id)
@@ -366,7 +391,7 @@ func (g *SQLGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) 
 
 // AddRecord has been moved in to geocoder_sql_add.go
 
-func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
+func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id string) error {
 
 	logger := slog.Default()
 	logger = logger.With("id", id)
@@ -390,6 +415,12 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
 
 	}()
 
+	record_id, err := g.getRecordId(ctx, tx, id)
+
+	if err != nil {
+		return err
+	}
+
 	tables := []string{
 		g.tableName("records"),
 		g.tableName("placetypes_alt"),
@@ -403,18 +434,9 @@ func (g *SQLGeocoder) RemoveRecord(ctx context.Context, id int64) error {
 
 	for _, t := range tables {
 
-		var q string
+		q := fmt.Sprintf("DELETE FROM %s WHERE record_id = ?", t)
 
-		switch t {
-		case g.tableName("bounds"):
-			q = fmt.Sprintf("DELETE FROM %s WHERE wofid = ?", t)
-		case g.tableName("embeddings_records"):
-			q = fmt.Sprintf("DELETE FROM %s WHERE record_id = ?", t)
-		default:
-			q = fmt.Sprintf("DELETE FROM %s WHERE id = ?", t)
-		}
-
-		_, err := tx.ExecContext(ctx, q, id)
+		_, err := tx.ExecContext(ctx, q, record_id)
 
 		if err != nil {
 			return fmt.Errorf("Failed to remove %s table, %w", t, err)
@@ -460,227 +482,6 @@ func (g *SQLGeocoder) Close() error {
 	return g.db.Close()
 }
 
-func (g *SQLGeocoder) assignExtra(ctx context.Context, f *geojson.Feature) error {
-
-	logger := slog.Default()
-	logger = logger.With("id", f.ID)
-
-	err := g.assignHierarchiesAndLabel(ctx, f)
-
-	if err != nil {
-		logger.Warn("Failed to assign label", "error", err)
-	}
-
-	err = g.assignPlacetypeAlt(ctx, f)
-
-	if err != nil {
-		logger.Warn("Failed to assign placetype alt", "error", err)
-	}
-
-	err = g.assignBBox(ctx, f)
-
-	if err != nil {
-		logger.Warn("Failed to assign bbox", "error", err)
-	}
-
-	return nil
-}
-
-func (g *SQLGeocoder) assignBBox(ctx context.Context, f *geojson.Feature) error {
-
-	bounds_q := fmt.Sprintf("SELECT MIN(minx), MIN(miny), MAX(maxx), MAX(maxy) FROM %s WHERE wofid = ?", g.tableName("bounds"))
-
-	bounds_row := g.db.QueryRowContext(ctx, bounds_q, f.ID)
-
-	var minx float64
-	var miny float64
-	var maxx float64
-	var maxy float64
-
-	err := bounds_row.Scan(&minx, &miny, &maxx, &maxy)
-
-	if err != nil {
-		return fmt.Errorf("Failed to query bounds, %w", err)
-	}
-
-	bounds := orb.Bound{
-		Min: orb.Point([2]float64{minx, miny}),
-		Max: orb.Point([2]float64{maxx, maxy}),
-	}
-
-	f.BBox = geojson.NewBBox(bounds)
-	return nil
-}
-
-func (g *SQLGeocoder) assignHierarchiesAndLabel(ctx context.Context, f *geojson.Feature) error {
-
-	logger := slog.Default()
-	logger = logger.With("id", f.ID)
-
-	str_hiers := f.Properties.MustString("wof:hierarchies", "")
-
-	if str_hiers == "" {
-		f.Properties["wof:hierarchies"] = make([]map[string]int64, 0)
-		return nil
-	}
-
-	var hiers []map[string]int64
-
-	err := json.Unmarshal([]byte(str_hiers), &hiers)
-
-	if err != nil {
-		return fmt.Errorf("Failed to unmarshal hierarchies, %w", err)
-	}
-
-	f.Properties["wof:hierarchies"] = hiers
-
-	if len(hiers) == 0 {
-		return nil
-	}
-
-	// START OF put me in a function
-
-	name := f.Properties.MustString("wof:name")
-	str_pt := f.Properties.MustString("wof:placetype", "")
-
-	labels := []string{
-		name,
-	}
-
-	var parent_id int64
-	f_pid := f.Properties["wof:parent_id"]
-
-	switch f_pid.(type) {
-	case int64:
-		parent_id, _ = f_pid.(int64)
-	default:
-		parent_id = -1
-	}
-
-	label_opts := &hierarchies.AncestorIdsForLabelOptions{
-		Hierarchies: hiers,
-		Placetype:   str_pt,
-		ParentId:    parent_id,
-	}
-
-	name_ids := hierarchies.AncestorIdsForLabel(label_opts)
-
-	names_q := fmt.Sprintf("SELECT name, placetype, country from %s WHERE id = ?", g.tableName("records"))
-
-	for _, id := range name_ids {
-
-		var id_name string
-		var id_placetype string
-		var id_country string
-
-		row := g.db.QueryRowContext(ctx, names_q, id)
-		err := row.Scan(&id_name, &id_placetype, &id_country)
-
-		switch {
-		case err == db_sql.ErrNoRows:
-			continue
-		case err != nil:
-			logger.Warn("Failed to query ID for name", "name id", id)
-		default:
-
-			switch id_placetype {
-			case "country":
-				labels = append(labels, id_country)
-			default:
-				labels = append(labels, id_name)
-			}
-		}
-	}
-
-	f.Properties["wof:label"] = strings.Join(labels, ", ")
-	return nil
-}
-
-func (g *SQLGeocoder) assignPlacetypeAlt(ctx context.Context, f *geojson.Feature) error {
-
-	pt_q := fmt.Sprintf("SELECT placetype from %s WHERE id = ?", g.tableName("placetypes_alt"))
-
-	pt_rows, err := g.db.QueryContext(ctx, pt_q, f.ID)
-
-	if err != nil {
-		return err
-	}
-
-	defer pt_rows.Close()
-
-	alt_pt := make([]string, 0)
-
-	for pt_rows.Next() {
-
-		var pt string
-		err := pt_rows.Scan(&pt)
-
-		if err != nil {
-			return fmt.Errorf("Failed to scan placetypes row, %w", err)
-		}
-
-		alt_pt = append(alt_pt, pt)
-	}
-
-	err = pt_rows.Err()
-
-	if err != nil {
-		return fmt.Errorf("Failed to derive alt placetypes, %w", err)
-	}
-
-	if len(alt_pt) > 0 {
-		f.Properties["wof:placetype_alt"] = alt_pt
-	}
-
-	return nil
-}
-
-func (g *SQLGeocoder) prepareQuery(input string) string {
-
-	if re_machinetag.MatchString(input) {
-		// To do: Support wildcards
-		input = strings.ReplaceAll(input, ":", "_")
-		input = strings.ReplaceAll(input, "=", "__")
-		return input
-	}
-
-	words := strings.Fields(placeholder.Normalize(input))
-
-	if len(words) == 0 {
-		return ""
-	}
-
-	var sanitized []string
-
-	for _, word := range words {
-
-		// Strip characters that disrupt FTS5 syntax (like raw quotes or dashes)
-		clean := strings.Map(func(r rune) rune {
-			// unicode.IsLetter handles all global alphabets (Greek, Cyrillic, CJK, Arabic, etc.)
-			// unicode.IsNumber handles global digits (0-9, and non-Arabic numeral systems)
-			if unicode.IsLetter(r) || unicode.IsNumber(r) {
-				return r
-			}
-
-			// Keep Unicode letters/numbers if working with global languages
-			return -1
-		}, word)
-
-		if clean != "" {
-			sanitized = append(sanitized, clean)
-		}
-	}
-
-	if len(sanitized) == 0 {
-		return ""
-	}
-
-	lastIdx := len(sanitized) - 1
-	sanitized[lastIdx] = sanitized[lastIdx] + "*"
-
-	return strings.Join(sanitized, " AND ")
-}
-
 func (g *SQLGeocoder) uidForVectorRecord(ctx context.Context, tx *db_sql.Tx, record_id int64, model string, language string, tag string) (int64, error) {
 
 	q := fmt.Sprintf("SELECT id FROM %s WHERE record_id = ? AND model = ? AND language = ? AND tag = ?", g.tableName("embeddings_records"))
@@ -711,4 +512,100 @@ func (g *SQLGeocoder) tableName(label string) string {
 	}
 
 	return t.Name()
+}
+
+func (g *SQLGeocoder) storeIdentifier(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+
+	g.identifier_mu.Lock()
+	defer g.identifier_mu.Unlock()
+
+	record_id, err := g.retrieveInt64IdentifierTx(ctx, tx, id)
+
+	if err == nil {
+		return record_id, nil
+	}
+
+	record_id = atomic.AddInt64(&g.identifier_counter, 1)
+
+	q := fmt.Sprintf("INSERT INTO %s (id, identifier) VALUES (?, ?)", g.tableName("identifiers"))
+
+	_, err = tx.ExecContext(ctx, q, record_id, id)
+
+	g.identifier_cache.Store(id, record_id)
+	return record_id, nil
+}
+
+func (g *SQLGeocoder) retrieveStringIdentifier(ctx context.Context, id int64) (string, error) {
+
+	q := fmt.Sprintf("SELECT identifier FROM %s WHERE id = ?", g.tableName("identifiers"))
+	row := g.db.QueryRowContext(ctx, q, id)
+
+	var identifier string
+	err := row.Scan(&identifier)
+
+	if err != nil {
+		return "", err
+	}
+
+	return identifier, nil
+}
+
+func (g *SQLGeocoder) retrieveInt64IdentifierTx(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+
+	v, ok := g.identifier_cache.Load(id)
+
+	if ok {
+		return v.(int64), nil
+	}
+
+	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
+	row := tx.QueryRowContext(ctx, q, id)
+
+	var record_id int64
+	err := row.Scan(&record_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	g.identifier_cache.Store(id, record_id)
+	return record_id, nil
+}
+
+func (g *SQLGeocoder) retrieveInt64IdentifierDb(ctx context.Context, id string) (int64, error) {
+
+	v, ok := g.identifier_cache.Load(id)
+
+	if ok {
+		return v.(int64), nil
+	}
+
+	q := fmt.Sprintf("SELECT id FROM %s WHERE identifier = ?", g.tableName("identifiers"))
+	row := g.db.QueryRowContext(ctx, q, id)
+
+	var record_id int64
+	err := row.Scan(&record_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	g.identifier_cache.Store(id, record_id)
+	return record_id, nil
+}
+
+func (g *SQLGeocoder) getRecordId(ctx context.Context, tx *db_sql.Tx, id string) (int64, error) {
+
+	record_q := fmt.Sprintf("SELECT record_id FROM %s WHERE id = ?", g.tableName("records"))
+	row := tx.QueryRowContext(ctx, record_q, id)
+
+	var record_id int64
+
+	err := row.Scan(&record_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return record_id, nil
 }

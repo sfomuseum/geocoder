@@ -43,7 +43,7 @@ github.com/aaronland/go-http-maps/v2
 github.com/aaronland/go-http/v4/sanitize
 github.com/aaronland/go-http/v4/server
 github.com/aaronland/go-http/v4/slog
-# github.com/aaronland/go-json-query v0.2.1
+# github.com/aaronland/go-json-query v0.3.0
 ## explicit; go 1.26
 github.com/aaronland/go-json-query
 # github.com/aaronland/go-pagination v0.3.0
@@ -460,6 +460,9 @@ github.com/remyoudompheng/bigfft
 # github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 ## explicit; go 1.13
 github.com/sergi/go-diff/diffmatchpatch
+# github.com/sfomuseum/go-csvdict/v2 v2.0.1
+## explicit; go 1.23
+github.com/sfomuseum/go-csvdict/v2
 # github.com/sfomuseum/go-database v0.0.21
 ## explicit; go 1.26.5
 github.com/sfomuseum/go-database/sql
@@ -517,7 +520,7 @@ github.com/whosonfirst/go-rfc-5646/tags
 # github.com/whosonfirst/go-sanitize v0.1.0
 ## explicit; go 1.12
 github.com/whosonfirst/go-sanitize
-# github.com/whosonfirst/go-whosonfirst/v4 v4.11.0
+# github.com/whosonfirst/go-whosonfirst/v4 v4.11.2
 ## explicit; go 1.26.6
 github.com/whosonfirst/go-whosonfirst/v4/feature
 github.com/whosonfirst/go-whosonfirst/v4/feature/alt
@@ -651,7 +654,7 @@ golang.org/x/sys/execabs
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.40.0
+# golang.org/x/text v0.39.0
 ## explicit; go 1.25.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -813,7 +816,7 @@ modernc.org/mathutil
 # modernc.org/memory v1.11.0
 ## explicit; go 1.23.0
 modernc.org/memory
-# modernc.org/sqlite v1.56.0
+# modernc.org/sqlite v1.57.0
 ## explicit; go 1.25.0
 modernc.org/sqlite
 modernc.org/sqlite/lib

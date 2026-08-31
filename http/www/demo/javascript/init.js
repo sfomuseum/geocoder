@@ -24,10 +24,17 @@ window.addEventListener("load", function load(event){
     const adv_placetype_el = document.querySelector("#advanced-placetype");
     const adv_country_el = document.querySelector("#advanced-country");
     const adv_belongsto_el = document.querySelector("#advanced-belongsto");
+    const adv_source_el = document.querySelector("#advanced-source");    
     const adv_submit_el = document.querySelector("#advanced-submit");                    
 
     var geocode_spinner = document.getElementById("geocode-spinner-svg");    
     var adv_geocode_spinner = document.getElementById("advanced-geocode-spinner-svg");
+
+    const prepare_id = function(id){
+	id = id.replace(":", "-");
+	id = id.replace("=", "-");
+	return id;
+    };
     
     const select_row = function(id){
 
@@ -76,13 +83,14 @@ window.addEventListener("load", function load(event){
 		return L.circleMarker(latlng, marker_opts);
 	    },
 	    onEachFeature: function(feature, layer){
-		const id = feature.properties["wof:id"];
+		const id = feature.properties["geocoder:id"];
+		const id_prep = prepare_id(id);
 		
-		layer.bindPopup(feature.properties["wof:label"]);
-		feature_cache[id] = layer;
+		layer.bindPopup(feature.properties["geocoder:label"]);
+		feature_cache[id_prep] = layer;
 
 		layer.on("click", function(){
-		    select_row(id);
+		    select_row(id_prep);
 		});
 		
 	    }
@@ -199,11 +207,13 @@ window.addEventListener("load", function load(event){
 	id_header.appendChild(document.createTextNode("Id"));
 	header_row.appendChild(id_header);
 
+	/*
 	const name_header = document.createElement("th");
 	name_header.setAttribute("scope", "col");	
 	name_header.appendChild(document.createTextNode("Name"));
 	header_row.appendChild(name_header);
-
+	 */
+	
 	const label_header = document.createElement("th");
 	label_header.setAttribute("scope", "col");		
 	label_header.appendChild(document.createTextNode("Label"));
@@ -254,10 +264,11 @@ window.addEventListener("load", function load(event){
     
 	    const f = data.features[i];
 	    const props = f.properties;
-	    const id = props["wof:id"];
+	    const id = props["geocoder:id"];
+	    const id_prep = prepare_id(id);
 	    
 	    const feature_row = document.createElement("tr");
-	    feature_row.setAttribute("id", "results-" + id);
+	    feature_row.setAttribute("id", "results-" + id_prep);
 	    
 	    const rank_feature = document.createElement("td");
 	    rank_feature.appendChild(document.createTextNode(props["geocoder:rank"]));
@@ -265,14 +276,14 @@ window.addEventListener("load", function load(event){
 
 	    const id_link = document.createElement("span");
 	    id_link.setAttribute("class", "id-link");
-	    id_link.setAttribute("data-id", props["wof:id"]);
+	    id_link.setAttribute("data-id", id_prep);
 	    id_link.appendChild(document.createTextNode(id));
 
 	    id_link.onclick = function(e){
 
 		const el = e.target;
-		const id = parseInt(el.getAttribute("data-id"));
-
+		const id = el.getAttribute("data-id");
+		
 		const layer = feature_cache[id];
 
 		if (layer) {
@@ -292,13 +303,15 @@ window.addEventListener("load", function load(event){
 	    const id_feature = document.createElement("td");
 	    id_feature.appendChild(id_link);
 	    feature_row.appendChild(id_feature);
-		
-	    const name_feature = document.createElement("td");
-	    name_feature.appendChild(document.createTextNode(props["wof:name"]));
-	    feature_row.appendChild(name_feature);
 
+	    /*
+	    const name_feature = document.createElement("td");
+	    name_feature.appendChild(document.createTextNode(props["geocoder:name"]));
+	    feature_row.appendChild(name_feature);
+	    */
+	    
 	    const label_feature = document.createElement("td");
-	    label_feature.appendChild(document.createTextNode(props["wof:label"]));
+	    label_feature.appendChild(document.createTextNode(props["geocoder:label"]));
 	    feature_row.appendChild(label_feature);
 
 	    const latitude_feature = document.createElement("td");
@@ -473,6 +486,12 @@ window.addEventListener("load", function load(event){
 	    form_data.set("belongsto", bt.split(","));
 	}
 
+	const source = adv_source_el.value;
+
+	if (source != ""){
+	    form_data.set("source", source);
+	}
+	
 	results_el.style.display = "none";	
 	results_el.innerHTML = "";
 	feedback_el.innerHTML = "";
@@ -596,7 +615,7 @@ window.addEventListener("load", function load(event){
 	})();
 	
     }).catch((err) => {
-	console.error("Failed to load query embedding scaffolding", error);	
+	console.error("Failed to load query embedding scaffolding", err);	
     });
     
 });

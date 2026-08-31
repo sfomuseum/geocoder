@@ -1,4 +1,4 @@
-package coarse
+package whosonfirst
 
 import (
 	"context"
@@ -12,72 +12,32 @@ import (
 
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/paulmach/orb"
+	"github.com/sfomuseum/geocoder/coarse"
 	"github.com/sfomuseum/geocoder/placeholder"
 	"github.com/sfomuseum/go-embeddings"
 	"github.com/tidwall/gjson"
-	"github.com/whosonfirst/go-rfc-5646/tags"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/geometry"
 	"github.com/whosonfirst/go-whosonfirst/v4/feature/properties"
 )
 
-var langtag_map = new(sync.Map)
-
-type NewWhosOnFirstRecordOptions struct {
-	Body           []byte
-	Embedder       embeddings.Embedder[float32]
+// NewCoarseGeocoderRecordOptions holds optional arguments that
+// control how a raw Who's On First GeoJSON document is turned into
+// a `coarse.Record`.
+type NewCoarseGeocoderRecordOptions struct {
+	// The raw Who's On First GeoJSON bytes.
+	Body []byte
+	// Optional `embeddings.Embedder` that produces vector embeddings for the document’s names.
+	Embedder embeddings.Embedder[float32]
+	// List of model identifiers to use when generating embeddings.
 	EmbedderModels []string
-	Cache          *ristretto.Cache[string, *VectorEmbeddings]
+	// Optional Ristretto cache to memoise embeddings look‑ups by key.
+	Cache *ristretto.Cache[string, *coarse.VectorEmbeddings]
 }
 
-func ParseLangTag(lang_str string) (string, string, error) {
-
-	v, ok := langtag_map.Load(lang_str)
-
-	if ok {
-
-		switch v.(type) {
-		case [2]string:
-			lt := v.([2]string)
-			return lt[0], lt[1], nil
-		case error:
-			return "", "", v.(error)
-		default:
-			return "", "", fmt.Errorf("Unexpected cache type for '%s', %v", lang_str, v)
-		}
-	}
-
-	lang_tag, err := tags.NewLangTag(lang_str)
-
-	var lang string
-	var tag string
-
-	if err != nil {
-
-		parts := strings.Split(lang_str, "_x_")
-
-		if len(parts) != 2 {
-			err := fmt.Errorf("Failed to parse language tag, %w", err)
-			langtag_map.Store(lang_str, err)
-			return "", "", err
-		}
-
-		lang = parts[0]
-		tag = parts[1]
-
-	} else {
-
-		lang = lang_tag.Language()
-		tag = lang_tag.PrivateUse()
-	}
-
-	langtag_map.Store(lang_str, [2]string{lang, tag})
-	return lang, tag, nil
-}
-
-// NewWhosOnFirstRecord converts a raw Who's On First GeoJSON document into a Record struct.
+// NewCoarseGeocoderRecord converts a raw Who's On First GeoJSON document into a `coarse.Record` struct.
 // The function parses all required fields, normalises text, tokenises names, collects concordances and
-// returns a fully populated Record ready for indexing.
-func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions) (*Record, error) {
+// returns a fully populated `coarse.Record` ready for indexing.
+func NewCoarseGeocoderRecord(ctx context.Context, opts *NewCoarseGeocoderRecordOptions) (*coarse.Record, error) {
 
 	logger := slog.Default()
 
@@ -177,7 +137,7 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 	hiers := properties.Hierarchies(opts.Body)
 
 	tokens := make(map[string]map[string][]string)
-	vectors := make([]*VectorEmbeddings, 0)
+	vectors := make([]*coarse.VectorEmbeddings, 0)
 
 	for lang_str, names := range properties.Names(opts.Body) {
 
@@ -224,7 +184,7 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 		throttle := make(chan bool, workers)
 
-		for i := 0; i < workers; i++ {
+		for range workers {
 			throttle <- true
 		}
 
@@ -281,7 +241,7 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 					emb_id := fmt.Sprintf("%d-%s-%s", id, lang, tag)
 					emb_key := fmt.Sprintf("%s#%s", m, strings.Replace(str_names, " ", "-", -1))
 
-					var v_emb *VectorEmbeddings
+					var v_emb *coarse.VectorEmbeddings
 
 					if opts.Cache != nil {
 
@@ -312,15 +272,15 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 						// logger.Info("Add embeddings", "id", emb_id, "names", str_names)
 
-						e := &Embeddings{
+						e := &coarse.Embeddings{
 							Language:   lang,
 							Tag:        tag,
 							Embeddings: emb_rsp.Embeddings(),
 						}
 
-						v_emb = &VectorEmbeddings{
+						v_emb = &coarse.VectorEmbeddings{
 							Model:      m,
-							Embeddings: []*Embeddings{e},
+							Embeddings: []*coarse.Embeddings{e},
 						}
 
 						if opts.Cache != nil {
@@ -364,13 +324,28 @@ func NewWhosOnFirstRecord(ctx context.Context, opts *NewWhosOnFirstRecordOptions
 
 	sort.Strings(pt_alt)
 
-	r := &Record{
-		Id:               id,
-		ParentId:         parent_id,
+	count_hiers := len(hiers)
+
+	str_hiers := make([]map[string]string, count_hiers)
+
+	for i, h := range hiers {
+
+		str_h := make(map[string]string)
+
+		for k, id := range h {
+			str_h[k] = fmt.Sprintf("wof:id=%d", id)
+		}
+
+		str_hiers[i] = str_h
+	}
+
+	r := &coarse.Record{
+		Id:               fmt.Sprintf("wof:id=%d", id),
+		ParentId:         fmt.Sprintf("wof:id=%d", parent_id),
 		Name:             name,
 		Placetype:        pt,
 		PlacetypeAlt:     pt_alt,
-		Hierarchies:      hiers,
+		Hierarchies:      str_hiers,
 		Country:          co,
 		Inception:        inception,
 		Cessation:        cessation,

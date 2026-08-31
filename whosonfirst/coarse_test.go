@@ -1,4 +1,4 @@
-package coarse
+package whosonfirst
 
 import (
 	"context"
@@ -18,11 +18,11 @@ func TestNewRecord(t *testing.T) {
 		t.Fatalf("Failed to read data, %v", err)
 	}
 
-	opts := &NewWhosOnFirstRecordOptions{
+	opts := &NewCoarseGeocoderRecordOptions{
 		Body: body,
 	}
 
-	r, err := NewWhosOnFirstRecord(ctx, opts)
+	r, err := NewCoarseGeocoderRecord(ctx, opts)
 
 	if err != nil {
 		t.Fatalf("Failed to create new record, %v", err)
@@ -46,11 +46,11 @@ func TestRecordHash(t *testing.T) {
 		t.Fatalf("Failed to read data, %v", err)
 	}
 
-	opts := &NewWhosOnFirstRecordOptions{
+	opts := &NewCoarseGeocoderRecordOptions{
 		Body: body,
 	}
 
-	r, err := NewWhosOnFirstRecord(ctx, opts)
+	r, err := NewCoarseGeocoderRecord(ctx, opts)
 
 	if err != nil {
 		t.Fatalf("Failed to create new record, %v", err)

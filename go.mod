@@ -5,22 +5,23 @@ go 1.27
 require (
 	github.com/aaronland/go-http-maps/v2 v2.5.1
 	github.com/aaronland/go-http/v4 v4.1.0
-	github.com/aaronland/go-json-query v0.2.1
+	github.com/aaronland/go-json-query v0.3.0
 	github.com/aaronland/go-pagination v0.3.0
 	github.com/aaronland/go-roster v1.0.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/netascode/xmldot v0.5.1
 	github.com/paulmach/orb v0.13.0
+	github.com/sfomuseum/go-csvdict/v2 v2.0.1
 	github.com/sfomuseum/go-database v0.0.21
 	github.com/sfomuseum/go-edtf v1.3.0
 	github.com/sfomuseum/go-embeddings v0.5.2
 	github.com/sfomuseum/go-flags v0.12.1
 	github.com/tidwall/gjson v1.19.0
 	github.com/whosonfirst/go-rfc-5646 v0.1.0
-	github.com/whosonfirst/go-whosonfirst/v4 v4.11.0
-	golang.org/x/text v0.40.0
-	modernc.org/sqlite v1.56.0
+	github.com/whosonfirst/go-whosonfirst/v4 v4.11.2
+	golang.org/x/text v0.39.0
+	modernc.org/sqlite v1.57.0
 )
 
 require (

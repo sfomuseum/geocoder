@@ -2,6 +2,9 @@ DROP TRIGGER IF EXISTS tokens_insert;
 DROP TRIGGER IF EXISTS tokens_delete;
 DROP TABLE IF EXISTS tokens_fts;
 
+DROP INDEX IF EXISTS idx_tokens_row_id;
+DROP INDEX IF EXISTS idx_ancestors_record_id;
+DROP INDEX IF EXISTS idx_identifiers_id_identifier;
 DROP INDEX IF EXISTS idx_tokens_lookup;
 DROP INDEX IF EXISTS idx_ancestors;
 DROP INDEX IF EXISTS idx_placetypes;
@@ -10,7 +13,7 @@ DROP INDEX IF EXISTS idx_dates_outer;
 DROP INDEX IF EXISTS idx_dates_outer_inner;
 DROP INDEX IF EXISTS idx_dates_inner_outer;
 DROP INDEX IF EXISTS idx_dates_inner;
-DROP INDEX IF EXISTS bounds_by_wofid;
+DROP INDEX IF EXISTS bounds_by_recordid;
 DROP INDEX IF EXISTS idx_tokens_covering;
 DROP INDEX IF EXISTS idx_bounds_covering;
 DROP INDEX IF EXISTS idx_records_sorting;

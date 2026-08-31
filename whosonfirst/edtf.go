@@ -1,4 +1,4 @@
-package coarse
+package whosonfirst
 
 import (
 	"github.com/sfomuseum/go-edtf"

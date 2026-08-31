@@ -35,11 +35,11 @@ func (gc *NullGeocoder) AddRecord(ctx context.Context, rec *Record) error {
 	return nil
 }
 
-func (gc *NullGeocoder) RemoveRecord(ctx context.Context, id int64) error {
+func (gc *NullGeocoder) RemoveRecord(ctx context.Context, id string) error {
 	return nil
 }
 
-func (gc *NullGeocoder) RecordExists(ctx context.Context, id int64) (bool, error) {
+func (gc *NullGeocoder) RecordExists(ctx context.Context, id string) (bool, error) {
 	return false, nil
 }
 
