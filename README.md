@@ -479,7 +479,7 @@ $> curl -s 'http://localhost:8080/api/query/?query=SFO&placetype=airport' | jq
           "geocoder:id": "wof:id=102527513",
           "geocoder:label": "San Francisco International Airport, San Francisco, California, US",
           "geocoder:name": "San Francisco International Airport",
-          "wof:parent_id": 85922583,
+          "geocoder:parent_id": 85922583,
           "wof:placetype": "campus",
           "wof:placetype_alt": [
             "airport"
