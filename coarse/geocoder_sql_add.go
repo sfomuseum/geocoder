@@ -65,6 +65,80 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		logger.Debug("Time to bulk index records", "count", len(records), "time", time.Since(t1))
 	}()
 
+	// Prepared statements
+
+	pt_stq := fmt.Sprintf("INSERT INTO %s (record_id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))
+
+	pt_st, err := tx.Prepare(pt_stq)
+
+	if err != nil {
+		return fmt.Errorf("Failed to prepare placetypes statement, %w", err)
+	}
+
+	defer pt_st.Close()
+
+	anc_stq := fmt.Sprintf("INSERT INTO %s (record_id, ancestor_id) VALUES(?, ?)", g.tableName("ancestors"))
+	anc_st, err := tx.Prepare(anc_stq)
+
+	if err != nil {
+		return fmt.Errorf("Failed to prepare ancestors statement, %w", err)
+	}
+
+	defer anc_st.Close()
+
+	bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, record_id) VALUES(?, ?, ?, ?, ?)", g.tableName("bounds"))
+	bounds_st, err := tx.Prepare(bounds_stq)
+
+	if err != nil {
+		return fmt.Errorf("Failed to prepare bounds statement, %w", err)
+	}
+
+	defer bounds_st.Close()
+
+	tok_stq := fmt.Sprintf("INSERT INTO %s (record_id, token, lang, tag) VALUES(?, ?, ?, ?)", g.tableName("tokens"))
+	tok_st, err := tx.Prepare(tok_stq)
+
+	if err != nil {
+		return fmt.Errorf("Failed to prepare token statement, %w", err)
+	}
+
+	defer tok_st.Close()
+
+	emb_table := g.tableName("embeddings")
+
+	var vec_q string
+
+	switch g.vector_compression {
+	case geocoder_sql.SQLiteVecQuantizeCompression:
+		vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", emb_table)
+	case geocoder_sql.SQLiteVecMatroyshkaCompression:
+		vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", emb_table, geocoder_sql.SQLiteMatroyshkaDimensions)
+	case geocoder_sql.SQLiteVecDefaultCompression:
+		vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (:id, vec_f32(:vector))", emb_table)
+	default:
+		return fmt.Errorf("Invalid or unsupported compression, '%s'", g.vector_compression)
+	}
+
+	vec_st, err := tx.Prepare(vec_q)
+
+	if err != nil {
+		return fmt.Errorf("Failed to prepare vector statement, %w", err)
+	}
+
+	defer vec_st.Close()
+
+	vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", g.tableName("embeddings_records"))
+
+	vrec_st, err := tx.Prepare(vrec_q)
+
+	if err != nil {
+		return fmt.Errorf("Failed to prepare vector record statement, %w", err)
+	}
+
+	defer vrec_st.Close()
+
+	//
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -119,9 +193,12 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			logger = logger.With("counter", fmt.Sprintf("%d/%d", record_i, records_count))
 			logger = logger.With("id", rec.Id)
 
+			t2 := time.Now()
+
 			defer func() {
 				throttle <- true
 				done_ch <- true
+				logger.Debug("Time to add record", "time", time.Since(t2))
 			}()
 
 			//
@@ -191,17 +268,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			// logger.Info("WTF")
 			// Placetypes (alt)
 
-			pt_stq := fmt.Sprintf("INSERT INTO %s (record_id, placetype) VALUES(?, ?)", g.tableName("placetypes_alt"))
-
-			pt_st, err := tx.Prepare(pt_stq)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to prepare placetypes statement, %w", err)
-				return
-			}
-
-			defer pt_st.Close()
-
 			for _, pt := range rec.PlacetypeAlt {
 
 				_, err = pt_st.ExecContext(ctx, record_id, pt)
@@ -213,16 +279,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			}
 
 			// Ancestors
-
-			anc_stq := fmt.Sprintf("INSERT INTO %s (record_id, ancestor_id) VALUES(?, ?)", g.tableName("ancestors"))
-			anc_st, err := tx.Prepare(anc_stq)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to prepare ancestors statement, %w", err)
-				return
-			}
-
-			defer anc_st.Close()
 
 			ancestors := make([]int64, 0)
 
@@ -254,16 +310,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			}
 
 			// Bounds
-
-			bounds_stq := fmt.Sprintf("INSERT INTO %s (minx, miny, maxx, maxy, record_id) VALUES(?, ?, ?, ?, ?)", g.tableName("bounds"))
-			bounds_st, err := tx.Prepare(bounds_stq)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to prepare bounds statement, %w", err)
-				return
-			}
-
-			defer bounds_st.Close()
 
 			for _, b := range rec.Bounds {
 
@@ -327,16 +373,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			// Tokens
 
-			tok_stq := fmt.Sprintf("INSERT INTO %s (record_id, token, lang, tag) VALUES(?, ?, ?, ?)", g.tableName("tokens"))
-			tok_st, err := tx.Prepare(tok_stq)
-
-			if err != nil {
-				err_ch <- fmt.Errorf("Failed to prepare token statement, %w", err)
-				return
-			}
-
-			defer tok_st.Close()
-
 			for lang, tag_tokens := range rec.Tokens {
 
 				for tag, tokens := range tag_tokens {
@@ -358,42 +394,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			if rec.VectorEmbeddings != nil && len(rec.VectorEmbeddings) > 0 {
 
 				logger.Debug("Add vector embeddings", "count embeddings", len(rec.VectorEmbeddings))
-
-				emb_table := g.tableName("embeddings")
-
-				var vec_q string
-
-				switch g.vector_compression {
-				case geocoder_sql.SQLiteVecQuantizeCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_quantize_binary(?))", emb_table)
-				case geocoder_sql.SQLiteVecMatroyshkaCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (?, vec_normalize(vec_slice(?, 0, %d)))", emb_table, geocoder_sql.SQLiteMatroyshkaDimensions)
-				case geocoder_sql.SQLiteVecDefaultCompression:
-					vec_q = fmt.Sprintf("INSERT OR REPLACE INTO %s (rowid, embedding) VALUES (:id, vec_f32(:vector))", emb_table)
-				default:
-					err_ch <- fmt.Errorf("Invalid or unsupported compression, '%s'", g.vector_compression)
-					return
-				}
-
-				vec_st, err := tx.Prepare(vec_q)
-
-				if err != nil {
-					err_ch <- fmt.Errorf("Failed to prepare vector statement, %w", err)
-					return
-				}
-
-				defer vec_st.Close()
-
-				vrec_q := fmt.Sprintf("INSERT OR REPLACE INTO %s (id, record_id, model, language, tag) VALUES (?, ?, ?, ?, ?)", g.tableName("embeddings_records"))
-
-				vrec_st, err := tx.Prepare(vrec_q)
-
-				if err != nil {
-					err_ch <- fmt.Errorf("Failed to prepare vector record statement, %w", err)
-					return
-				}
-
-				defer vrec_st.Close()
 
 				del_q := fmt.Sprintf("DELETE FROM %s WHERE rowid = ?", emb_table)
 
