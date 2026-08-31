@@ -39,8 +39,8 @@ github.com/aaronland/go-http-maps/v2 v2.5.1 h1:9REVmHGlUTaoshi5Mo9XBae7gElGpHCWU
 github.com/aaronland/go-http-maps/v2 v2.5.1/go.mod h1:2iK8mL62rgujrLUa3Thq45G5z6eY6ym8OSNKfEvRiDQ=
 github.com/aaronland/go-http/v4 v4.1.0 h1:hvIioH3SPTt7C3xfcDuGUVsLSzZGf2hTiwUIVixwUf4=
 github.com/aaronland/go-http/v4 v4.1.0/go.mod h1:goDaryYnG3CKGw7vX0Sj38fiKRKyOhCd/p23N47y3qk=
-github.com/aaronland/go-json-query v0.2.1 h1:pRuET5z4u8NXPZZM1Rq4mDQa+4LNqFB0uy0JF2Tr1Yg=
-github.com/aaronland/go-json-query v0.2.1/go.mod h1:lSg911oEIxJp8SQYbpOAVmfzwuaH8tCGoJY5BYHq0wU=
+github.com/aaronland/go-json-query v0.3.0 h1:AMrh9bhmCRWkXs7FWiRdWxUPTUA7KtSWa6IUvcKrF8k=
+github.com/aaronland/go-json-query v0.3.0/go.mod h1:lSg911oEIxJp8SQYbpOAVmfzwuaH8tCGoJY5BYHq0wU=
 github.com/aaronland/go-pagination v0.3.0 h1:5YHm2ylZtWj40m+hyncrt4vaZxjZ5v6szi2F4OqkqO4=
 github.com/aaronland/go-pagination v0.3.0/go.mod h1:zrYVkUTBoe6yJ23l6OyTyfSpTyg6s/cNxZxNztXNQpQ=
 github.com/aaronland/go-roster v1.0.0 h1:FRDGrTqsYySKjWnAhbBGXyeGlI/o5/t9FZYCbUmyQtI=
@@ -284,8 +284,8 @@ github.com/whosonfirst/go-rfc-5646 v0.1.0 h1:HNFPAem6v5De61PXLgbGzx9tfNOP83AAkVv
 github.com/whosonfirst/go-rfc-5646 v0.1.0/go.mod h1:JZj//FV9YeV3fkyOY/82V53EMLQXwRwNPuQIGs8BUmo=
 github.com/whosonfirst/go-sanitize v0.1.0 h1:ygSqCnakwdzH/m8UEa15zXGDsoo5/JJeRkgmAjXZrBU=
 github.com/whosonfirst/go-sanitize v0.1.0/go.mod h1:p/emgbafMM0p5iVAz2XWwecYPl06Tw4Jos9rhTKIrt8=
-github.com/whosonfirst/go-whosonfirst/v4 v4.11.1 h1:qRLk+A0890SDh6GWv6bOKSxIDoHAerLA6yivMVk/3sw=
-github.com/whosonfirst/go-whosonfirst/v4 v4.11.1/go.mod h1:RILVgKrvcVR3dIKIec7pNDo+zwjQrFVGFtxvx11UUpI=
+github.com/whosonfirst/go-whosonfirst/v4 v4.11.2 h1:r6xjc2Z0UXS0+aCiPkpxzP0kUgj5XEC7y8bWd1aD4no=
+github.com/whosonfirst/go-whosonfirst/v4 v4.11.2/go.mod h1:JThdvqS2958WC2tlt8JcjWK75Necr5GgC/rRbnr0p8I=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=

@@ -15,6 +15,9 @@ const QUERYSET_MODE_ANY string = "ANY"
 // QUERYSET_MODE_ALL is a flag to signal that only all matches in a QuerySet needs to be successful.
 const QUERYSET_MODE_ALL string = "ALL"
 
+// LevelTrace is a custom `log/slog` level for very verbose and chatty logging of query events.
+const LevelTrace = slog.Level(-10)
+
 // QuerySet is a struct containing one or more Query instances and flags for how the results of those queries should be interpreted.
 type QuerySet struct {
 	// A set of Query instances
@@ -69,36 +72,36 @@ func Matches(ctx context.Context, qs *QuerySet, body []byte) (bool, error) {
 
 		if !rsp.Exists() {
 
-			logger.Debug("MISSING path")
+			logger.Log(ctx, LevelTrace, "MISSING path")
 
 			if mode == QUERYSET_MODE_ALL {
-				logger.Debug("Query mode is all, BREAK")
+				logger.Log(ctx, LevelTrace, "Query mode is all, BREAK")
 				break
 			}
 		}
 
 		for _, r := range rsp.Array() {
 
-			// logger.Debug("TEST candidate", "index", idx, "candidate", r.String())
+			// logger.Log(ctx, LevelTrace, "TEST candidate", "index", idx, "candidate", r.String())
 
 			if q.Match.MatchString(r.String()) {
 
-				logger.Debug("String MATCHES", "candidate", r.String())
+				logger.Log(ctx, LevelTrace, "String MATCHES", "candidate", r.String())
 
 				matches += 1
 
 				if mode == QUERYSET_MODE_ANY {
-					logger.Debug("Query mode is any, BREAK")
+					logger.Log(ctx, LevelTrace, "Query mode is any, BREAK")
 					break
 				}
 
 			} else {
-				logger.Debug("Match FAILED", "candidate", r.String())
+				logger.Log(ctx, LevelTrace, "Match FAILED", "candidate", r.String())
 			}
 		}
 
 		if mode == QUERYSET_MODE_ANY && matches > 0 {
-			logger.Debug("Matches is > 0 and query mode is any, BREAK")
+			logger.Log(ctx, LevelTrace, "Matches is > 0 and query mode is any, BREAK")
 			return true, nil
 		}
 	}
@@ -106,16 +109,16 @@ func Matches(ctx context.Context, qs *QuerySet, body []byte) (bool, error) {
 	if mode == QUERYSET_MODE_ALL {
 
 		if matches < tests {
-			logger.Debug("Return FALSE, query mode is all and matches < test", "tests", tests, "matches", matches)
+			logger.Log(ctx, LevelTrace, "Return FALSE, query mode is all and matches < test", "tests", tests, "matches", matches)
 			return false, nil
 		}
 	}
 
 	if matches == 0 {
-		logger.Debug("Return FALSE, matches is 0")
+		logger.Log(ctx, LevelTrace, "Return FALSE, matches is 0")
 		return false, nil
 	}
 
-	logger.Debug("Return TRUE")
+	logger.Log(ctx, LevelTrace, "Return TRUE")
 	return true, nil
 }

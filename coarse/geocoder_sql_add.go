@@ -178,8 +178,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	for record_i, rec := range records {
 
-		<-throttle
-
 		select {
 		case <-ctx.Done():
 			break
@@ -189,15 +187,19 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 		go func(rec *Record) {
 
+			<-throttle
+
 			logger := slog.Default()
-			logger = logger.With("counter", fmt.Sprintf("%d/%d", record_i, records_count))
+			logger = logger.With("counter", fmt.Sprintf("%d/%d", (record_i+1), records_count))
 			logger = logger.With("id", rec.Id)
+
+			logger.Debug("Process (add) record")
 
 			t2 := time.Now()
 
 			defer func() {
-				throttle <- true
 				done_ch <- true
+				throttle <- true
 				logger.Debug("Time to add record", "time", time.Since(t2))
 			}()
 
@@ -444,13 +446,14 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		}(rec)
 	}
 
-	remaining := len(records)
+	remaining := records_count
+	logger.Info("Processing records", "remaining", remaining)
 
 	for remaining > 0 {
 		select {
 		case <-done_ch:
 			remaining -= 1
-			logger.Debug("Bulk add", "remaining", remaining)
+			logger.Debug("Bulk record added", "remaining", remaining)
 		case err := <-err_ch:
 			return err
 		}
