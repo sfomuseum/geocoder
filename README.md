@@ -203,6 +203,7 @@ Valid data sources are anything the [whosonfirst/go-whosonfirst/v4/iterate](http
 
 That database, in turn, can be supplemented with SFO Museum specific Who's On First style data repositories. For example:
 
+```
 $> ./bin/wof-coarse-geocoder-index \
 	-geocoder-uri='sql://sqlite?dsn=work/wof-sfom.db' \
 	-iterator-uri repo:// \
