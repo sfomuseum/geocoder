@@ -137,7 +137,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	defer vrec_st.Close()
 
-	//
+	// Set up worker pool
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
@@ -148,7 +148,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		throttle <- true
 	}
 
-	//
+	// Calculate current max ID
 
 	g.identifier_mu.Lock()
 
@@ -169,7 +169,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	g.identifier_mu.Unlock()
 
-	//
+	// Start adding records
 
 	records_count := len(records)
 
@@ -267,7 +267,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 				return
 			}
 
-			// logger.Info("WTF")
 			// Placetypes (alt)
 
 			for _, pt := range rec.PlacetypeAlt {
@@ -455,6 +454,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			remaining -= 1
 			logger.Debug("Bulk record added", "remaining", remaining)
 		case err := <-err_ch:
+			logger.Error("Add record process failed", "error", err)
 			return err
 		}
 	}
