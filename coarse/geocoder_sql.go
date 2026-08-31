@@ -43,6 +43,11 @@ func init() {
 	snowflake_node = n
 }
 
+const DEFAULT_BULK_WORKERS int = 50
+const DEFAULT_BATCH_SIZE int = 1000
+const DEFAULT_VECTOR_K int = 50
+const DEFAULT_MIN_QUERY_LENGTH int = 2
+
 type SQLGeocoder struct {
 	Geocoder
 	db                 *db_sql.DB
@@ -61,8 +66,9 @@ type SQLGeocoder struct {
 }
 
 type NewSQLGeocoderOptions struct {
-	Database *db_sql.DB
-	VFS      *vfs.FS
+	Database    *db_sql.DB
+	VFS         *vfs.FS
+	BulkWorkers int
 }
 
 func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
@@ -73,12 +79,12 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 		return nil, fmt.Errorf("Failed to parse URI, %w", err)
 	}
 
+	q := u.Query()
+
 	vfs_enable := false
 
 	switch u.Host {
 	case "sqlite":
-
-		q := u.Query()
 
 		if q.Has("vfs-enable") {
 
@@ -204,8 +210,22 @@ func NewSQLGeocoder(ctx context.Context, uri string) (Geocoder, error) {
 		return nil, fmt.Errorf("Unsupported SQL driver, %s", driver)
 	}
 
+	bulk_workers := DEFAULT_BULK_WORKERS
+
+	if q.Has("bulk-workers") {
+
+		v, err := strconv.Atoi(q.Get("bulk-workers"))
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse ?bulk-workers=, %w", err)
+		}
+
+		bulk_workers = v
+	}
+
 	opts := &NewSQLGeocoderOptions{
-		Database: db,
+		Database:    db,
+		BulkWorkers: bulk_workers,
 	}
 
 	return NewSQLGeocoderWithOptions(ctx, opts)
@@ -227,8 +247,9 @@ func NewSQLGeocoderWithFS(ctx context.Context, db_fs fs.FS, db_name string) (Geo
 	}
 
 	opts := &NewSQLGeocoderOptions{
-		Database: db,
-		VFS:      vfs_fs,
+		Database:    db,
+		VFS:         vfs_fs,
+		BulkWorkers: DEFAULT_BULK_WORKERS,
 	}
 
 	return NewSQLGeocoderWithOptions(ctx, opts)
@@ -261,11 +282,11 @@ func NewSQLGeocoderWithOptions(ctx context.Context, opts *NewSQLGeocoderOptions)
 		vfs:                opts.VFS,
 		mu:                 mu,
 		vector_compression: geocoder_sql.SQLiteVecDefaultCompression,
-		vector_query_k:     50,
-		min_query_length:   2,
+		vector_query_k:     DEFAULT_VECTOR_K,
+		min_query_length:   DEFAULT_MIN_QUERY_LENGTH,
 		records:            make([]*Record, 0),
-		batch_size:         1000,
-		bulk_workers:       50,
+		batch_size:         DEFAULT_BATCH_SIZE,
+		bulk_workers:       opts.BulkWorkers,
 		identifier_cache:   identifier_cache,
 		identifier_counter: identifier_counter,
 		identifier_mu:      identifier_mu,
