@@ -194,8 +194,15 @@ func RunWithOptions(ctx context.Context, opts *Options) error {
 
 	logger.Info("Indexing complete", "seen", opts.Iterator.Seen(), "time", time.Since(t1), "average (ms)", avg_tti())
 
+	err = opts.Iterator.Close()
+
+	if err != nil {
+		logger.Error("Failed to close iterator", "error", err)
+	}
+
 	if opts.IndexJuggling {
 
+		logger.Info("Start post-indexing")
 		t2 := time.Now()
 
 		err = opts.Geocoder.PostIndex(ctx)
