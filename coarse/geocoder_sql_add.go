@@ -139,9 +139,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	//
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
 
@@ -176,19 +173,22 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	records_count := len(records)
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	
 	for record_i, rec := range records {
-
-		select {
-		case <-ctx.Done():
-			break
-		default:
-			// pass
-		}
 
 		go func(rec *Record) {
 
 			<-throttle
 
+			select {
+			case <-ctx.Done():
+				break
+			default:
+				// pass
+			}
+			
 			logger := slog.Default()
 			logger = logger.With("counter", fmt.Sprintf("%d/%d", (record_i+1), records_count))
 			logger = logger.With("id", rec.Id)
