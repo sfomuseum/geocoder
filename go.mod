@@ -20,8 +20,8 @@ require (
 	github.com/tidwall/gjson v1.19.0
 	github.com/whosonfirst/go-rfc-5646 v0.1.0
 	github.com/whosonfirst/go-whosonfirst/v4 v4.11.1
-	golang.org/x/text v0.40.0
-	modernc.org/sqlite v1.56.0
+	golang.org/x/text v0.39.0
+	modernc.org/sqlite v1.57.0
 )
 
 require (
