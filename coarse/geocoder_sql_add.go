@@ -100,7 +100,9 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	//
 
-	for _, rec := range records {
+	records_count := len(records)
+
+	for record_i, rec := range records {
 
 		<-throttle
 
@@ -114,6 +116,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		go func(rec *Record) {
 
 			logger := slog.Default()
+			logger = logger.With("counter", fmt.Sprintf("%d/%d", record_i, records_count))
 			logger = logger.With("id", rec.Id)
 
 			defer func() {
@@ -354,7 +357,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 			if rec.VectorEmbeddings != nil && len(rec.VectorEmbeddings) > 0 {
 
-				slog.Debug("Add vector embeddings", "id", rec.Id, "count", len(rec.VectorEmbeddings))
+				logger.Debug("Add vector embeddings", "count embeddings", len(rec.VectorEmbeddings))
 
 				emb_table := g.tableName("embeddings")
 
@@ -415,7 +418,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 						_, err = tx.ExecContext(ctx, del_q, vrec_id)
 
 						if err != nil {
-							logger.Error("NOPE vec delet", "q", del_q, "id", vrec_id, "error", err)
 							err_ch <- fmt.Errorf("Failed to delete row (%d) from mebeddings, %w", vrec_id, err)
 							return
 						}
@@ -423,7 +425,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 						_, err = vec_st.ExecContext(ctx, vec_q, db_sql.Named("id", vrec_id), db_sql.Named("vector", string(enc_e)))
 
 						if err != nil {
-							logger.Error("NOPE vec", "q", vec_q, "error", err)
 							err_ch <- fmt.Errorf("Failed to add embeddings, %w", err)
 							return
 						}
@@ -431,7 +432,6 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 						_, err = vrec_st.ExecContext(ctx, vrec_id, record_id, v.Model, e.Language, e.Tag)
 
 						if err != nil {
-							logger.Error("NOPE vec r", "error", err)
 							err_ch <- fmt.Errorf("Failed to add vector record row, %w", err)
 							return
 						}
@@ -450,7 +450,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 		select {
 		case <-done_ch:
 			remaining -= 1
-			// logger.Info("Bulk add", "remaining", remaining)
+			logger.Debug("Bulk add", "remaining", remaining)
 		case err := <-err_ch:
 			return err
 		}
