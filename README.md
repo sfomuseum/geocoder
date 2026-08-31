@@ -634,7 +634,7 @@ $> bin/wof-coarse-geocoder-index/main.go \
 	-embeddings-index \
 	-embedder-uri ollama:// \
 	-fresh \
-	-geocoder-uri 'sql://sqlite?dsn=us-vec384.db' \
+	-geocoder-uri 'sql://sqlite?dsn=us-vec384.db&bulk-workers=10' \
 	-iterator-uri parquet:// \
 	/usr/local/data/whosonfirst-parquet/whosonfirst-data-admin-us.parquet
 ```
@@ -650,6 +650,8 @@ Note that indexing with vector embeddings, even when embeddings for the same pla
 ```
 
 Some of this time can probably be accounted for by a slow hard drive and some as-yet implemented optimizations but the point is still the same: Databases with embeddings take longer to produce and are substantially larger in size.
+
+Note also the the `bulk-workers=10` parameter in the `-geocoder-uri` flag. This is lower than the default (50) and should be adjusted relative to the resource constraints of your system.
 
 #### Querying
 
