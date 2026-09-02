@@ -1,12 +1,11 @@
 /**
  * @namespace sfomuseum.geocoder.georeference
- * @description Display a modal dialog to query the sfomuseum/geocoder API, display the results
- * in a select menu and updating the map as the (select) menu is updated.
- * This does not update anything except the map in the modal dialog but returns
- * the currently selected place along with a user-defined label and closes the
- * dialog on confirmation. It may be tempting to try and reconcile/smush-up this code with the code
- * sfomuseum.geocoder.geotag.js but they are sufficiently different, desipte sharing quite a lof
- * of code, that it's not really worth it.
+ * @description Displays a modal dialog to query the sfomuseum/geocoder API,
+ *              display the results in a select menu and update the map as the
+ *              (select) menu is updated.  The dialog does not modify anything
+ *              except the map in the modal dialog; it returns the currently
+ *              selected place along with a user‑defined label and closes the
+ *              dialog on confirmation.
  */
 var sfomuseum = sfomuseum || {};
 sfomuseum.geocoder = sfomuseum.geocoder || {};
@@ -16,7 +15,11 @@ sfomuseum.geocoder.georeference = (function(){
     var geocode_func = sfomuseum.geocoder.query;
     
     var self = {
-	
+
+	/**
+         * Initialize the georeference dialog and attach it to the body.
+         * @param {function} on_select - Callback invoked when a place is selected.
+         */
 	init: function(on_select){
 
 	    const target = document.body;
@@ -25,19 +28,14 @@ sfomuseum.geocoder.georeference = (function(){
 	    self.initWithTarget(target, uid, on_select);
 	},
 
+	/**
+         * Initialize the georeference dialog and attach it to a custom target.
+         * @param {HTMLElement} target - The element to prepend the dialog to.
+         * @param {string} id - A unique identifier for the dialog.
+	 * @param {function} on_select - Callback invoked when a place is selected.
+         */
 	initWithTarget(target, id, on_select){
 	    
-	    // TBD: Options to customize the following:
-	    //
-	    // Tile layer(s)/function - currently defaults to OSM but from a UX
-	    // perspective it might be desireable to mirror other map layers.
-	    //
-	    // API endpoint/function - currently this is calling the SFO Museum API
-	    // (as expected) but it would be good to allow/default to the
-	    // default Geocoder API.
-	    //
-	    // Which is to say yes, but maybe not "top of the list" right now.
-	
 	    const dialog = self.renderDialog(id);
 	    target.prepend(dialog);	    
 
@@ -46,6 +44,11 @@ sfomuseum.geocoder.georeference = (function(){
 	    self.initForm(id, on_select);	    	    
 	},
 
+	/**
+         * Render a `<dialog>` element for the georeference UI.
+         * @param {string} id - Unique identifier used for element IDs.
+         * @returns {HTMLDialogElement} The constructed dialog element.
+         */
 	renderDialog: function(id) {
 	
 	    const dialog_id = "geocoder-new-dialog-" + id;
@@ -73,6 +76,10 @@ sfomuseum.geocoder.georeference = (function(){
 	    return dialog;
 	},
 
+	/**
+	 * Close and remove the dialog from the DOM.
+         * @param {string} id - Unique identifier of the dialog to close.
+         */
 	closeDialog: function(id){
 
 	    const dialog_id = "geocoder-new-dialog-" + id;
@@ -83,7 +90,12 @@ sfomuseum.geocoder.georeference = (function(){
 		dialog_el.parentNode.removeChild(dialog_el);
 	    }
 	},
-	
+
+	/**
+         * Render the form portion of the georeference dialog.
+         * @param {string} id - Unique identifier used for element IDs.
+         * @returns {HTMLFormElement} The constructed form element.
+         */
 	renderForm: function(id) {
 	    
 	    const form_id = "geocoder-new-form-" + id;
@@ -164,7 +176,12 @@ sfomuseum.geocoder.georeference = (function(){
 
 	    return form;
 	},
-	
+
+	/**
+         * Initialize the form controls and event handlers.
+         * @param {string} id - Unique identifier for the dialog.
+         * @param {function} on_select - Callback invoked when a place is selected.
+         */
 	initForm: function(id, on_select){
 
 	    const map_id = "geocoder-new-map-" + id;

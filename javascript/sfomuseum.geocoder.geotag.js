@@ -1,8 +1,3 @@
-// Display a modal dialog to query the sfomuseum/geocoder API, display the results
-// in a select menu and updating the map as the (select) menu is updated.
-// This does not update anything except the map in the modal dialog but returns
-// the currently selected place (in an "on_select") callback and closes the dialog
-// on confirmation.
 var sfomuseum = sfomuseum || {};
 sfomuseum.geocoder = sfomuseum.geocoder || {};
 
@@ -18,6 +13,12 @@ sfomuseum.geocoder.geotag = (function(){
     
     var self = {
 
+	/**
+         * Initialize the geotag dialog and attach it to a target.
+         * @param {HTMLElement} target - Element to prepend the dialog to.
+         * @param {string} id - Unique identifier for the dialog.
+         * @param {function} on_select - Callback invoked when a place is selected.
+         */
 	init: function(target, id, on_select){
 
 	    const dialog = self.renderDialog(id);
@@ -27,6 +28,11 @@ sfomuseum.geocoder.geotag = (function(){
 	    self.initForm(id, on_select);	    	    
 	},
 
+	/**
+         * Render a `<dialog>` element for the geotag UI.
+         * @param {string} id - Unique identifier used for element IDs.
+         * @returns {HTMLDialogElement} The constructed dialog element.
+         */
 	renderDialog: function(id) {
 	
 	    const dialog_id = "geocoder-new-dialog-" + id;
@@ -54,6 +60,10 @@ sfomuseum.geocoder.geotag = (function(){
 	    return dialog;
 	},
 
+	/**
+         * Close and remove the dialog from the DOM.
+         * @param {string} id - Unique identifier of the dialog to close.
+         */
 	closeDialog: function(id){
 
 	    const dialog_id = "geocoder-new-dialog-" + id;
@@ -64,7 +74,12 @@ sfomuseum.geocoder.geotag = (function(){
 		dialog_el.parentNode.removeChild(dialog_el);
 	    }
 	},
-	
+
+	/**
+         * Render the form portion of the geotag dialog.
+         * @param {string} id - Unique identifier used for element IDs.
+         * @returns {HTMLFormElement} The constructed form element.
+         */
 	renderForm: function(id) {
 	    
 	    const form_id = "geocoder-new-form-" + id;
@@ -130,7 +145,12 @@ sfomuseum.geocoder.geotag = (function(){
 
 	    return form;
 	},
-	
+
+	/**
+         * Initialize the form controls and event handlers for the geotag dialog.
+         * @param {string} id - Unique identifier for the dialog.
+         * @param {function} on_select - Callback invoked when a place is selected.
+         */
 	initForm: function(id, on_select){
 
 	    const map_id = "geocoder-new-map-" + id;

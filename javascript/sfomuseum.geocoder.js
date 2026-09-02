@@ -7,6 +7,11 @@ sfomuseum.geocoder = (function(){
     
     var self = {
 
+	/**
+         * Perform a geocoding query against the API.
+	 * @param {FormData} params - Query parameters.
+         * @returns {Promise<Object>} Resolves with the parsed JSON response.
+         */
 	query: function(params) {
 
 	    return new Promise ((resolve, reject) => {
@@ -29,15 +34,11 @@ sfomuseum.geocoder = (function(){
 	    });
 	},
 
-	queryFunc: function(custom_func) {
-
-	    if (custom_func){
-		return custom_func;
-	    }
-
-	    return self.query;
-	},
-	
+	/**
+         * Create a Leaflet map in a specified container.
+         * @param {string} map_id - ID of the container element.
+         * @returns {L.Map} The Leaflet map instance.
+         */
 	newMap: function(map_id) {
 
 	    const map_args = {};
@@ -52,7 +53,11 @@ sfomuseum.geocoder = (function(){
 	    map.setView(null_island, 1);
 	    return map;
 	},
-	
+
+	/**
+         * Override the default API endpoint.
+         * @param {string} url - Base URL for the geocoding API.
+         */
 	setEndpoint: function(url) {
 	    endpoint = url;
 	},

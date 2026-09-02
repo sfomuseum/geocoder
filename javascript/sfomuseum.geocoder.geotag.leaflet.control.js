@@ -6,13 +6,27 @@
         throw new Error('Leaflet must be included first');
     }
 
+    /**
+     * Leaflet control that opens the geotag dialog when clicked.
+     * @class
+     * @extends L.Control
+     * @param {Object} options
+     * @param {string} [options.position='topright'] - Control position.
+     * @param {function} [options.on_change] - Callback for change events.
+     * @param {function} [options.on_select] - Callback for select events.
+     */
     L.Control.Geocoder = L.Control.extend({
 	options: {
 	    position: 'topright',
 	    on_change: null,
 	    on_select: null,
 	},
-	
+
+	/**
+         * Called when the control is added to the map.
+         * @param {L.Map} map
+         * @returns {HTMLElement} Container element.
+         */
 	onAdd: function(map) {
 	    
             var container = L.DomUtil.create('div', 'leaflet-control-geocoder leaflet-bar leaflet-control');
