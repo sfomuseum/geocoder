@@ -1,4 +1,22 @@
 #map {
 	width:100%;
 	height: 80vh;
+	border: solid thin;
+}
+
+#place {
+	border: solid thin;
+	overflow: scroll;
+	height:80vh;
+}
+
+#place pre {
+
+}
+
+#geotag {
+	margin-top:1.5rem;
+	display: grid;
+	grid-template-columns:1fr 1fr;
+	gap: 50px 50px;
 }

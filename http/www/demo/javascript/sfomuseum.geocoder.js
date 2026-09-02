@@ -2,6 +2,7 @@ var sfomuseum = sfomuseum || {};
 
 sfomuseum.geocoder = (function(){
 
+    const null_island = [ 0.0, 0.0 ];    
     var endpoint = "http://localhost:8080";
     
     var self = {
@@ -37,13 +38,8 @@ sfomuseum.geocoder = (function(){
 	    return self.query;
 	},
 	
-	map: function(custom_map) {
+	newMap: function(map_id) {
 
-	    if (custom_map){
-		return custom_map;
-	    }
-
-	    const map_id = "map";
 	    const map_args = {};
 	    
 	    map = L.map(map_id, map_args);
@@ -53,6 +49,7 @@ sfomuseum.geocoder = (function(){
 		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 	    }).addTo(map);
 
+	    map.setView(null_island, 1);
 	    return map;
 	},
 	
