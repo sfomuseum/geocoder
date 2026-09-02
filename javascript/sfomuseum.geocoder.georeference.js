@@ -1,3 +1,10 @@
+var sfomuseum = sfomuseum || {};
+sfomuseum.geocoder = sfomuseum.geocoder || {};
+
+// It may be tempting to try and reconcile/smush-up this code with the code
+// sfomuseum.geocoder.geotag.js but they are sufficiently different,
+// desipte sharing quite a lof of code, that it's not really worth it.
+
 /**
  * @namespace sfomuseum.geocoder.georeference
  * @description Displays a modal dialog to query the sfomuseum/geocoder API,
@@ -7,9 +14,6 @@
  *              selected place along with a user‑defined label and closes the
  *              dialog on confirmation.
  */
-var sfomuseum = sfomuseum || {};
-sfomuseum.geocoder = sfomuseum.geocoder || {};
-
 sfomuseum.geocoder.georeference = (function(){
 
     var geocode_func = sfomuseum.geocoder.query;
@@ -326,7 +330,10 @@ sfomuseum.geocoder.georeference = (function(){
 		return false;
 	    };
 	},
-	
+
+	setGeocodeFunc: function(custom_func){
+	    geocode_func = custom_func;
+	},
     };
 
     return self;

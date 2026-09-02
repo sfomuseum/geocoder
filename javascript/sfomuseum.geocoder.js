@@ -1,5 +1,9 @@
 var sfomuseum = sfomuseum || {};
 
+/**
+ * @namespace sfomuseum.geocoder
+ * @description Methods for interacting with the sfomuseum/geocoder API,
+ */
 sfomuseum.geocoder = (function(){
 
     const null_island = [ 0.0, 0.0 ];    
@@ -43,7 +47,7 @@ sfomuseum.geocoder = (function(){
 
 	    const map_args = {};
 	    
-	    map = L.map(map_id, map_args);
+	    const map = L.map(map_id, map_args);
 	    
 	    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		maxZoom: 19,

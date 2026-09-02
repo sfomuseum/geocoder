@@ -5,6 +5,15 @@ sfomuseum.geocoder = sfomuseum.geocoder || {};
 // sfomuseum.geocoder.georeference.js but they are sufficiently different,
 // desipte sharing quite a lof of code, that it's not really worth it.
 
+/**
+ * @namespace sfomuseum.geocoder.geotag
+ * @description Displays a modal dialog to query the sfomuseum/geocoder API,
+ *              display the results in a select menu and update the map as the
+ *              (select) menu is updated.  The dialog does not modify anything
+ *              except the map in the modal dialog; it returns the currently
+ *              selected place as a GeoJSON Feature and closes the
+ *              dialog on confirmation.
+ */
 sfomuseum.geocoder.geotag = (function(){
 
     var _lookup = {};
@@ -14,12 +23,24 @@ sfomuseum.geocoder.geotag = (function(){
     var self = {
 
 	/**
+         * Initialize the geotag dialog and attach it to the body.
+         * @param {function} on_select - Callback invoked when a place is selected.
+         */	
+	init: function(on_select){
+
+	    const target = document.body;
+            const uid = Math.floor(Date.now() / 1000);
+
+	    self.initWithTarget(target, uid, on_select);
+	},
+	
+	/**
          * Initialize the geotag dialog and attach it to a target.
          * @param {HTMLElement} target - Element to prepend the dialog to.
          * @param {string} id - Unique identifier for the dialog.
          * @param {function} on_select - Callback invoked when a place is selected.
          */
-	init: function(target, id, on_select){
+	initWithTarget: function(target, id, on_select){
 
 	    const dialog = self.renderDialog(id);
 	    target.prepend(dialog);
@@ -27,7 +48,7 @@ sfomuseum.geocoder.geotag = (function(){
 	    
 	    self.initForm(id, on_select);	    	    
 	},
-
+	
 	/**
          * Render a `<dialog>` element for the geotag UI.
          * @param {string} id - Unique identifier used for element IDs.
@@ -306,7 +327,10 @@ sfomuseum.geocoder.geotag = (function(){
 		return false;
 	    };
 	},
-	
+
+	setGeocodeFunc: function(custom_func){
+	    geocode_func = custom_func;
+	},	
     };
 
     return self;

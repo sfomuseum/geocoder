@@ -65,15 +65,7 @@
             L.DomEvent.stopPropagation(e);
             L.DomEvent.preventDefault(e);
 
-	    const target = document.body;
-	    const uid = Math.floor(Date.now() / 1000);
-	    
-	    // As in sfomuseum.geocoder.dialog.js
-	    // TBD: Options to customize tile layers and
-	    // API endpoints. See notes in sfomuseum.geocoder.dialog.js
-	    // for details.
-	    
-	    sfomuseum.geocoder.geotag.init(target, uid, this.options.on_select);
+	    sfomuseum.geocoder.geotag.init(this.options.on_select);
 	},
     });
     
