@@ -1,39 +1,28 @@
-/**
- * @namespace sfomuseum.geocoder.georeference
- * @description Display a modal dialog to query the sfomuseum/geocoder API, display the results
- * in a select menu and updating the map as the (select) menu is updated.
- * This does not update anything except the map in the modal dialog but returns
- * the currently selected place along with a user-defined label and closes the
- * dialog on confirmation. It may be tempting to try and reconcile/smush-up this code with the code
- * sfomuseum.geocoder.geotag.js but they are sufficiently different, desipte sharing quite a lof
- * of code, that it's not really worth it.
- */
+// Display a modal dialog to query the sfomuseum/geocoder API, display the results
+// in a select menu and updating the map as the (select) menu is updated.
+// This does not update anything except the map in the modal dialog but returns
+// the currently selected place (in an "on_select") callback and closes the dialog
+// on confirmation.
 var sfomuseum = sfomuseum || {};
 sfomuseum.geocoder = sfomuseum.geocoder || {};
 
-sfomuseum.geocoder.georeference = (function(){
+// It may be tempting to try and reconcile/smush-up this code with the code
+// sfomuseum.geocoder.georeference.js but they are sufficiently different,
+// desipte sharing quite a lof of code, that it's not really worth it.
 
+sfomuseum.geocoder.geotag = (function(){
+
+    var _lookup = {};
+    
     var self = {
-	
-	init: function(target, id, on_select){
 
-	    // TBD: Options to customize the following:
-	    //
-	    // Tile layer(s)/function - currently defaults to OSM but from a UX
-	    // perspective it might be desireable to mirror other map layers.
-	    //
-	    // API endpoint/function - currently this is calling the SFO Museum API
-	    // (as expected) but it would be good to allow/default to the
-	    // default Geocoder API.
-	    //
-	    // Which is to say yes, but maybe not "top of the list" right now.
-	
+	init: function(target, id, on_select, custom_map){
+
 	    const dialog = self.renderDialog(id);
-	    target.prepend(dialog);	    
-
+	    target.prepend(dialog);
 	    dialog.show();
 	    
-	    self.initForm(id, on_select);	    	    
+	    self.initForm(id, on_select, custom_map);	    	    
 	},
 
 	renderDialog: function(id) {
@@ -78,7 +67,6 @@ sfomuseum.geocoder.georeference = (function(){
 	    
 	    const form_id = "geocoder-new-form-" + id;
 	    const map_id = "geocoder-new-map-" + id;
-	    const label_id = "geocoder-new-label-" + id;	    	    
 	    const search_id = "geocoder-new-search-" + id;
 	    const candidates_id = "geocoder-new-candidates-" + id;
 	    const status_id = "geocoder-new-candidates-status" + id;
@@ -92,18 +80,6 @@ sfomuseum.geocoder.georeference = (function(){
 	    map_div.setAttribute("id", map_id);
 	    map_div.setAttribute("class", "map");
 	    map_div.setAttribute("style", "width: 100%; height: 200px; border:solid thin;");
-
-	    const label_label = document.createElement("label");
-	    label_label.setAttribute("for", label_id);
-	    label_label.setAttribute("class", "form-label");
-	    label_label.appendChild(document.createTextNode("Georeference label"));
-
-	    const label_input = document.createElement("input");
-	    label_input.setAttribute("id", label_id);
-	    label_input.setAttribute("type", "text");
-	    label_input.setAttribute("class", "form-control");	    
-	    label_input.setAttribute("value", "");
-	    label_input.setAttribute("geocoder", "Add a label for this georeference");
 	    
 	    const search_label = document.createElement("label");
 	    search_label.setAttribute("for", search_id);
@@ -141,11 +117,9 @@ sfomuseum.geocoder.georeference = (function(){
 	    submit_button.setAttribute("class", "btn btn-primary geocoder-dialog-add");
 	    // To do: Add code to toggle this on/off depending on label, place values
 	    // submit_button.setAttribute("disabled", "disabled");
-	    submit_button.appendChild(document.createTextNode("Add"));
+	    submit_button.appendChild(document.createTextNode("Select"));
 	    
 	    form.appendChild(map_div);
-	    form.appendChild(label_label);
-	    form.appendChild(label_input);
 	    form.appendChild(search_label);
 	    form.appendChild(search_input);
 	    form.appendChild(candidates_label);
@@ -155,7 +129,7 @@ sfomuseum.geocoder.georeference = (function(){
 	    return form;
 	},
 	
-	initForm: function(id, on_select){
+	initForm: function(id, on_select, custom_map){
 
 	    const map_id = "geocoder-new-map-" + id;
 	    const search_id = "geocoder-new-search-" + id;
@@ -170,15 +144,11 @@ sfomuseum.geocoder.georeference = (function(){
 	    const candidates_el = document.getElementById(candidates_id);
 	    const status_el = document.getElementById(status_id);
 	    const submit_el = document.getElementById(submit_id);	    	    
+
+	    const map = sfomuseum.geocoder.map(custom_map);
 	    
-	    const map = sfomuseum.maps.leaflet.createSFOMuseumMap(map_el);
-	    var popup;
-	    
-	    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		maxZoom: 19,
-		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	    }).addTo(map);
-	    
+	    const popup;
+	    	    	    
 	    search_el.onchange = function(e){
 		
 		const el = e.target;
@@ -191,31 +161,24 @@ sfomuseum.geocoder.georeference = (function(){
 		if (popup){
 		    popup.removeFrom(map);
 		}
-
-		status_el.innerText = "searching...";
-
-		var geocoder_uri;	// FIX ME
+		
+		const geocode_args = {
+		    query: q,
+		};
+		
+		status_el.innerText = "searching...";	
 		
 		const geocoder_params = new FormData();
 		geocoder_params.set("query": q);
 		
-		const geocode_args = {
-		    method: "POST",
-		    body: geocoder_params,
-		};	
-		
-		fetch(geocoder_uri, geocoder_args).then((rsp) => {
-
-		    // Check status code...
-			
-			return rsp.json();
+		sfomuseum.geocoder.query(geocode_params).then((rsp) => {
 		    
-		}).then((rsp) => 
-
-		    // API returns GeoJSON FeatureCollection
+		    // API returns GeoJSON FeatureCollection		    
 		    const places = rsp.results.features;
+		    const count = places.length;
 		    
 		    status_el.innerHTML = "";
+		    _lookup = {};
 		    
 		    const opt = document.createElement("option");
 		    opt.setAttribute("value", "-1");
@@ -235,10 +198,12 @@ sfomuseum.geocoder.georeference = (function(){
 			break;		
 		    }
 		    
-		    for (var i=0; i < count; i++){
+		    for (const i=0; i < count; i++){
 			
 			const pl = places[i];
 			const props = pl.properties;
+			_lookup[props["geocoder:id"]] = pl;
+			
 			const label = props["geocoder:label"];
 			
 			const opt = document.createElement("option");
@@ -282,7 +247,11 @@ sfomuseum.geocoder.georeference = (function(){
 		    };
 		    
 		}).catch((err) => {
+
 		    console.error("Failed to geocode text", err);
+		    
+		    status_el.innerHTML = "";
+		    status_el.innerText = "There was a problem executing the geocoding request, " + err;				    
 		});
 	    };
 
@@ -292,26 +261,24 @@ sfomuseum.geocoder.georeference = (function(){
 
 		try {
 		    
-		    const label = label_el.value;
-		    const place_id = candidates_el.value;
-
-		    // Check values here...
-		    
 		    if (! on_select){
 			_self.closeDialog();
 			return false;
 		    }
 
-		    // Pass in a feedback function?
+		    const place_id = candidates_el.value;
+		    const place = _lookup[place_id];
 		    
-		    on_select(label, place_id).then((rsp) => {
+		    // Check values here...
+		    
+		    on_select(place).then((rsp) => {
 			_self.closeDialog(id);
 		    }).catch((err) => {
-			console.error("Failed to add georeference, on_select callback error", err);
+			console.error("Failed to process geocoding, on_select callback error", err);
 		    });
 		    
 		} catch (err) {
-		    console.log("Failed to add georeference", err);
+		    console.log("Failed to complete", err);
 		}
 		
 		return false;
