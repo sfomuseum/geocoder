@@ -3,6 +3,10 @@ CWD=$(shell pwd)
 GOMOD=$(shell test -f "go.work" && echo "readonly" || echo "vendor")
 LDFLAGS=-s -w
 
+# https://github.com/tdewolff/minify/tree/master/cmd/minify
+# go install github.com/tdewolff/minify/v2/cmd/minify@latest
+MINIFY=$(shell which minify)
+
 ALLOW_QUERY_EMBEDDINGS=false
 
 vuln:
@@ -20,6 +24,24 @@ wasmjs:
 		go build -mod $(GOMOD) -ldflags="$(LDFLAGS)" -tags wasmjs \
 		-o work/geocoder-query.wasm \
 		cmd/wof-coarse-geocoder-query-wasm/main.go
+
+dist-all:
+	@make dist-js
+	@make dist-css
+	cp dist/sfomuseum.geocoder.bundle.min.js http/www/demo/javascript/sfomuseum.geocoder.bundle.min.js
+	cp dist/sfomuseum.geocoder.bundle.min.css http/www/demo/css/sfomuseum.geocoder.bundle.min.css
+
+dist-js:
+	$(MINIFY) -b -o dist/sfomuseum.geocoder.bundle.min.js \
+		javascript/sfomuseum.geocoder.js \
+		javascript/sfomuseum.geocoder.georeference.js \
+		javascript/sfomuseum.geocoder.geotag.js \
+		javascript/sfomuseum.geocoder.geotag.leaflet.control.js
+
+dist-css:
+	$(MINIFY) -b -o dist/sfomuseum.geocoder.bundle.min.css \
+		javascript/sfomuseum.geocoder.dialog.css \
+		javascript/sfomuseum.geocoder.georeference.css
 
 lambda:
 	@make lambda-server-fs
