@@ -187,9 +187,25 @@ sfomuseum.geocoder.geotag = (function(){
 		};
 		
 		status_el.innerText = "searching...";	
-		
-		sfomuseum.api.do("GET", "sfomuseum.geo.geocode", geocode_args).then((rsp) => {
 
+		var geocoder_uri;	// FIX ME
+		
+		const geocoder_params = new FormData();
+		geocoder_params.set("query": q);
+		
+		const geocode_args = {
+		    method: "POST",
+		    body: geocoder_params,
+		};	
+		
+		fetch(geocoder_uri, geocoder_args).then((rsp) => {
+
+		    // Check status code...
+			
+		    return rsp.json();
+		    
+		}).then((rsp) => {
+		    
 		    // API returns GeoJSON FeatureCollection		    
 		    var places = rsp.results.features;
 		    var count = places.length;

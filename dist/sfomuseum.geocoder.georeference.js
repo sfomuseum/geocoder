@@ -191,18 +191,29 @@ sfomuseum.geocoder.georeference = (function(){
 		if (popup){
 		    popup.removeFrom(map);
 		}
+
+		status_el.innerText = "searching...";
+
+		var geocoder_uri;	// FIX ME
+		
+		const geocoder_params = new FormData();
+		geocoder_params.set("query": q);
 		
 		const geocode_args = {
-		    query: q,
-		};
+		    method: "POST",
+		    body: geocoder_params,
+		};	
 		
-		status_el.innerText = "searching...";	
-		
-		sfomuseum.api.do("GET", "sfomuseum.geo.geocode", geocode_args).then((rsp) => {
+		fetch(geocoder_uri, geocoder_args).then((rsp) => {
+
+		    // Check status code...
+			
+			return rsp.json();
+		    
+		}).then((rsp) => 
 
 		    // API returns GeoJSON FeatureCollection
 		    const places = rsp.results.features;
-		    const count = places.length;
 		    
 		    status_el.innerHTML = "";
 		    
