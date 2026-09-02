@@ -13,16 +13,18 @@ sfomuseum.geocoder = sfomuseum.geocoder || {};
 sfomuseum.geocoder.geotag = (function(){
 
     var _lookup = {};
+
+    var geocode_func = sfomuseum.geocoder.query;
     
     var self = {
 
-	init: function(target, id, on_select, custom_map){
+	init: function(target, id, on_select){
 
 	    const dialog = self.renderDialog(id);
 	    target.prepend(dialog);
 	    dialog.show();
 	    
-	    self.initForm(id, on_select, custom_map);	    	    
+	    self.initForm(id, on_select);	    	    
 	},
 
 	renderDialog: function(id) {
@@ -129,7 +131,7 @@ sfomuseum.geocoder.geotag = (function(){
 	    return form;
 	},
 	
-	initForm: function(id, on_select, custom_map){
+	initForm: function(id, on_select){
 
 	    const map_id = "geocoder-new-map-" + id;
 	    const search_id = "geocoder-new-search-" + id;
@@ -145,9 +147,9 @@ sfomuseum.geocoder.geotag = (function(){
 	    const status_el = document.getElementById(status_id);
 	    const submit_el = document.getElementById(submit_id);	    	    
 
-	    const map = sfomuseum.geocoder.map(custom_map);
-	    
-	    const popup;
+	    const map = sfomuseum.geocoder.newMap(map_id);
+
+	    var popup;
 	    	    	    
 	    search_el.onchange = function(e){
 		
@@ -168,10 +170,10 @@ sfomuseum.geocoder.geotag = (function(){
 		
 		status_el.innerText = "searching...";	
 		
-		const geocoder_params = new FormData();
-		geocoder_params.set("query": q);
+		const geocode_params = new FormData();
+		geocode_params.set("query", q);
 		
-		sfomuseum.geocoder.query(geocode_params).then((rsp) => {
+		geocode_func(geocode_params).then((rsp) => {
 		    
 		    // API returns GeoJSON FeatureCollection		    
 		    const places = rsp.results.features;
@@ -198,7 +200,7 @@ sfomuseum.geocoder.geotag = (function(){
 			break;		
 		    }
 		    
-		    for (const i=0; i < count; i++){
+		    for (var i=0; i < count; i++){
 			
 			const pl = places[i];
 			const props = pl.properties;

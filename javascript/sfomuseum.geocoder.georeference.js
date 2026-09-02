@@ -13,10 +13,20 @@ sfomuseum.geocoder = sfomuseum.geocoder || {};
 
 sfomuseum.geocoder.georeference = (function(){
 
+    var geocode_func = sfomuseum.geocoder.query;
+    
     var self = {
 	
-	init: function(target, id, on_select){
+	init: function(on_select){
 
+	    const target = document.body;
+            const uid = Math.floor(Date.now() / 1000);
+
+	    self.initWithTarget(target, uid, on_select);
+	},
+
+	initWithTarget(target, id, on_select){
+	    
 	    // TBD: Options to customize the following:
 	    //
 	    // Tile layer(s)/function - currently defaults to OSM but from a UX
@@ -170,14 +180,9 @@ sfomuseum.geocoder.georeference = (function(){
 	    const candidates_el = document.getElementById(candidates_id);
 	    const status_el = document.getElementById(status_id);
 	    const submit_el = document.getElementById(submit_id);	    	    
-	    
-	    const map = sfomuseum.maps.leaflet.createSFOMuseumMap(map_el);
+
+	    const map = sfomuseum.geocoder.newMap(map_id);
 	    var popup;
-	    
-	    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		maxZoom: 19,
-		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	    }).addTo(map);
 	    
 	    search_el.onchange = function(e){
 		
@@ -194,12 +199,13 @@ sfomuseum.geocoder.georeference = (function(){
 
 		status_el.innerText = "searching...";
 
-		const geocoder_params = new FormData();
-		geocoder_params.set("query": q);
+		const geocode_params = new FormData();
+		geocode_params.set("query", q);
 		
-		sfomuseum.geocoder.query(geocode_params).then((rsp) => {
+		geocode_func(geocode_params).then((rsp) => {
 		    
 		    const places = rsp.results.features;
+		    const count = places.length;
 		    
 		    status_el.innerHTML = "";
 		    
