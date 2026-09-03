@@ -18,7 +18,7 @@ sfomuseum.geocoder.geotag = (function(){
 
     var _lookup = {};
 
-    var geocode_func = sfomuseum.geocoder.query;
+    var query_func = sfomuseum.geocoder.query;
     
     var self = {
 
@@ -214,7 +214,7 @@ sfomuseum.geocoder.geotag = (function(){
 		const geocode_params = new FormData();
 		geocode_params.set("query", q);
 		
-		geocode_func(geocode_params).then((rsp) => {
+		query_func(geocode_params).then((rsp) => {
 		    
 		    // API returns GeoJSON FeatureCollection		    
 		    const places = rsp.results.features;
@@ -328,8 +328,8 @@ sfomuseum.geocoder.geotag = (function(){
 	    };
 	},
 
-	setGeocodeFunc: function(custom_func){
-	    geocode_func = custom_func;
+	setQueryFunc: function(custom_func){
+	    query_func = custom_func;
 	},	
     };
 

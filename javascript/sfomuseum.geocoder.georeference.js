@@ -16,7 +16,7 @@ sfomuseum.geocoder = sfomuseum.geocoder || {};
  */
 sfomuseum.geocoder.georeference = (function(){
 
-    var geocode_func = sfomuseum.geocoder.query;
+    var query_func = sfomuseum.geocoder.query;
     
     var self = {
 
@@ -223,7 +223,7 @@ sfomuseum.geocoder.georeference = (function(){
 		const geocode_params = new FormData();
 		geocode_params.set("query", q);
 		
-		geocode_func(geocode_params).then((rsp) => {
+		query_func(geocode_params).then((rsp) => {
 		    
 		    const places = rsp.results.features;
 		    const count = places.length;
@@ -331,8 +331,8 @@ sfomuseum.geocoder.georeference = (function(){
 	    };
 	},
 
-	setGeocodeFunc: function(custom_func){
-	    geocode_func = custom_func;
+	setQueryFunc: function(custom_func){
+	    query_func = custom_func;
 	},
     };
 

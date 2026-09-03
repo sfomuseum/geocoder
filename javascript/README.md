@@ -10,6 +10,7 @@ The sfomuseum.geocoder package bundles several small, reusable components that l
 * `L.control.geocoder` – a Leaflet control that opens the geotag dialog when clicked.
 
 Bundled an minified version of these packages, and their corresponding CSS files, are available in the [dist](../dist) folder.
+
 ## Using the `sfomuseum.geocoder` package
 
 ```
