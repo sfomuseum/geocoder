@@ -229,7 +229,7 @@ When you click the "Select" button the modal dialog will close and the original 
 
 Both the `sfomuseum.geocoder.geotag` and `sfomuseum.geocoder.georeference` packages export a `setQueryFunc` method. This allows you to override the default `sfomuseum.geocoder.query` function will call the API endpoint exposed by the `wof-coarse-geocoder-server` application. This can be useful if you need to wrap, or gate, access to the query API. For example if the geocoder functionality is only made available through a custom API.
 
-Custom query functions are passed a `FormData` instance containing query information are expected to return a new JavaScript `Promise` which resolves to a GeoJSON `FeatureCollection` whose members (individual `Feature` elements) have the [expected properties](#). In this way, you can use the geotag and georeference modal dialogs with custom infrastructure entirely unrelated to the `sfomuseum/geocoder` package. That's your business. For example:
+Custom query functions are passed a `FormData` instance containing query information are expected to return a new JavaScript `Promise` which resolves to a GeoJSON `FeatureCollection` whose members (individual `Feature` elements) have the [expected properties](../README.md#responses). In this way, you can use the geotag and georeference modal dialogs with custom infrastructure entirely unrelated to the `sfomuseum/geocoder` package. That's your business. For example:
 
 ```
 const custom_func(params) {
