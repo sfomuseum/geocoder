@@ -9,6 +9,7 @@ The sfomuseum.geocoder package bundles several small, reusable components that l
 * `sfomuseum.geocoder.geotag` – open a modal dialog that only lets you pick a place (no label).
 * `L.control.geocoder` – a Leaflet control that opens the geotag dialog when clicked.
 
+Bundled an minified version of these packages, and their corresponding CSS files, are available in the [dist](../dist) folder.
 ## Using the `sfomuseum.geocoder` package
 
 ```
@@ -91,7 +92,23 @@ sfomuseum.geocoder.query(query_params).then((rsp) => {
 </html>
 ```
 
-For a detailed example consult [http/www/demo/georeference.html](../http/www/demo/georeference.html). To see a live version [start the `wof-coarse-geocoder-server` with "demo" mode enabled](../README.md#wof-coarse-geocoder-server) and visit `http://localhost:8080/georeference.html` in your web browser.
+For a detailed example consult [http/www/demo/georeference.html](../http/www/demo/georeference.html). To see a live version [start the `wof-coarse-geocoder-server` with "demo" mode enabled](../README.md#wof-coarse-geocoder-server) and visit `http://localhost:8080/georeference.html` in your web browser. Here are some screenshots of that application:
+
+![](docs/images/sfomuseum-geocoder-js-georeference.png)
+
+Basic launch page with a button for adding a new georeference.
+
+![](docs/images/sfomuseum-geocoder-js-georeference-choose-1.png)
+
+...
+
+![](docs/images/sfomuseum-geocoder-js-georeference-choose-2.png)
+
+...
+
+![](docs/images/sfomuseum-geocoder-js-georeference-choose-3.png)
+
+...
 
 ## Using the `sfomuseum.geocoder.geotag` package
 
@@ -173,4 +190,28 @@ For a detailed example consult [http/www/demo/georeference.html](../http/www/dem
 </html>
 ```
 
-For a detailed example consult [http/www/demo/geotag.html](../http/www/demo/geotag.html). html). To see a live version [start the `wof-coarse-geocoder-server` with "demo" mode enabled](../README.md#wof-coarse-geocoder-server) and visit `http://localhost:8080/geotag.html` in your web browser.
+For a detailed example consult [http/www/demo/geotag.html](../http/www/demo/geotag.html). html). To see a live version [start the `wof-coarse-geocoder-server` with "demo" mode enabled](../README.md#wof-coarse-geocoder-server) and visit `http://localhost:8080/geotag.html` in your web browser. Here are some screenshots of that application:
+
+![](docs/images/sfomuseum-geocoder-js-geotag-leaflet-control.png)
+
+...in the top right-hand corner.
+
+![](docs/images/sfomuseum-geocoder-js-geotag-leaflet-modal.png)
+
+...
+
+![](docs/images/sfomuseum-geocoder-js-geotag-select.png)
+
+...
+
+![](docs/images/sfomuseum-geocoder-js-geotag-choose-1.png)
+
+...
+
+![](docs/images/sfomuseum-geocoder-js-geotag-choose-2.png)
+
+...
+
+![](docs/images/sfomuseum-geocoder-js-geotag-choose-3.png)
+
+...
