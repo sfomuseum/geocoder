@@ -13,8 +13,8 @@ Bundled an minified version of these packages, and their corresponding CSS files
 ## Using the `sfomuseum.geocoder` package
 
 ```
-<script src="/path/to/sfomuseum.geocoder.bundle.min.js"></script>
-<script>
+<script type="text/javascript" src="/path/to/sfomuseum.geocoder.bundle.min.js"></script>
+<script type="text/javascript">
 
 const params = new FormData();
 params.set("query", "boston");
@@ -33,8 +33,8 @@ For a complete list of query parameters, consult the detailed [API documentation
 The default geocoder API endpoint is `http://localhost:8080`. To configure a custom endpoint use the `setEndpoint` method:
 
 ```
-<script src="/path/to/sfomuseum.geocoder.bundle.min.js"></script>
-<script>
+<script type="text/javascript" src="/path/to/sfomuseum.geocoder.bundle.min.js"></script>
+<script type="text/javascript">
 
 sfomuseum.geocoder.setEndpoint("https://api.sfomuseum.org");
 
@@ -68,9 +68,9 @@ sfomuseum.geocoder.query(query_params).then((rsp) => {
 
 <div id="map"></div>
 
-<script src="/path/to/leaflet.js"></script>
-<script src="/path/to/sfomuseum.geocoder.bundle.min.js"></script>
-<script>
+<script type="text/javascript" src="/path/to/leaflet.js"></script>
+<script type="text/javascript" src="/path/to/sfomuseum.geocoder.bundle.min.js"></script>
+<script type="text/javascript">
 
   const map = sfomuseum.geocoder.newMap('map');
   // Add tile layer, set map view here...
@@ -100,9 +100,7 @@ The application launches with a single button for adding a new georeference.
 
 ![](../docs/images/sfomuseum-geocoder-js-georeference-choose-1.png)
 
-Clicking the button will open a modal dialog where you can enter a label and a query term for a place name.
-
-Entering a name will trigger a call to the `sfomuseum.geocoder.query` method. Results will be written to the select menu below the query input.
+Clicking the button will open a modal dialog where you can enter a label and a query term for a place name. Entering a name will trigger a call to the `sfomuseum.geocoder.query` method. Results will be written to the select menu below the query input.
 
 ![](../docs/images/sfomuseum-geocoder-js-georeference-choose-2.png)
 
@@ -132,9 +130,9 @@ Multiple georeferenced locations may be added.
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="path/to/sfomuseum.geocoder.bundle.min.js"></script>
-<script>
+<script type="text/javascript" src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="text/javascript" src="path/to/sfomuseum.geocoder.bundle.min.js"></script>
+<script type="text/javascript">
 
   const map = L.Map("map");
   // Add tile layer, set map view here...
@@ -174,9 +172,9 @@ Multiple georeferenced locations may be added.
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="path/to/sfomuseum.geocoder.bundle.min.js"></script>
-<script>
+<script type="text/javascript" src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script type="text/javascript" src="path/to/sfomuseum.geocoder.bundle.min.js"></script>
+<script type="text/javascript">
 
   const map = L.Map("map");
   // Add tile layer, set map view here...
