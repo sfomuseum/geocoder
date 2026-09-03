@@ -31,6 +31,10 @@ sfomuseum.geocoder.query(query_params).then((rsp) => {
 
 For a complete list of query parameters, consult the detailed [API documentation](../README.md#apiquery).
 
+### Advanced
+
+#### sfomuseum.geocoder.setEndpoint
+
 The default geocoder API endpoint is `http://localhost:8080`. To configure a custom endpoint use the `setEndpoint` method:
 
 ```
@@ -218,3 +222,38 @@ When a place is selected the map (in the modal control) will zoom to that place 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-choose-3.png)
 
 When you click the "Select" button the modal dialog will close and the original map will zoom to the selected place.
+
+## Advanced usage
+
+### Setting a custom geocoder query function
+
+Both the `sfomuseum.geocoder.geotag` and `sfomuseum.geocoder.georeference` packages export a `setQueryFunc` method. This allows you to override the default `sfomuseum.geocoder.query` function will call the API endpoint exposed by the `wof-coarse-geocoder-server` application. This can be useful if you need to wrap, or gate, access to the query API. For example if the geocoder functionality is only made available through a custom API.
+
+Custom query functions are passed a `FormData` instance containing query information are expected to return a new JavaScript `Promise` which resolves to a GeoJSON `FeatureCollection`. In this way, you can use the geotag and georeference modal dialogs with custom infrastructure entirely unrelated to the `sfomuseum/geocoder` package. That's your business. For example:
+
+```
+const custom_func(params) {
+
+      return new Promise((resolve, reject) => {
+
+      	     try {
+	     	   const rsp = your_custom_code_here(params);
+		   resolve(rsp);
+	     } catch (err) {
+	     	   reject(err);
+	     }
+      }
+};
+
+sfomuseum.geocoder.georeference.setQueryFunc(custom_func);
+
+sfomuseum.geocoder.georeference.init((label, place_id) => {
+     console.log("label", label, "place ID", place_id);
+     return Promise.resolve();
+});
+```
+
+## Things these packages don't do yet
+
+* It is not possible to configure `L.Map` objects (or map tiles) in the modal dialogs yet.
+* The modal dialogs do not expose the full range of available parameters which may be passed to the query API yet.

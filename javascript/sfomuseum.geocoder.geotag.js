@@ -219,8 +219,10 @@ sfomuseum.geocoder.geotag = (function(){
 		    // API returns GeoJSON FeatureCollection		    
 		    const places = rsp.results.features;
 		    const count = places.length;
-		    
+
+		    candidates_el.innerHTML = '';
 		    status_el.innerHTML = "";
+		    
 		    _lookup = {};
 		    
 		    const opt = document.createElement("option");
@@ -328,6 +330,14 @@ sfomuseum.geocoder.geotag = (function(){
 	    };
 	},
 
+	/**
+	 * Set a custom query function for geocoding requests.
+	 *
+	 * @param {function} custom_func - A function that accepts a `FormData` object and
+	 *                                 returns a `Promise` resolving to the geocoding
+	 *                                 response (the same shape expected by the
+	 *                                 default `query` function).
+	 */
 	setQueryFunc: function(custom_func){
 	    query_func = custom_func;
 	},	
