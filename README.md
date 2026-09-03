@@ -534,13 +534,13 @@ $> curl -X POST \
 
 Geocoding query responses are returned as GeoJSON `FeatureCollection`. Each feature will have the following properties:
 
-| Property | Type | Description | Typical Example |
-|---|---|---|---|---|
+| Property | Type | Description | Example |
+|---|---|---|---|
 | **`geocoder:id`** | string | A machine‑tag style unique identifier for the place. | `"wof:id=1947304447"` or `"tgn:id=1015480"` |
 | **`geocoder:label`** | string | The fully‑qualified, human‑readable label (e.g. “San Francisco International Airport, San Francisco, California, US”). | May be omitted if the record has no label. |
 | **`geocoder:name`** | string | The primary name of the place. | `"San Francisco International Airport"` |
 | **`geocoder:parent_id`** | integer | The integer id of the immediate parent (if any). | `85922583` (or `null` for top‑level). |
-| **`geocoder:rank`** | number | A relevance score produced by the internal ranking algorithm (higher = more relevant). | `-13.013866678659102` |
+| **`geocoder:rank`** | number | A relevance score produced by the internal ranking algorithm. | `-13.013866678659102` |
 | **`geocoder:hierarchies`** | array of objects | One or more hierarchies mapping placetype identifiers to ancestor ids. Each key is of the form `<placetype>_id` (e.g. `country_id`). | `[{ "continent_id":"wof:id=...","country_id":"wof:id=..." }]` |
 | **`wof:country`** | string | 2‑letter ISO‑3166‑1 country code. | `"US"`, `"CA"`, … |
 | **`wof:placetype`** | string | The primary Who’s On First placetype. | `"campus"`, `"city"`, `"river"`, … |
