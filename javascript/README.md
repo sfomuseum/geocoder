@@ -96,19 +96,23 @@ For a detailed example consult [http/www/demo/georeference.html](../http/www/dem
 
 ![](../docs/images/sfomuseum-geocoder-js-georeference.png)
 
-Basic launch page with a button for adding a new georeference.
+The application launches with a single button for adding a new georeference.
 
 ![](../docs/images/sfomuseum-geocoder-js-georeference-choose-1.png)
 
-...
+Clicking the button will open a modal dialog where you can enter a label and a query term for a place name.
+
+Entering a name will trigger a call to the `sfomuseum.geocoder.query` method. Results will be written to the select menu below the query input.
 
 ![](../docs/images/sfomuseum-geocoder-js-georeference-choose-2.png)
 
-...
+When a place is selected the map (in the modal control) will zoom to that place and show its label.
 
 ![](../docs/images/sfomuseum-geocoder-js-georeference-choose-3.png)
 
-...
+When you click the "Select" button the modal dialog will close and the label and identifier for the place selected will be written to a table.
+
+Multiple georeferenced locations may be added.
 
 ## Using the `sfomuseum.geocoder.geotag` package
 
@@ -202,16 +206,16 @@ Clicking the control will open a modal dialog where you can enter a query term f
 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-choose-1.png)
 
-Entering a name will trigger a call to the `sfomuseum.geocoder.query` method. Results will be written to the select menu below the query input.
+Entering a name will trigger a call to the `sfomuseum.geocoder.query` method.
 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-select.png)
 
-When a place is selected the map (in the modal control) will zoom to that place and show its label.
+Results will be written to the select menu below the query input.
 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-choose-2.png)
 
-When you click the "Select" button the modal dialog will close and the original map will zoom to the selected place.
+When a place is selected the map (in the modal control) will zoom to that place and show its label.
 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-choose-3.png)
 
-...
+When you click the "Select" button the modal dialog will close and the original map will zoom to the selected place.
