@@ -1,0 +1,30 @@
+/* Classes */
+
+.georeference-container {
+    margin-left: 2rem;
+    padding:1rem;
+    padding-top:2rem;
+}
+
+.georeference-container .georeference-btn-save {
+    float:right;
+}
+
+.georeference-target {
+    border-top:solid thin;
+    margin-bottom:1rem;
+    min-height:50px;
+}
+
+.georeference-target label {
+    font-weight:700;
+}
+
+.georeference-target .georeference-btn-add {
+    float:right;
+}
+
+.georeference-btn-remove {
+    color: red !important;
+    background-color: transparent !important;
+}
