@@ -94,19 +94,19 @@ sfomuseum.geocoder.query(query_params).then((rsp) => {
 
 For a detailed example consult [http/www/demo/georeference.html](../http/www/demo/georeference.html). To see a live version [start the `wof-coarse-geocoder-server` with "demo" mode enabled](../README.md#wof-coarse-geocoder-server) and visit `http://localhost:8080/georeference.html` in your web browser. Here are some screenshots of that application:
 
-![](docs/images/sfomuseum-geocoder-js-georeference.png)
+![](../docs/images/sfomuseum-geocoder-js-georeference.png)
 
 Basic launch page with a button for adding a new georeference.
 
-![](docs/images/sfomuseum-geocoder-js-georeference-choose-1.png)
+![](../docs/images/sfomuseum-geocoder-js-georeference-choose-1.png)
 
 ...
 
-![](docs/images/sfomuseum-geocoder-js-georeference-choose-2.png)
+![](../docs/images/sfomuseum-geocoder-js-georeference-choose-2.png)
 
 ...
 
-![](docs/images/sfomuseum-geocoder-js-georeference-choose-3.png)
+![](../docs/images/sfomuseum-geocoder-js-georeference-choose-3.png)
 
 ...
 
@@ -192,26 +192,26 @@ Basic launch page with a button for adding a new georeference.
 
 For a detailed example consult [http/www/demo/geotag.html](../http/www/demo/geotag.html). html). To see a live version [start the `wof-coarse-geocoder-server` with "demo" mode enabled](../README.md#wof-coarse-geocoder-server) and visit `http://localhost:8080/geotag.html` in your web browser. Here are some screenshots of that application:
 
-![](docs/images/sfomuseum-geocoder-js-geotag-leaflet-control.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-leaflet-control.png)
 
 ...in the top right-hand corner.
 
-![](docs/images/sfomuseum-geocoder-js-geotag-leaflet-modal.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-leaflet-modal.png)
 
 ...
 
-![](docs/images/sfomuseum-geocoder-js-geotag-select.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-select.png)
 
 ...
 
-![](docs/images/sfomuseum-geocoder-js-geotag-choose-1.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-choose-1.png)
 
 ...
 
-![](docs/images/sfomuseum-geocoder-js-geotag-choose-2.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-choose-2.png)
 
 ...
 
-![](docs/images/sfomuseum-geocoder-js-geotag-choose-3.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-choose-3.png)
 
 ...
