@@ -196,13 +196,13 @@ For a detailed example consult [http/www/demo/geotag.html](../http/www/demo/geot
 
 The application launches showing a basic map with the geocoder "control" in the top right-hand corner.
 
-![](../docs/images/sfomuseum-geocoder-js-geotag-leaflet-modal.png)
+![](../docs/images/sfomuseum-geocoder-js-geotag-modal.png)
 
 Clicking the control will open a modal dialog where you can enter a query term for a place name.
 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-choose-1.png)
 
-This will trigger a call to the `sfomuseum.geocoder.query` method. Results will be written to the select menu below the query input.
+Entering a name will trigger a call to the `sfomuseum.geocoder.query` method. Results will be written to the select menu below the query input.
 
 ![](../docs/images/sfomuseum-geocoder-js-geotag-select.png)
 
