@@ -58,6 +58,12 @@ github.com/aaronland/go-roster
 github.com/aaronland/gocloud/blob/bucket
 github.com/aaronland/gocloud/blob/s3
 github.com/aaronland/gocloud/runtimevar
+# github.com/adrg/strutil v0.3.1
+## explicit; go 1.14
+github.com/adrg/strutil/internal/mathutil
+github.com/adrg/strutil/internal/ngram
+github.com/adrg/strutil/internal/stringutil
+github.com/adrg/strutil/metrics
 # github.com/akrylysov/algnhsa v1.1.0
 ## explicit; go 1.18
 github.com/akrylysov/algnhsa
@@ -442,6 +448,8 @@ github.com/paulmach/orb
 github.com/paulmach/orb/encoding/internal/wkbcommon
 github.com/paulmach/orb/encoding/wkb
 github.com/paulmach/orb/geojson
+github.com/paulmach/orb/internal/length
+github.com/paulmach/orb/planar
 # github.com/pierrec/lz4/v4 v4.1.21
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4

@@ -8,9 +8,11 @@ require (
 	github.com/aaronland/go-json-query v0.3.0
 	github.com/aaronland/go-pagination v0.3.0
 	github.com/aaronland/go-roster v1.0.0
+	github.com/adrg/strutil v0.3.1
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/netascode/xmldot v0.5.1
+	github.com/parquet-go/parquet-go v0.32.0
 	github.com/paulmach/orb v0.13.0
 	github.com/sfomuseum/go-csvdict/v2 v2.0.1
 	github.com/sfomuseum/go-database v0.0.21
@@ -82,7 +84,6 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/parquet-go/bitpack v1.0.0 // indirect
 	github.com/parquet-go/jsonlite v1.0.0 // indirect
-	github.com/parquet-go/parquet-go v0.32.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
