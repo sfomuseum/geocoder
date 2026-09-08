@@ -16,30 +16,30 @@ func MergeCommonHierarchies(hiers []map[string]int64) map[string]int64 {
 // same value.  It is generic over the ID type T, which must satisfy the
 // Id constraint (int64 or string).
 func MergeCommonHierarchiesGeneric[T Id](hierarchies []map[string]T) map[string]T {
-	
+
 	if len(hierarchies) == 0 {
 		return nil
 	}
 
 	// Keep only the keys that appear in *every* map and that have the same value.
-	
+
 	merged := make(map[string]T)
-	
+
 	for k, v := range hierarchies[0] {
-		
+
 		common := true
-		
+
 		for _, h := range hierarchies[1:] {
 			if val, ok := h[k]; !ok || val != v {
 				common = false
 				break
 			}
 		}
-		
+
 		if common {
 			merged[k] = v
 		}
 	}
-	
+
 	return merged
 }

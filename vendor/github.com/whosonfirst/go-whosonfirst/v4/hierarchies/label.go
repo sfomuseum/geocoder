@@ -50,19 +50,19 @@ func AncestorIdsForLabel(opts *AncestorIdsForLabelOptions) []int64 {
 // selects the appropriate hierarchy map, and collects the ancestor
 // IDs in order from the nearest ancestor to the farthest.
 func AncestorIdsForLabelGeneric[T Id](opts *AncestorIdsForLabelOptionsGeneric[T]) []T {
-	
+
 	name_ids := make([]T, 0)
 
 	// “continent”, “empire” and “country” are leaf nodes – they have no
 	// ancestors to return, so we simply return an empty list
-	
+
 	switch opts.Placetype {
 	case "continent", "empire", "country":
 		// nothing to do
 	default:
 
 		var lineage []string
-		
+
 		switch opts.Placetype {
 		case "macroregion", "region":
 			lineage = []string{"country"}
@@ -89,7 +89,7 @@ func AncestorIdsForLabelGeneric[T Id](opts *AncestorIdsForLabelOptionsGeneric[T]
 		case "enclosure":
 			lineage = []string{"arcade", "concourse", "wing", "campus", "country"}
 		case "marinearea":
-			lineage = []string{ "country" }
+			lineage = []string{"country"}
 		default:
 			slog.Debug("Unsupported placetype", "placetype", opts.Placetype)
 		}
@@ -104,14 +104,14 @@ func AncestorIdsForLabelGeneric[T Id](opts *AncestorIdsForLabelOptionsGeneric[T]
 		default:
 
 			for _, h := range opts.Hierarchies {
-				
+
 				for _, hid := range h {
 					if hid == opts.ParentId {
 						use_hier = h
 						break
 					}
 				}
-				
+
 				if use_hier != nil {
 					break
 				}
@@ -124,18 +124,18 @@ func AncestorIdsForLabelGeneric[T Id](opts *AncestorIdsForLabelOptionsGeneric[T]
 		}
 
 		if use_hier == nil {
-			
+
 			slog.Warn("Failed to determine principal (or merged) hierarchy, falling back to the first one")
-			
+
 			if len(opts.Hierarchies) > 0 {
 				use_hier = opts.Hierarchies[0]
 			}
 		}
 
 		for _, pt := range lineage {
-			
+
 			k := fmt.Sprintf("%s_id", pt)
-			
+
 			id, exists := use_hier[k]
 
 			if exists {
