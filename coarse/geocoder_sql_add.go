@@ -175,7 +175,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	
+
 	for record_i, rec := range records {
 
 		go func(rec *Record) {
@@ -188,7 +188,7 @@ func (g *SQLGeocoder) addRecords(ctx context.Context, records ...*Record) error 
 			default:
 				// pass
 			}
-			
+
 			logger := slog.Default()
 			logger = logger.With("counter", fmt.Sprintf("%d/%d", (record_i+1), records_count))
 			logger = logger.With("id", rec.Id)
