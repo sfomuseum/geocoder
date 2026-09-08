@@ -48,6 +48,12 @@ window.addEventListener("load", function load(event){
 	});
 
     };
+
+    const u = new URL(location);
+    u.pathname = u.pathname.replace("/georeference.html", "");
+    
+    const geocoder_uri = u.toString();
+    sfomuseum.geocoder.setEndpoint(geocoder_uri);
     
     submit_el.onclick = function(){
 
