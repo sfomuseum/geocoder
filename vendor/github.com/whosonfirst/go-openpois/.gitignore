@@ -1,8 +1,6 @@
 *~
-bin
-work
 go.work*
-*.db
-*.zip
+work
+bin
 main
 *.parquet
