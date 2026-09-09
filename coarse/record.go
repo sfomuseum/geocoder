@@ -71,7 +71,7 @@ type Record struct {
 	// Inception is the EDTF representation of the start date of the place.
 	Inception string `json:"edtf:inception,omitempty"`
 	// Cessation is the EDTF representation of the end date of the place.
-	Cessation string `json:"etdf:cessation,omitempty"`
+	Cessation string `json:"edtf:cessation,omitempty"`
 	// PopulationRank is an integer that indicates relative population size.
 	PopulationRank int64 `json:"wof:population_rank,omitempty"`
 	// IsCurrent indicates whether the place is current (1), not current (0)
