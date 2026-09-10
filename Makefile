@@ -9,6 +9,9 @@ MINIFY=$(shell which minify)
 
 ALLOW_QUERY_EMBEDDINGS=false
 
+vulnup:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+
 vuln:
 	govulncheck -show verbose ./...
 
